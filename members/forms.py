@@ -164,16 +164,19 @@ class MemberForm(StyledModelForm):
         if office_id:
             schools = schools.filter(zonal_office_id=office_id)
         self.fields["school"].queryset = schools
-        self.fields["school"].empty_label = "Select a school"
+        self.fields["school"].empty_label = "Select a department"
         self.fields["school"].help_text = (
-            "Search by school name or code. District and zonal office narrow the list. "
-            "Selecting a school fills its location automatically."
+            "Type a department name or code in the combo. District and zonal office narrow the list. "
+            "Selecting a department fills its location automatically."
         )
-        self.fields["school"].error_messages["required"] = "Select a school."
+        self.fields["school"].error_messages["required"] = "Select a department."
         self.fields["lager"].error_messages["required"] = "Select a lager."
         self.fields["district"].empty_label = "Select a district"
         self.fields["full_name"].widget.attrs["autocomplete"] = "name"
         self.fields["phone_mobile"].widget.attrs["autocomplete"] = "tel"
+        self.fields["phone_office"].help_text = (
+            "Enter the member's office number, separate from the zonal office number."
+        )
         self.fields["nic_no"].help_text = "12 digits, or 9 digits followed by V / X."
         self.fields["computer_no"].help_text = "Optional. Must be unique when provided."
 

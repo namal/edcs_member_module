@@ -146,6 +146,8 @@ class School(models.Model):
     is_active = models.BooleanField(default=True)
 
     class Meta:
+        verbose_name = "department"
+        verbose_name_plural = "departments"
         ordering = ["district__name", "zonal_office__name", "name"]
 
     def __str__(self):
@@ -186,7 +188,7 @@ class School(models.Model):
                 and any(previous[field] != getattr(self, field) for field in previous)
             ):
                 errors["district"] = (
-                    "This school has registered members. Its location cannot be changed."
+                    "This department has registered members. Its location cannot be changed."
                 )
         if errors:
             raise ValidationError(errors)
@@ -259,7 +261,11 @@ class Member(models.Model):
         null=True,
     )
     school = models.ForeignKey(
-        School, on_delete=models.PROTECT, related_name="members", null=True
+        School,
+        verbose_name="Department",
+        on_delete=models.PROTECT,
+        related_name="members",
+        null=True,
     )
     member_no = models.CharField("Member number", max_length=30, unique=True)
     computer_no = models.CharField(
@@ -370,13 +376,13 @@ class Member(models.Model):
                 )
             ):
                 errors["school"] = (
-                    "Choose a school matching the selected district, zonal office and subdivision."
+                    "Choose a department matching the selected district, zonal office and subdivision."
                 )
             if not self.school.is_active and (
                 not self.pk
                 or type(self).objects.get(pk=self.pk).school_id != self.school_id
             ):
-                errors["school"] = "Choose an active school."
+                errors["school"] = "Choose an active department."
         if not self.office_address.strip():
             errors["office_address"] = "Enter the office address."
         if self.admit_date and self.admit_date > timezone.localdate():

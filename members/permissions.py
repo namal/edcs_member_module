@@ -9,7 +9,7 @@ MODULES = (
     (District, "Districts", "districts", "district", "pin"),
     (OfficeLocation, "Zonal offices", "offices", "office", "building"),
     (Subdivision, "Subdivisions", "subdivisions", "subdivision", "building"),
-    (School, "Schools", "schools", "school", "building"),
+    (School, "Departments", "schools", "school", "building"),
     (Lager, "Lagers", "lagers", "lager", "building"),
 )
 ACTIONS = ("view", "add", "change", "delete")

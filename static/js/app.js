@@ -54,7 +54,7 @@
     input.id = `${select.id}_combo`;
     input.type = 'text';
     input.className = 'field-input school-combo-input';
-    input.placeholder = 'Type or select a school…';
+    input.placeholder = 'Type or select a department…';
     input.autocomplete = 'off';
     input.required = select.required;
     input.setAttribute('role', 'combobox');
@@ -69,7 +69,7 @@
     list.id = `${select.id}_options`;
     list.className = 'school-combo-options';
     list.setAttribute('role', 'listbox');
-    list.setAttribute('aria-label', 'Schools');
+    list.setAttribute('aria-label', 'Departments');
     list.hidden = true;
     input.setAttribute('aria-controls', list.id);
     const toggle = document.createElement('button');
@@ -77,7 +77,7 @@
     toggle.className = 'school-combo-toggle';
     toggle.tabIndex = -1;
     toggle.textContent = '▾';
-    toggle.setAttribute('aria-label', 'Show schools');
+    toggle.setAttribute('aria-label', 'Show departments');
     toggle.setAttribute('aria-controls', list.id);
     const status = document.createElement('span');
     status.className = 'sr-only';
@@ -95,7 +95,7 @@
     let active = -1;
     const validate = () => {
       input.setCustomValidity(
-        input.value && !select.value ? 'Select a school from the dropdown.' : '',
+        input.value && !select.value ? 'Select a department from the dropdown.' : '',
       );
     };
     const close = () => {
@@ -147,10 +147,10 @@
         const empty = document.createElement('div');
         empty.className = 'school-combo-empty';
         empty.textContent =
-          'No matching schools. Change the text, district or zonal office.';
+          'No matching departments. Change the text, district or zonal office.';
         list.append(empty);
       }
-      status.textContent = `${matches.length} school${matches.length === 1 ? '' : 's'} available.`;
+      status.textContent = `${matches.length} department${matches.length === 1 ? '' : 's'} available.`;
       highlight(
         matches.length
           ? Math.max(
@@ -256,7 +256,7 @@
       fillOptions(
         school,
         rows,
-        rows.length ? 'Select a school' : 'No matching schools',
+        rows.length ? 'Select a department' : 'No matching departments',
         selected,
       );
       schoolCombo.refresh();
@@ -275,13 +275,15 @@
       fillOptions(
         lager,
         lagers,
-        district.value ? 'Select a lager' : 'Select a school or district first',
+        district.value ? 'Select a lager' : 'Select a department or district first',
         selection.lager,
       );
       fillOptions(
         office,
         locations.offices || [],
-        district.value ? 'Select a zonal office' : 'Select a school or district first',
+        district.value
+          ? 'Select a zonal office'
+          : 'Select a department or district first',
         selection.office,
       );
       updateSubdivisions(selection.subdivision);
@@ -371,10 +373,10 @@
       } catch (error) {
         if (pending !== controller || error.name === 'AbortError') return false;
         say(
-          'Locations could not be loaded. Check your connection and select the school or district again.',
+          'Locations could not be loaded. Check your connection and select the department or district again.',
         );
         office.setCustomValidity(
-          'Select the school or district again to load its locations.',
+          'Select the department or district again to load its locations.',
         );
         return false;
       } finally {
@@ -399,7 +401,6 @@
         (item) => String(item.id) === office.value,
       );
       autofill(form.querySelector('#id_office_address'), row?.address);
-      autofill(form.querySelector('#id_phone_office'), row?.phone);
     });
     subdivision?.addEventListener('change', () => {
       const selectedSchool = schools.find((row) => String(row.id) === school?.value);
@@ -434,7 +435,6 @@
         form.querySelector('#id_office_address'),
         row.address || row.office_address,
       );
-      autofill(form.querySelector('#id_phone_office'), row.phone);
     });
     form.addEventListener('submit', (event) => {
       if (loading) {

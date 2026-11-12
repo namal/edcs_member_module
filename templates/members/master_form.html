@@ -69,15 +69,15 @@
       <h3 class="text-sm font-semibold text-brand-700">Keep your records connected</h3>
       <p class="mt-3 text-xs leading-6 text-brand-700">
         {% if section == 'districts' %}
-          Keep both the full province name and its short name for each district, along with a unique district name and code. Add zonal offices and schools under the appropriate district.
+          Keep both the full province name and its short name for each district, along with a unique district name and code. Add zonal offices and departments under the appropriate district.
         {% elif section == 'subdivisions' %}
           Choose a district and zonal office for each subdivision. Subdivision selection is optional when registering a member.
         {% elif section == 'lagers' %}
           Each lager belongs to one district and can have many registered members. Its code is unique. A lager with registered members stays in its district.
         {% elif section == 'schools' %}
-          Each school belongs to a district and zonal office, with an optional subdivision. Its selection label includes the full location.
+          Each department belongs to a district and zonal office, with an optional subdivision. Its selection label includes the full location.
         {% else %}
-          Every zonal office belongs to a district and can have many subdivisions. Records with linked members, subdivisions or schools stay connected to their district.
+          Every zonal office belongs to a district and can have many subdivisions. Records with linked members, subdivisions or departments stay connected to their district.
         {% endif %}
       </p>
       <p class="mt-4 text-xs leading-6 text-brand-700">

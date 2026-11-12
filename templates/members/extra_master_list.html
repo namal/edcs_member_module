@@ -7,7 +7,7 @@
       <h1 class="page-title">
         {{ title }}<span class="text-brand-600">.</span>
       </h1>
-      <p class="muted mt-2">{{ filtered_count }} matching {{ section }} · {{ record_count }} total</p>
+      <p class="muted mt-2">{{ filtered_count }} matching {{ title|lower }} · {{ record_count }} total</p>
     </div>
     {% if can_add %}
       <a href="{% url create_url %}{% if request.GET.district %}?district={{ request.GET.district|urlencode }}{% endif %}"
@@ -144,7 +144,7 @@
       </div>
     {% else %}
       <div class="empty-state">
-        <h3 class="font-semibold text-slate-700">No matching {{ section }}</h3>
+        <h3 class="font-semibold text-slate-700">No matching {{ title|lower }}</h3>
         <p class="muted mt-2">Add a {{ singular|lower }} or adjust the filters.</p>
       </div>
     {% endif %}

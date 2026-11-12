@@ -632,8 +632,39 @@ class MemberWorkflowTests(TestCase):
         )
         self.assertEqual(row["Province"], self.district.province)
         self.assertEqual(row["Subdivision"], "")
-        self.assertEqual(row["School"], str(school))
+        self.assertEqual(row["Department"], str(school))
         self.assertEqual(row["Province Short Name"], self.district.province_short_name)
+
+    def test_department_labels_in_registration_master_data_and_permissions(self):
+        response = self.client.get(reverse("member_create"))
+        self.assertEqual(response.context["form"].fields["school"].label, "Department")
+        self.assertContains(response, "Department dropdown")
+        self.assertIn(
+            "Departments",
+            [module["label"] for module in response.context["master_modules"]],
+        )
+        response = self.client.get(reverse("school_list"))
+        self.assertEqual(response.context["title"], "Departments")
+        self.assertEqual(response.context["singular"], "Department")
+        response = self.client.get(reverse("school_create"))
+        self.assertEqual(response.context["title"], "Add department")
+        for action in ("add", "change", "delete", "view"):
+            permission = Permission.objects.get(
+                content_type__app_label="members", codename=f"{action}_school"
+            )
+            self.assertEqual(permission.name, f"Can {action} department")
+
+    def test_member_office_phone_remains_optional_and_is_entered_manually(self):
+        self.office.phone = "0112345678"
+        self.office.save()
+        form = MemberForm(initial={"district": self.district.pk})
+        self.assertFalse(form.fields["phone_office"].required)
+        self.assertFalse(form["phone_office"].value())
+        member = self.create_member(phone_office="")
+        self.assertEqual(member.phone_office, "")
+        form = MemberForm(self.payload(phone_office="0115558899"), instance=member)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().phone_office, "0115558899")
 
     def make_lager(self, **overrides):
         data = {"district": self.district, "name": "Central Lager", "code": "LAG-001"}

@@ -350,7 +350,7 @@ def member_export(request):
             "Status",
             "Province",
             "Subdivision",
-            "School",
+            "Department",
             "Lager Code",
             "Lager",
             "Province Short Name",
@@ -592,7 +592,7 @@ def location_options(request):
 EXTRA_MASTERS = {
     "lagers": (Lager, LagerForm, "Lager", "lager"),
     "subdivisions": (Subdivision, SubdivisionForm, "Subdivision", "subdivision"),
-    "schools": (School, SchoolForm, "School", "school"),
+    "schools": (School, SchoolForm, "Department", "school"),
 }
 
 
@@ -623,7 +623,7 @@ def extra_master_list(request, kind):
         queryset = queryset.filter(zonal_office_id=office)
     context = {
         "section": kind,
-        "title": kind.capitalize(),
+        "title": str(model._meta.verbose_name_plural).capitalize(),
         "singular": singular,
         "list_url": f"{prefix}_list",
         "create_url": f"{prefix}_create",
