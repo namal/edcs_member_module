@@ -18,6 +18,18 @@
       <p class="muted mt-2">Everything you need to know, thoughtfully organized.</p>
     </div>
     <div class="no-print flex gap-2">
+      {% if member_payment_plan %}
+        {% if perms.members.view_paymentplan %}
+          <a class="btn btn-secondary"
+             href="{% url 'payment_plan_detail' member_payment_plan.pk %}">Payment plan</a>
+        {% elif perms.members.change_paymentplan %}
+          <a class="btn btn-secondary"
+             href="{% url 'payment_plan_edit' member_payment_plan.pk %}">Edit payment plan</a>
+        {% endif %}
+      {% elif perms.members.add_paymentplan %}
+        <a class="btn btn-secondary"
+           href="{% url 'payment_plan_create' %}?member={{ member.pk }}">Set payment plan</a>
+      {% endif %}
       <button class="btn btn-secondary" type="button" id="print-profile">
         <svg class="icon h-4 w-4">
           <use href="#i-print" />

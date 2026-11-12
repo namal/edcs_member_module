@@ -75,6 +75,16 @@
             </a>
           {% endif %}
         {% endwith %}
+        {% if payment_module.visible %}
+          <a class="nav-link {% if section == 'payment_plans' %}active{% endif %}"
+             href="{% url payment_module.url %}"
+             {% if section == 'payment_plans' %}aria-current="page"{% endif %}>
+            <svg class="icon">
+              <use href="#i-wallet" />
+            </svg>
+            Payment Plan
+          </a>
+        {% endif %}
         {% if has_master_access %}
           <p class="nav-caption mt-7">Master data</p>
           {% for module in master_modules %}
@@ -200,6 +210,12 @@
             </button>
           </div>
         {% endfor %}
+        {% if not request.user.is_superuser and not has_district_access %}
+          <p class="alert border-accent-100 bg-accent-50 text-accent-700"
+             role="status">
+            No districts are assigned to your account. Ask an administrator to assign districts before working with district records.
+          </p>
+        {% endif %}
         {% block content %}{% endblock %}
         <footer class="mt-9 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/70 pt-5 text-[10px] text-slate-500">
           <span>© {% now 'Y' %} EDCS · Education Co-operative Society</span><span class="flex items-center gap-1.5">

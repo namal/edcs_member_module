@@ -2,10 +2,27 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 from django.db.models import Count
-from .models import District, Lager, Member, OfficeLocation, School, Subdivision
+from .models import (
+    District,
+    Lager,
+    Member,
+    OfficeLocation,
+    PaymentPlan,
+    PaymentPlanAmount,
+    PaymentType,
+    School,
+    Subdivision,
+)
 from .notifications import notify_user_created
 
 admin.site.unregister(get_user_model())
+
+
+class DistrictAccessInline(admin.TabularInline):
+    model = District.authorized_users.through
+    extra = 0
+    verbose_name = "assigned district"
+    verbose_name_plural = "assigned districts"
 
 
 @admin.register(get_user_model())
@@ -13,6 +30,9 @@ class WorkspaceUserAdmin(UserAdmin):
     add_fieldsets = UserAdmin.add_fieldsets + (
         ("Contact details", {"fields": ("first_name", "last_name", "email")}),
     )
+
+    def get_inlines(self, request, obj=None):
+        return [DistrictAccessInline] if obj is not None else []
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
@@ -22,6 +42,7 @@ class WorkspaceUserAdmin(UserAdmin):
 
 @admin.register(District)
 class DistrictAdmin(admin.ModelAdmin):
+    exclude = ["authorized_users"]
     list_display = ["name", "code", "province", "province_short_name", "is_active"]
     search_fields = ["name", "code", "province", "province_short_name"]
     list_filter = ["is_active", "province"]
@@ -91,3 +112,24 @@ class LagerAdmin(admin.ModelAdmin):
     @admin.display(description="Registered members", ordering="registered_member_count")
     def member_count(self, obj):
         return obj.registered_member_count
+
+
+@admin.register(PaymentType)
+class PaymentTypeAdmin(admin.ModelAdmin):
+    list_display = ["name", "sort_order", "is_active"]
+    list_filter = ["is_active"]
+    search_fields = ["name"]
+
+
+class PaymentPlanAmountInline(admin.TabularInline):
+    model = PaymentPlanAmount
+    extra = 0
+
+
+@admin.register(PaymentPlan)
+class PaymentPlanAdmin(admin.ModelAdmin):
+    list_display = ["member", "agreement_date", "monthly_total"]
+    list_select_related = ["member"]
+    search_fields = ["member__member_no", "member__full_name"]
+    autocomplete_fields = ["member"]
+    inlines = [PaymentPlanAmountInline]

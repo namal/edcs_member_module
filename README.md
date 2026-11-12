@@ -17,9 +17,15 @@ Open **http://127.0.0.1:8000/**. Sign in with the initial administrator credenti
 
 Only active superusers can open the control center, **Users & access**, and **Roles & permissions**. Staff status alone does not grant workspace access. Existing users, passwords and assigned permissions are retained.
 
-In **Users & access**, create or edit accounts, reset passwords, activate/deactivate users, assign roles, and select direct permissions. Each of the six modules has independent **View**, **Add**, **Edit** and **Delete** checkboxes. Edit uses Django's `change` permission. Server checks apply to both page visits and submitted requests; unavailable navigation and actions are hidden. Registration users can use location lookups without gaining access to master-data management. Member viewing also includes the dashboard, CSV export and profile printing.
+In **Users & access**, create or edit accounts, reset passwords, activate/deactivate users, assign roles, select districts, and select direct permissions. Each module has independent **View**, **Add**, **Edit** and **Delete** checkboxes, including Payment Plan. Edit uses Django's `change` permission. Server checks apply to both page visits and submitted requests; unavailable navigation and actions are hidden. Registration users can use location lookups without gaining access to master-data management. Member viewing also includes the dashboard, CSV export and profile printing.
 
-For the `edcs` account, keep only **Members → View** and **Members → Add** selected, with no additional grants from roles. This allows member browsing and registration while blocking editing, deletion, master modules and administration. Its existing assignment already matches these two permissions.
+District assignments restrict the records a user can work with. An administrator can select one or many districts in the user's **District access** section. For example, Colombo with **Members → View, Add, Edit and Delete** allows those actions only on Colombo records. Selecting Colombo and Kandy extends the same module actions to both districts. Roles and direct permissions grant actions; they never expand the assigned districts. With no districts assigned, an ordinary user has no district record access. Assign districts to existing non-administrator accounts after applying the district access migration; none are assigned automatically.
+
+District restrictions cover members, districts, zonal offices, subdivisions, departments, lagers and member payment plans, including forms, embedded dropdown data, searches, dashboard totals, CSV exports and location lookups. Out-of-district record URLs and forged submissions cannot bypass the restriction. Assignment changes take effect on the next request in an existing session.
+
+Active superusers have all actions in every district, including future districts, without assignments. Only administrators can create new districts or change the shared Payment Types master. Advanced Django administration at `/admin/django/` is also reserved for administrators, preventing staff accounts from bypassing district restrictions or changing their own access.
+
+For the `edcs` account, select its authorized districts and keep only **Members → View** and **Members → Add** selected, with no additional grants from roles. This allows browsing and registration in those districts while blocking editing, deletion, master modules and administration.
 
 To share this access, create a **Member registration** role with the same two permissions, then assign it to users. Roles use Django groups, and effective access combines all roles with direct permissions. Remove a permission from every source to revoke it. Saved changes apply on the next request; inactive accounts lose access even with an existing session. The user editor shows current effective access beside the direct-permission matrix.
 
@@ -39,6 +45,19 @@ All 25 Sri Lankan districts are provided as editable master records with provinc
 4. Open **Lagers** to add a lager name, unique code and district. A district can have many lagers; each lager shows its registered member count with a link to those members.
 5. Open **Member directory → Register member**. Department and lager are mandatory. Type a department name or code directly in the **Department** combo to filter its alphabetical dropdown, then click a result or use the arrow keys and Enter to select it. Choosing a district narrows departments to that district; choosing a zonal office narrows them further. Clear the text or location selections to broaden the list. You can also select a department first to fill its district, full province name, short name, zonal office and optional subdivision from the saved relationships. Select a lager from the department’s district. Department labels include the department name, full province name with its short name in parentheses, district, zonal office and subdivision when present.
 6. Enter the member information, including the required office address. Search and filter the directory, export records, or open a profile to edit and print it.
+
+## Payment Plan and configurable payment types
+
+Run `python manage.py migrate` to add the Payment Plan tables and initial payment types: **Special Deposit**, **Fix Deposit**, **Share**, **Pension**, **Scholarship**, **Scholar**, **Funeral** and **Danaayojana**. Scholarship and Scholar are separate contributions.
+
+1. In **Payment Types**, choose **Add payment type** to add another contribution name at any time. Display order controls the order of the amount fields. No code or database changes are needed for additional types.
+2. Open **Payment Plan** to see the member master containing registered member numbers and names. Search by either value, then choose **Set plan**. Member identity comes directly from registration and stays current if the member is updated.
+3. Enter the agreement date and monthly amount in LKR for each active payment type. Unused amounts can be blank or zero. The form displays the total monthly deposit. Save to view the agreement, or edit it later. Each member has one current payment plan.
+4. When a registration user has **Payment Plan → Add**, the registration button becomes **Register & set payment plan**, carrying the saved member number and name into the next stage. Existing members are already available through the Payment Plan master. **Set payment plan** is also available on a member profile.
+
+New active payment types appear in new plans and when editing existing plans. Mark a payment type inactive to stop offering it to new plans; previously saved agreements retain that type and amount. Used types and members with a plan are protected from deletion. Deleting a plan removes its amounts while keeping the member registered.
+
+Administrators grant **Payment Plan** actions under **Users & access** or **Roles & permissions**, limited to the user's assigned districts. Member registration permissions do not automatically grant access to payment agreements. Add-only plan operators can select member number/name within their districts without access to the full member directory. Payment Types is a shared master: users with View permission may read it, and administrators manage its entries.
 
 ## Setup on another machine
 
@@ -106,4 +125,4 @@ Province names remain stored in full. A separate `province_short_name` field is 
 
 The interface uses the supplied EDCS logo with maroon and gold accents. Fields use dark labels and entered text, 2px contrasting borders, larger input text, visible keyboard outlines, and textual required/optional/error indicators. Automatically filled province fields use a dashed border and explicit labels. Department appears immediately after Subdivision and continues to fill its related location fields when selected.
 
-The member’s office phone is entered manually and remains blank on new registrations until supplied. Selecting a district, zonal office or department does not copy the zonal office phone into this field.
+The member’s office address and office phone are entered manually and remain blank on new registrations until supplied. Selecting a district, zonal office or department does not fill these contact fields. Existing saved addresses and phone numbers are preserved when editing.

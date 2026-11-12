@@ -50,9 +50,9 @@ def administration(request):
             "active_count": users.filter(is_active=True).count(),
             "role_count": Group.objects.count(),
             "permission_count": workspace_permissions().count(),
-            "latest_users": users.prefetch_related("groups").order_by("-date_joined")[
-                :5
-            ],
+            "latest_users": users.prefetch_related(
+                "groups", "assigned_districts"
+            ).order_by("-date_joined")[:5],
             "activity": LogEntry.objects.select_related("user").order_by(
                 "-action_time"
             )[:6],
@@ -62,7 +62,11 @@ def administration(request):
 
 @superuser_required
 def user_list(request):
-    users = get_user_model().objects.prefetch_related("groups").order_by("username")
+    users = (
+        get_user_model()
+        .objects.prefetch_related("groups", "assigned_districts")
+        .order_by("username")
+    )
     query = request.GET.get("q", "").strip()
     if query:
         users = users.filter(
@@ -100,7 +104,7 @@ def user_form(request, pk=None):
                 request,
                 saved_user,
                 CHANGE if pk is not None else ADDITION,
-                "Saved user profile, roles and workspace access.",
+                "Saved user profile, roles, district assignments and workspace access.",
             )
             if pk is None:
                 notify_user_created(request, saved_user)

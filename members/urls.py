@@ -1,7 +1,44 @@
 from django.urls import path
-from . import views
+from . import payment_views, views
 
 urlpatterns = [
+    path("payment-plans/", payment_views.payment_plan_list, name="payment_plan_list"),
+    path(
+        "payment-plans/new/",
+        payment_views.payment_plan_form,
+        name="payment_plan_create",
+    ),
+    path(
+        "payment-plans/<int:pk>/",
+        payment_views.payment_plan_detail,
+        name="payment_plan_detail",
+    ),
+    path(
+        "payment-plans/<int:pk>/edit/",
+        payment_views.payment_plan_form,
+        name="payment_plan_edit",
+    ),
+    path(
+        "payment-plans/<int:pk>/delete/",
+        payment_views.payment_plan_delete,
+        name="payment_plan_delete",
+    ),
+    path("payment-types/", payment_views.payment_type_list, name="payment_type_list"),
+    path(
+        "payment-types/new/",
+        payment_views.payment_type_form,
+        name="payment_type_create",
+    ),
+    path(
+        "payment-types/<int:pk>/edit/",
+        payment_views.payment_type_form,
+        name="payment_type_edit",
+    ),
+    path(
+        "payment-types/<int:pk>/delete/",
+        payment_views.payment_type_delete,
+        name="payment_type_delete",
+    ),
     path("", views.dashboard, name="dashboard"),
     path("members/", views.member_list, name="member_list"),
     path("members/new/", views.member_form, name="member_create"),

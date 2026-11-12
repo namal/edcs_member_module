@@ -3,6 +3,7 @@ from django.db.models import Q
 from django.db.models.functions import Lower
 
 from .models import District, Lager, Member, OfficeLocation, School, Subdivision
+from .permissions import scope_queryset
 
 
 def selected_id(form, name):
@@ -18,16 +19,17 @@ def active_choices(model, current_id=None):
     return model.objects.filter(Q(is_active=True) | Q(pk=current_id))
 
 
-def school_choices(current_id=None):
+def school_choices(current_id=None, *, user=None):
     schools = School.objects.select_related(
         "district", "zonal_office", "subdivision"
     ).filter(
         Q(is_active=True, district__is_active=True, zonal_office__is_active=True)
         | Q(pk=current_id)
     )
-    return schools.filter(
+    schools = schools.filter(
         Q(subdivision__isnull=True) | Q(subdivision__is_active=True) | Q(pk=current_id)
     ).order_by(Lower("name"), "pk")
+    return scope_queryset(user, schools) if user is not None else schools
 
 
 def location_fields(form, office_field):
@@ -60,8 +62,10 @@ def location_fields(form, office_field):
         else subdivisions.none()
     )
     form.fields["subdivision"].empty_label = "No subdivision"
+    form.scope_fields()
     province = (
-        District.objects.filter(pk=district_id)
+        form.fields["district"]
+        .queryset.filter(pk=district_id)
         .values("province", "province_short_name")
         .first()
         if district_id
@@ -73,8 +77,9 @@ def location_fields(form, office_field):
 
 
 class StyledModelForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.user = user
         for name, field in self.fields.items():
             field.widget.attrs.update(
                 {
@@ -88,6 +93,13 @@ class StyledModelForm(forms.ModelForm):
                 field.widget.attrs.update({"type": "tel", "inputmode": "tel"})
             if isinstance(field.widget, forms.CheckboxInput):
                 field.widget.attrs["class"] = "field-check"
+        self.scope_fields()
+
+    def scope_fields(self):
+        if self.user is not None:
+            for field in self.fields.values():
+                if isinstance(field, forms.ModelChoiceField):
+                    field.queryset = scope_queryset(self.user, field.queryset)
 
 
 class MemberForm(StyledModelForm):
@@ -129,7 +141,7 @@ class MemberForm(StyledModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        schools = school_choices(self.instance.school_id)
+        schools = school_choices(self.instance.school_id, user=self.user)
         school_id = selected_id(self, "school")
         school = schools.filter(pk=school_id).first() if school_id else None
         if school:
@@ -177,8 +189,12 @@ class MemberForm(StyledModelForm):
         self.fields["phone_office"].help_text = (
             "Enter the member's office number, separate from the zonal office number."
         )
+        self.fields["office_address"].help_text = (
+            "Enter the member's office address manually."
+        )
         self.fields["nic_no"].help_text = "12 digits, or 9 digits followed by V / X."
         self.fields["computer_no"].help_text = "Optional. Must be unique when provided."
+        self.scope_fields()
 
     def clean_member_no(self):
         return self.cleaned_data["member_no"].strip().upper()
@@ -218,6 +234,7 @@ class OfficeLocationForm(StyledModelForm):
         self.fields["district"].queryset = District.objects.filter(
             Q(is_active=True) | Q(pk=self.instance.district_id)
         )
+        self.scope_fields()
 
 
 class SubdivisionForm(StyledModelForm):
@@ -248,6 +265,7 @@ class SubdivisionForm(StyledModelForm):
             offices.filter(district_id=district_id) if district_id else offices.none()
         )
         self.fields["zonal_office"].empty_label = "Select a zonal office"
+        self.scope_fields()
 
     def clean_code(self):
         return self.cleaned_data["code"].strip().upper()
@@ -263,6 +281,7 @@ class LagerForm(StyledModelForm):
         self.fields["district"].queryset = active_choices(
             District, self.instance.district_id
         )
+        self.scope_fields()
 
     def clean_code(self):
         return self.cleaned_data["code"].strip().upper()
@@ -293,6 +312,7 @@ class SchoolForm(StyledModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         location_fields(self, "zonal_office")
+        self.scope_fields()
 
     def clean_code(self):
         return self.cleaned_data["code"].strip().upper()

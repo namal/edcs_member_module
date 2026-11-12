@@ -6,7 +6,13 @@
     <svg class="icon h-3.5 w-3.5">
       <use href="#i-back" />
     </svg>
-  Back to {{ section }}</a>
+    Back to
+    {% if section == 'payment_types' %}
+      payment types
+    {% else %}
+      {{ section }}
+    {% endif %}
+  </a>
   <div class="mb-7">
     <p class="eyebrow mb-2">Master data</p>
     <h1 class="page-title">
@@ -45,47 +51,55 @@
            role="status"
            aria-live="polite"></p>
         <label class="mt-7 flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
-          {{ form.is_active }}<span><span class="block text-sm font-medium text-slate-700">Active {{ singular|lower }}</span><span class="mt-1 block text-xs leading-5 text-slate-600">Available for new member registrations. Uncheck to keep the record for reference.</span></span>
-        </label>
-        {% for error in form.is_active.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
-      </div>
-      <div class="flex justify-end gap-2 border-t border-slate-100 bg-slate-50/50 px-6 py-5">
-        <a href="{% if can_view_list %}{% url back %}{% else %}{% url 'dashboard' %}{% endif %}"
-           class="btn btn-secondary">Cancel</a>
-        <button class="btn btn-primary" data-submit-label="Saving…">
-          <svg class="icon h-4 w-4">
-            <use href="#i-check" />
-          </svg>
-          Save {{ singular|lower }}
-        </button>
-      </div>
-    </form>
-    <div class="rounded-xl border border-brand-100 bg-brand-50 p-6">
-      <span class="stat-icon mb-4 h-9 w-9 bg-white text-brand-600">
-        <svg class="icon">
-          <use href="#i-info" />
-        </svg>
-      </span>
-      <h3 class="text-sm font-semibold text-brand-700">Keep your records connected</h3>
-      <p class="mt-3 text-xs leading-6 text-brand-700">
-        {% if section == 'districts' %}
-          Keep both the full province name and its short name for each district, along with a unique district name and code. Add zonal offices and departments under the appropriate district.
-        {% elif section == 'subdivisions' %}
-          Choose a district and zonal office for each subdivision. Subdivision selection is optional when registering a member.
-        {% elif section == 'lagers' %}
-          Each lager belongs to one district and can have many registered members. Its code is unique. A lager with registered members stays in its district.
-        {% elif section == 'schools' %}
-          Each department belongs to a district and zonal office, with an optional subdivision. Its selection label includes the full location.
-        {% else %}
-          Every zonal office belongs to a district and can have many subdivisions. Records with linked members, subdivisions or departments stay connected to their district.
-        {% endif %}
-      </p>
-      <p class="mt-4 text-xs leading-6 text-brand-700">
-        Records with linked offices or members are protected from deletion. You can mark them inactive at any time.
-      </p>
+          {{ form.is_active }}<span><span class="block text-sm font-medium text-slate-700">Active {{ singular|lower }}</span><span class="mt-1 block text-xs leading-5 text-slate-600">
+          {% if section == 'payment_types' %}
+            Available for new payment plans. Uncheck to retain existing agreements without offering this type to new plans.
+          {% else %}
+            Available for new member registrations. Uncheck to keep the record for reference.
+          {% endif %}
+        </span></span>
+      </label>
+      {% for error in form.is_active.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
     </div>
+    <div class="flex justify-end gap-2 border-t border-slate-100 bg-slate-50/50 px-6 py-5">
+      <a href="{% if can_view_list %}{% url back %}{% else %}{% url 'dashboard' %}{% endif %}"
+         class="btn btn-secondary">Cancel</a>
+      <button class="btn btn-primary" data-submit-label="Saving…">
+        <svg class="icon h-4 w-4">
+          <use href="#i-check" />
+        </svg>
+        Save {{ singular|lower }}
+      </button>
+    </div>
+  </form>
+  <div class="rounded-xl border border-brand-100 bg-brand-50 p-6">
+    <span class="stat-icon mb-4 h-9 w-9 bg-white text-brand-600">
+      <svg class="icon">
+        <use href="#i-info" />
+      </svg>
+    </span>
+    <h3 class="text-sm font-semibold text-brand-700">Keep your records connected</h3>
+    <p class="mt-3 text-xs leading-6 text-brand-700">
+      {% if section == 'districts' %}
+        Keep both the full province name and its short name for each district, along with a unique district name and code. Add zonal offices and departments under the appropriate district.
+      {% elif section == 'subdivisions' %}
+        Choose a district and zonal office for each subdivision. Subdivision selection is optional when registering a member.
+      {% elif section == 'lagers' %}
+        Each lager belongs to one district and can have many registered members. Its code is unique. A lager with registered members stays in its district.
+      {% elif section == 'payment_types' %}
+        Add a contribution name to make it available as a monthly amount in payment plans. Lower display order numbers appear first. Mark a type inactive to stop offering it in new plans while keeping existing agreements.
+      {% elif section == 'schools' %}
+        Each department belongs to a district and zonal office, with an optional subdivision. Its selection label includes the full location.
+      {% else %}
+        Every zonal office belongs to a district and can have many subdivisions. Records with linked members, subdivisions or departments stay connected to their district.
+      {% endif %}
+    </p>
+    <p class="mt-4 text-xs leading-6 text-brand-700">
+      Records with linked offices or members are protected from deletion. You can mark them inactive at any time.
+    </p>
   </div>
-  {{ district_provinces|json_script:'district-provinces' }}
-  {{ district_province_short_names|json_script:'district-province-short-names' }}
-  {{ initial_locations|json_script:'initial-locations' }}
+</div>
+{{ district_provinces|json_script:'district-provinces' }}
+{{ district_province_short_names|json_script:'district-province-short-names' }}
+{{ initial_locations|json_script:'initial-locations' }}
 {% endblock %}

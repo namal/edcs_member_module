@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <a class="text-link mb-5" href="{% url 'payment_plan_list' %}">← Back to Payment Plan</a>
+  <div class="mb-7 flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <p class="eyebrow mb-2">Payment Plan / Agreement</p>
+      <h1 class="page-title">
+        {{ plan.member.full_name }}<span class="text-brand-600">.</span>
+      </h1>
+      <p class="muted mt-2">Member {{ plan.member.member_no }} · Agreement dated {{ plan.agreement_date|date:'d M Y' }}</p>
+    </div>
+    <div class="flex gap-2">
+      {% if perms.members.change_paymentplan %}
+        <a class="btn btn-primary" href="{% url 'payment_plan_edit' plan.pk %}">Edit payment plan</a>
+      {% endif %}
+      {% if perms.members.delete_paymentplan %}
+        <a class="btn btn-secondary"
+           href="{% url 'payment_plan_delete' plan.pk %}">Delete</a>
+      {% endif %}
+    </div>
+  </div>
+  <section class="card">
+    <div class="card-heading">
+      <h2 class="section-title">Agreed monthly deposits</h2>
+      <span class="badge bg-brand-50 text-brand-700">LKR / month</span>
+    </div>
+    <dl class="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
+      {% for contribution in plan.amounts.all %}
+        <div>
+          <dt class="detail-label">
+            {{ contribution.payment_type.name }}
+            {% if not contribution.payment_type.is_active %}<span class="text-brand-700">(inactive)</span>{% endif %}
+          </dt>
+          <dd class="detail-value">
+            {{ contribution.amount|floatformat:2 }}
+          </dd>
+        </div>
+      {% endfor %}
+    </dl>
+    <div class="flex flex-wrap items-center justify-between gap-3 border-t border-brand-100 bg-brand-50 px-6 py-5">
+      <h2 class="text-sm font-semibold text-brand-900">Total monthly deposit</h2>
+      <p class="text-xl font-bold text-brand-700">LKR {{ plan.monthly_total|floatformat:2 }}</p>
+    </div>
+  </section>
+  {% if perms.members.view_member %}
+    <a class="text-link mt-5"
+       href="{% url 'member_detail' plan.member_id %}">Open member profile →</a>
+  {% endif %}
+{% endblock %}

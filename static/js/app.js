@@ -388,19 +388,9 @@
       }
     };
     district.addEventListener('change', () => loadDistrict());
-    const autofill = (input, value) => {
-      if (input && (!input.value || input.value === input.dataset.autofilled)) {
-        input.value = value || '';
-        input.dataset.autofilled = input.value;
-      }
-    };
     office.addEventListener('change', () => {
       updateSubdivisions();
       updateSchool();
-      const row = (locations.offices || []).find(
-        (item) => String(item.id) === office.value,
-      );
-      autofill(form.querySelector('#id_office_address'), row?.address);
     });
     subdivision?.addEventListener('change', () => {
       const selectedSchool = schools.find((row) => String(row.id) === school?.value);
@@ -411,7 +401,7 @@
       )
         updateSchool('');
     });
-    school?.addEventListener('change', async () => {
+    school?.addEventListener('change', () => {
       const row = schools.find((item) => String(item.id) === school.value);
       if (!row) {
         pending?.abort();
@@ -424,17 +414,12 @@
       const selectedLager =
         district.value === String(row.district_id) ? lager?.value : '';
       district.value = String(row.district_id);
-      const loaded = await loadDistrict({
+      loadDistrict({
         office: row.zonal_office_id,
         subdivision: row.subdivision_id || '',
         school: row.id,
         lager: selectedLager,
       });
-      if (!loaded || school.value !== String(row.id)) return;
-      autofill(
-        form.querySelector('#id_office_address'),
-        row.address || row.office_address,
-      );
     });
     form.addEventListener('submit', (event) => {
       if (loading) {
@@ -503,9 +488,36 @@
     });
   }
 
+  document.querySelectorAll('[data-payment-plan-form]').forEach((form) => {
+    const amounts = [...form.querySelectorAll('[data-monthly-amount]')];
+    const total = form.querySelector('#monthly-plan-total');
+    const formatter = new Intl.NumberFormat('en-LK', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    const updateTotal = () => {
+      const cents = amounts.reduce((sum, input) => {
+        const value = Number(input.value);
+        return (
+          sum + (Number.isFinite(value) && value >= 0 ? Math.round(value * 100) : 0)
+        );
+      }, 0);
+      total.textContent = formatter.format(cents / 100);
+    };
+    amounts.forEach((input) => input.addEventListener('input', updateTotal));
+    updateTotal();
+  });
+
   document.querySelectorAll('[data-submit-label]').forEach((button) => {
     button.form?.addEventListener('submit', (event) => {
       if (event.defaultPrevented) return;
+      if (event.submitter === button && button.name) {
+        const value = document.createElement('input');
+        value.type = 'hidden';
+        value.name = button.name;
+        value.value = button.value;
+        button.form.append(value);
+      }
       button.disabled = true;
       button.textContent = button.dataset.submitLabel;
     });

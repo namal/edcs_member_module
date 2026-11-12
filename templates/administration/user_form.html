@@ -66,12 +66,35 @@
           </div>
         </div>
       </section>
+      <section class="card">
+        <div class="card-heading">
+          <h2 class="section-title">District access</h2>
+        </div>
+        <fieldset class="p-6">
+          <legend class="sr-only">Assigned districts</legend>
+          {% if account.is_superuser %}
+            <p class="text-sm font-semibold text-brand-700">Administrator: all districts, including districts added in future.</p>
+          {% endif %}
+          <p class="field-help mb-4">{{ form.districts.help_text }}</p>
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {% for choice in form.districts %}
+              <label for="{{ choice.id_for_label }}"
+                     class="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 p-3 text-sm font-medium">
+                {{ choice.tag }}{{ choice.choice_label }}
+              </label>
+            {% endfor %}
+          </div>
+          {% for error in form.districts.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+        </fieldset>
+      </section>
       {% if account.is_superuser %}
         <div class="alert border-accent-100 bg-accent-50 text-accent-700">
           <svg class="icon">
             <use href="#i-shield" />
           </svg>
-          <p>This is a system administrator with full access. Module checkboxes do not restrict superusers.</p>
+          <p>
+            This is a system administrator with full access. District assignments and module checkboxes do not restrict superusers.
+          </p>
         </div>
       {% endif %}
       {% include 'administration/permission_matrix.html' %}
@@ -98,7 +121,7 @@
           Meaningful protection.
         </h2>
         <p class="mt-3 text-xs leading-6 text-accent-700">
-          For a member registration user, enable only <strong>Members → View and Add</strong>. They can open the directory and register members. Editing, deletion and master data stay unavailable.
+          Choose the user's districts, then enable the actions they need. For example, Colombo and Kandy with <strong>Members → View, Add and Edit</strong> allows those actions only in those two districts.
         </p>
         <p class="mt-3 text-xs leading-6 text-accent-700">
           New accounts are workspace users. Administrator and Django staff flags are never changed by this form.

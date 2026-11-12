@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <section class="card mx-auto my-10 max-w-lg p-8">
+    <h1 class="section-title">Delete this payment plan?</h1>
+    <p class="muted mt-4">{{ plan.member.member_no }} · {{ plan.member.full_name }}</p>
+    <p class="muted mt-3">
+      This removes the agreement and its monthly amounts. The member remains registered and can receive a new payment plan.
+    </p>
+    <form method="post" class="mt-6 flex justify-end gap-3">
+      {% csrf_token %}
+      <a class="btn btn-secondary"
+         href="{% if perms.members.view_paymentplan %}{% url 'payment_plan_detail' plan.pk %}{% else %}{% url 'dashboard' %}{% endif %}">Cancel</a>
+      <button class="btn btn-danger">Delete payment plan</button>
+    </form>
+  </section>
+{% endblock %}

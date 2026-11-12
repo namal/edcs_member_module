@@ -44,6 +44,7 @@
           <tr>
             <th>User</th>
             <th>Access level</th>
+            <th>Districts</th>
             <th>Status</th>
             <th>
               <span class="sr-only">Manage user</span>
@@ -55,7 +56,7 @@
             {% include 'administration/user_row.html' %}
           {% empty %}
             <tr>
-              <td colspan="4" class="text-center text-slate-500">
+              <td colspan="5" class="text-center text-slate-500">
                 No users match these filters. <a href="{% url 'access_users' %}" class="text-link">Clear filters</a>
               </td>
             </tr>

@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model, password_validation
 from django.contrib.auth.models import Group, Permission
 
 from .permissions import ACTIONS, MODULES
+from .models import District
 
 
 def workspace_permissions():
@@ -61,6 +62,13 @@ class AccessFormMixin:
 
 
 class WorkspaceUserForm(AccessFormMixin, forms.ModelForm):
+    districts = forms.ModelMultipleChoiceField(
+        queryset=District.objects.order_by("name"),
+        required=False,
+        widget=forms.CheckboxSelectMultiple(),
+        label="Assigned districts",
+        help_text="Choose one or more districts. Module permissions apply only within these districts. No selection means no district record access. Administrators have access to every district.",
+    )
     roles = forms.ModelMultipleChoiceField(
         queryset=Group.objects.order_by("name"),
         required=False,
@@ -99,6 +107,7 @@ class WorkspaceUserForm(AccessFormMixin, forms.ModelForm):
         self.prepare_access_fields("user_permissions")
         if self.instance.pk:
             self.initial["roles"] = self.instance.groups.all()
+            self.initial["districts"] = self.instance.assigned_districts.all()
         else:
             self.fields["password1"].required = True
             self.fields["password2"].required = True
@@ -131,6 +140,7 @@ class WorkspaceUserForm(AccessFormMixin, forms.ModelForm):
         user.save()
         user.groups.set(self.cleaned_data["roles"])
         self.save_permissions(user.user_permissions)
+        user.assigned_districts.set(self.cleaned_data["districts"])
         return user
 
 

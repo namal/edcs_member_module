@@ -7,7 +7,16 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import District, Lager, Member, OfficeLocation, School, Subdivision
+from .models import (
+    District,
+    Lager,
+    Member,
+    OfficeLocation,
+    PaymentPlan,
+    PaymentType,
+    School,
+    Subdivision,
+)
 from .permissions import MODULES
 
 
@@ -18,6 +27,7 @@ class WorkspacePermissionTests(TestCase):
             "edcs-test", password="test-only-pass"
         )
         cls.district = District.objects.get(code="COL")
+        cls.user.assigned_districts.add(cls.district)
         cls.office = OfficeLocation.objects.create(
             district=cls.district, name="Office", code="OFF"
         )
@@ -44,6 +54,21 @@ class WorkspacePermissionTests(TestCase):
             gender="female",
             nic_no="199012345678",
         )
+        plan_member = Member.objects.create(
+            district=cls.district,
+            office_location=cls.office,
+            school=cls.school,
+            lager=cls.lager,
+            member_no="M-PLAN",
+            full_name="Plan Member",
+            salary="1000.00",
+            office_address="Office Road",
+            private_address="Home Road",
+            phone_mobile="0771234567",
+            gender="female",
+            nic_no="199012345681",
+        )
+        cls.plan = PaymentPlan.objects.create(member=plan_member)
         cls.records = {
             "member": cls.member,
             "district": cls.district,
@@ -51,6 +76,8 @@ class WorkspacePermissionTests(TestCase):
             "subdivision": cls.subdivision,
             "school": cls.school,
             "lager": cls.lager,
+            "payment_plan": cls.plan,
+            "payment_type": PaymentType.objects.get(name="Special Deposit"),
         }
 
     def setUp(self):
@@ -192,7 +219,13 @@ class WorkspacePermissionTests(TestCase):
                             self.client.get(
                                 reverse(f"{prefix}_{operation}", args=args)
                             ).status_code,
-                            200 if operation == allowed_operation else 403,
+                            (
+                                200
+                                if operation == allowed_operation
+                                and not (model is District and operation == "create")
+                                and not (model is PaymentType and operation != "list")
+                                else 403
+                            ),
                         )
 
     def test_view_only_lists_keep_record_names_and_hide_mutation_links(self):
@@ -208,7 +241,11 @@ class WorkspacePermissionTests(TestCase):
                 (
                     self.records[prefix].full_name
                     if prefix == "member"
-                    else self.records[prefix].name
+                    else (
+                        self.records[prefix].member.full_name
+                        if prefix == "payment_plan"
+                        else self.records[prefix].name
+                    )
                 ),
             )
             for operation in ("create", "edit", "delete"):
@@ -315,6 +352,7 @@ class AdministrationTests(TestCase):
         cls.user = get_user_model().objects.create_user(
             "edcs-test", password="test-only-pass"
         )
+        cls.user.assigned_districts.set(District.objects.all())
         cls.view = Permission.objects.get(
             content_type__app_label="members", codename="view_member"
         )
@@ -335,6 +373,9 @@ class AdministrationTests(TestCase):
             "email": "edcs@example.com",
             "is_active": "on",
             "module_permissions": [self.view.pk, self.add.pk],
+            "districts": list(
+                self.user.assigned_districts.values_list("pk", flat=True)
+            ),
         }
         data.update(overrides)
         return data

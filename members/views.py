@@ -10,6 +10,7 @@ from django.db.models.functions import TruncMonth
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.urls import reverse
 
 from .forms import (
     DistrictForm,
@@ -21,12 +22,29 @@ from .forms import (
     school_choices,
     selected_id,
 )
-from .models import District, Lager, Member, OfficeLocation, School, Subdivision
-from .permissions import require_location_access, require_permission
+from .models import (
+    District,
+    Lager,
+    Member,
+    OfficeLocation,
+    PaymentPlan,
+    School,
+    Subdivision,
+)
+from .permissions import (
+    accessible_districts,
+    district_records,
+    require_district,
+    require_location_access,
+    require_permission,
+)
 
 
-def location_data(district_id, instance=None):
-    if not str(district_id or "").isdigit():
+def location_data(district_id, instance=None, *, user=None):
+    if not str(district_id or "").isdigit() or (
+        user is not None
+        and not accessible_districts(user).filter(pk=district_id).exists()
+    ):
         return {"offices": [], "subdivisions": [], "schools": [], "lagers": []}
     current_office = getattr(instance, "office_location_id", None) or getattr(
         instance, "zonal_office_id", None
@@ -85,16 +103,19 @@ def location_data(district_id, instance=None):
 
 
 def location_context(form):
-    provinces = list(
-        District.objects.values_list("pk", "province", "province_short_name")
+    districts = (
+        accessible_districts(form.user)
+        if form.user is not None
+        else District.objects.all()
     )
+    provinces = list(districts.values_list("pk", "province", "province_short_name"))
     return {
         "district_provinces": {pk: name for pk, name, short_name in provinces},
         "district_province_short_names": {
             pk: short_name for pk, name, short_name in provinces
         },
         "initial_locations": location_data(
-            selected_id(form, "district"), form.instance
+            selected_id(form, "district"), form.instance, user=form.user
         ),
     }
 
@@ -116,7 +137,7 @@ def member_school_data(form):
             "office_address": school.zonal_office.address,
             "phone": school.zonal_office.phone,
         }
-        for school in school_choices(form.instance.school_id)
+        for school in school_choices(form.instance.school_id, user=form.user)
     ]
 
 
@@ -130,7 +151,7 @@ def paginated(request, queryset):
 
 
 def filtered_members(request):
-    queryset = Member.objects.select_related(
+    queryset = district_records(request.user, Member).select_related(
         "district",
         "lager__district",
         "office_location",
@@ -185,7 +206,8 @@ def dashboard(request):
         index = today.year * 12 + today.month - 1 - offset
         months.append(date(index // 12, index % 12 + 1, 1))
     aggregates = (
-        Member.objects.filter(admit_date__gte=months[0])
+        district_records(request.user, Member)
+        .filter(admit_date__gte=months[0])
         .annotate(month=TruncMonth("admit_date"))
         .values("month")
         .annotate(total=Count("id"))
@@ -201,9 +223,10 @@ def dashboard(request):
         }
         for month in months
     ]
-    total = Member.objects.count()
+    total = district_records(request.user, Member).count()
     districts = list(
-        District.objects.annotate(member_count=Count("members"))
+        district_records(request.user, District)
+        .annotate(member_count=Count("members"))
         .filter(member_count__gt=0)
         .order_by("-member_count", "name")[:5]
     )
@@ -216,15 +239,19 @@ def dashboard(request):
             "section": "dashboard",
             "title": "Overview",
             "total_members": total,
-            "active_members": Member.objects.filter(status="active").count(),
-            "district_count": District.objects.filter(is_active=True).count(),
-            "office_count": OfficeLocation.objects.filter(
-                is_active=True, district__is_active=True
-            ).count(),
-            "this_month": Member.objects.filter(
-                admit_date__gte=today.replace(day=1), admit_date__lte=today
-            ).count(),
-            "recent_members": Member.objects.select_related(
+            "active_members": district_records(request.user, Member)
+            .filter(status="active")
+            .count(),
+            "district_count": district_records(request.user, District)
+            .filter(is_active=True)
+            .count(),
+            "office_count": district_records(request.user, OfficeLocation)
+            .filter(is_active=True, district__is_active=True)
+            .count(),
+            "this_month": district_records(request.user, Member)
+            .filter(admit_date__gte=today.replace(day=1), admit_date__lte=today)
+            .count(),
+            "recent_members": district_records(request.user, Member).select_related(
                 "district", "office_location"
             )[:5],
             "chart": chart,
@@ -241,21 +268,23 @@ def member_list(request):
     require_permission(request.user, Member, "view")
     queryset = filtered_members(request)
     district_id = request.GET.get("district", "")
-    offices = OfficeLocation.objects.select_related("district")
-    lagers = Lager.objects.select_related("district")
+    offices = district_records(request.user, OfficeLocation).select_related("district")
+    lagers = district_records(request.user, Lager).select_related("district")
     if district_id.isdigit():
         offices = offices.filter(district_id=district_id)
         lagers = lagers.filter(district_id=district_id)
     context = {
         "section": "members",
         "title": "Member directory",
-        "total_members": Member.objects.count(),
+        "total_members": district_records(request.user, Member).count(),
         "filtered_count": queryset.count(),
-        "districts": District.objects.all(),
+        "districts": district_records(request.user, District).all(),
         "offices": offices,
         "lagers": lagers,
         "all_lagers": list(
-            Lager.objects.values("id", "name", "code", "district_id", "district__name")
+            district_records(request.user, Lager).values(
+                "id", "name", "code", "district_id", "district__name"
+            )
         ),
         "statuses": Member.Status.choices,
         "genders": Member.Gender.choices,
@@ -267,9 +296,15 @@ def member_list(request):
 @login_required
 def member_form(request, pk=None):
     require_permission(request.user, Member, "change" if pk is not None else "add")
-    member = get_object_or_404(Member, pk=pk) if pk is not None else None
+    member = (
+        get_object_or_404(district_records(request.user, Member), pk=pk)
+        if pk is not None
+        else None
+    )
     form = MemberForm(
-        request.POST if request.method == "POST" else None, instance=member
+        request.POST if request.method == "POST" else None,
+        instance=member,
+        user=request.user,
     )
     if request.method == "POST" and form.is_valid():
         member = form.save()
@@ -277,6 +312,12 @@ def member_form(request, pk=None):
             request,
             f'{member.full_name} was successfully {"updated" if pk is not None else "registered"}.',
         )
+        if (
+            pk is None
+            and request.POST.get("next_step") == "payment_plan"
+            and request.user.has_perm("members.add_paymentplan")
+        ):
+            return redirect(f'{reverse("payment_plan_create")}?member={member.pk}')
         if request.user.has_perm("members.view_member"):
             return redirect("member_detail", pk=member.pk)
         if pk is not None:
@@ -291,9 +332,9 @@ def member_form(request, pk=None):
             "form": form,
             "member": member,
             "today": timezone.localdate(),
-            "has_offices": OfficeLocation.objects.filter(
-                is_active=True, district__is_active=True
-            ).exists(),
+            "has_offices": district_records(request.user, OfficeLocation)
+            .filter(is_active=True, district__is_active=True)
+            .exists(),
             "member_schools": member_school_data(form),
             **location_context(form),
         },
@@ -304,7 +345,7 @@ def member_form(request, pk=None):
 def member_detail(request, pk):
     require_permission(request.user, Member, "view")
     member = get_object_or_404(
-        Member.objects.select_related(
+        district_records(request.user, Member).select_related(
             "district",
             "lager__district",
             "office_location",
@@ -318,7 +359,19 @@ def member_detail(request, pk):
     return render(
         request,
         "members/member_detail.html",
-        {"section": "members", "title": "Member profile", "member": member},
+        {
+            "section": "members",
+            "title": "Member profile",
+            "member": member,
+            "member_payment_plan": (
+                PaymentPlan.objects.filter(member=member).first()
+                if any(
+                    request.user.has_perm(f"members.{action}_paymentplan")
+                    for action in ("view", "add", "change", "delete")
+                )
+                else None
+            ),
+        },
     )
 
 
@@ -428,19 +481,26 @@ def delete_record(request, obj, back, section):
 def member_delete(request, pk):
     require_permission(request.user, Member, "delete")
     return delete_record(
-        request, get_object_or_404(Member, pk=pk), "member_list", "members"
+        request,
+        get_object_or_404(district_records(request.user, Member), pk=pk),
+        "member_list",
+        "members",
     )
 
 
 @login_required
 def district_list(request):
     require_permission(request.user, District, "view")
-    queryset = District.objects.annotate(
-        office_count=Count("offices", distinct=True),
-        member_count=Count("members", distinct=True),
-        school_count=Count("schools", distinct=True),
-        lager_count=Count("lagers", distinct=True),
-    ).order_by("name", "pk")
+    queryset = (
+        district_records(request.user, District)
+        .annotate(
+            office_count=Count("offices", distinct=True),
+            member_count=Count("members", distinct=True),
+            school_count=Count("schools", distinct=True),
+            lager_count=Count("lagers", distinct=True),
+        )
+        .order_by("name", "pk")
+    )
     query = request.GET.get("q", "").strip()
     if query:
         queryset = queryset.filter(
@@ -452,7 +512,7 @@ def district_list(request):
     context = {
         "section": "districts",
         "title": "Districts",
-        "record_count": District.objects.count(),
+        "record_count": district_records(request.user, District).count(),
     }
     context.update(paginated(request, queryset))
     return render(request, "members/district_list.html", context)
@@ -462,7 +522,8 @@ def district_list(request):
 def office_list(request):
     require_permission(request.user, OfficeLocation, "view")
     queryset = (
-        OfficeLocation.objects.select_related("district")
+        district_records(request.user, OfficeLocation)
+        .select_related("district")
         .annotate(
             member_count=Count("members", distinct=True),
             subdivision_count=Count("subdivisions", distinct=True),
@@ -482,8 +543,8 @@ def office_list(request):
     context = {
         "section": "offices",
         "title": "Zonal offices",
-        "record_count": OfficeLocation.objects.count(),
-        "districts": District.objects.all(),
+        "record_count": district_records(request.user, OfficeLocation).count(),
+        "districts": district_records(request.user, District).all(),
     }
     context.update(paginated(request, queryset))
     return render(request, "members/office_list.html", context)
@@ -491,19 +552,28 @@ def office_list(request):
 
 def master_form(request, model, form_class, pk, section, singular, destination):
     require_permission(request.user, model, "change" if pk is not None else "add")
-    obj = get_object_or_404(model, pk=pk) if pk is not None else None
+    obj = (
+        get_object_or_404(district_records(request.user, model), pk=pk)
+        if pk is not None
+        else None
+    )
     initial = {}
     if request.GET.get("district", "").isdigit():
         initial["district"] = request.GET["district"]
     if request.GET.get("zonal_office", "").isdigit():
         initial["zonal_office"] = request.GET["zonal_office"]
-        office = OfficeLocation.objects.filter(pk=initial["zonal_office"]).first()
+        office = (
+            district_records(request.user, OfficeLocation)
+            .filter(pk=initial["zonal_office"])
+            .first()
+        )
         if office:
             initial["district"] = office.district_id
     form = form_class(
         request.POST if request.method == "POST" else None,
         instance=obj,
         initial=initial,
+        user=request.user,
     )
     if request.method == "POST" and form.is_valid():
         form.save()
@@ -555,7 +625,10 @@ def office_form(request, pk=None):
 def district_delete(request, pk):
     require_permission(request.user, District, "delete")
     return delete_record(
-        request, get_object_or_404(District, pk=pk), "district_list", "districts"
+        request,
+        get_object_or_404(district_records(request.user, District), pk=pk),
+        "district_list",
+        "districts",
     )
 
 
@@ -563,7 +636,10 @@ def district_delete(request, pk):
 def office_delete(request, pk):
     require_permission(request.user, OfficeLocation, "delete")
     return delete_record(
-        request, get_object_or_404(OfficeLocation, pk=pk), "office_list", "offices"
+        request,
+        get_object_or_404(district_records(request.user, OfficeLocation), pk=pk),
+        "office_list",
+        "offices",
     )
 
 
@@ -571,12 +647,14 @@ def office_delete(request, pk):
 def office_options(request):
     require_location_access(request.user)
     district = request.GET.get("district", "")
+    if district.isdigit():
+        require_district(request.user, district)
     queryset = (
-        OfficeLocation.objects.filter(
-            district_id=district, is_active=True, district__is_active=True
-        ).order_by("name")
+        district_records(request.user, OfficeLocation)
+        .filter(district_id=district, is_active=True, district__is_active=True)
+        .order_by("name")
         if district.isdigit()
-        else OfficeLocation.objects.none()
+        else district_records(request.user, OfficeLocation).none()
     )
     return JsonResponse(
         {"offices": list(queryset.values("id", "name", "address", "phone"))}
@@ -586,7 +664,10 @@ def office_options(request):
 @login_required
 def location_options(request):
     require_location_access(request.user)
-    return JsonResponse(location_data(request.GET.get("district", "")))
+    district = request.GET.get("district", "")
+    if district.isdigit():
+        require_district(request.user, district)
+    return JsonResponse(location_data(district, user=request.user))
 
 
 EXTRA_MASTERS = {
@@ -601,10 +682,12 @@ def extra_master_list(request, kind):
     model, _, singular, prefix = EXTRA_MASTERS[kind]
     require_permission(request.user, model, "view")
     if model is Subdivision:
-        queryset = model.objects.select_related("zonal_office__district")
+        queryset = district_records(request.user, model).select_related(
+            "zonal_office__district"
+        )
         district_field = "zonal_office__district_id"
     else:
-        queryset = model.objects.select_related("district")
+        queryset = district_records(request.user, model).select_related("district")
         district_field = "district_id"
         if model is School:
             queryset = queryset.select_related("zonal_office", "subdivision")
@@ -629,12 +712,12 @@ def extra_master_list(request, kind):
         "create_url": f"{prefix}_create",
         "edit_url": f"{prefix}_edit",
         "delete_url": f"{prefix}_delete",
-        "record_count": model.objects.count(),
+        "record_count": district_records(request.user, model).count(),
         "can_add": request.user.has_perm(f"members.add_{model._meta.model_name}"),
         "can_change": request.user.has_perm(f"members.change_{model._meta.model_name}"),
         "can_delete": request.user.has_perm(f"members.delete_{model._meta.model_name}"),
         "filtered_count": queryset.count(),
-        "districts": District.objects.all(),
+        "districts": district_records(request.user, District).all(),
     }
     context.update(paginated(request, queryset))
     return render(request, "members/extra_master_list.html", context)
@@ -651,5 +734,8 @@ def extra_master_delete(request, kind, pk):
     model, _, _, prefix = EXTRA_MASTERS[kind]
     require_permission(request.user, model, "delete")
     return delete_record(
-        request, get_object_or_404(model, pk=pk), f"{prefix}_list", kind
+        request,
+        get_object_or_404(district_records(request.user, model), pk=pk),
+        f"{prefix}_list",
+        kind,
     )

@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
@@ -15,6 +16,9 @@ nic_validator = RegexValidator(
 
 
 class District(models.Model):
+    authorized_users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name="assigned_districts"
+    )
     name = models.CharField(max_length=100, unique=True)
     code = models.CharField(max_length=12, unique=True)
     province = models.CharField("Province full name", max_length=100)
@@ -393,3 +397,71 @@ class Member(models.Model):
                 errors[field] = "Enter a phone number with 7–15 digits."
         if errors:
             raise ValidationError(errors)
+
+
+class PaymentType(models.Model):
+    name = models.CharField(max_length=120, unique=True)
+    sort_order = models.PositiveIntegerField("Display order", default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["sort_order", "name", "pk"]
+        verbose_name = "payment type"
+        verbose_name_plural = "payment types"
+
+    def __str__(self):
+        return self.name
+
+
+class PaymentPlan(models.Model):
+    member = models.OneToOneField(
+        Member, on_delete=models.PROTECT, related_name="payment_plan"
+    )
+    agreement_date = models.DateField(default=timezone.localdate)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "payment plan"
+        verbose_name_plural = "payment plans"
+        ordering = ["member__member_no"]
+
+    def __str__(self):
+        return f"Payment plan · {self.member}"
+
+    @property
+    def monthly_total(self):
+        if not self.pk:
+            return Decimal("0.00")
+        return sum((item.amount for item in self.amounts.all()), Decimal("0.00"))
+
+
+class PaymentPlanAmount(models.Model):
+    plan = models.ForeignKey(
+        PaymentPlan, on_delete=models.CASCADE, related_name="amounts"
+    )
+    payment_type = models.ForeignKey(
+        PaymentType, on_delete=models.PROTECT, related_name="plan_amounts"
+    )
+    amount = models.DecimalField(
+        "Monthly amount (LKR)",
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+
+    class Meta:
+        ordering = ["payment_type__sort_order", "payment_type__name", "pk"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["plan", "payment_type"], name="unique_payment_plan_type"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(amount__gte=0),
+                name="payment_plan_amount_nonnegative",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.payment_type} · {self.amount}"

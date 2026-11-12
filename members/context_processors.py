@@ -1,12 +1,21 @@
-from .permissions import module_access
+from .permissions import accessible_districts, module_access
 
 
 def workspace_access(request):
     if not request.user.is_authenticated:
         return {}
     modules = module_access(request.user)
+    masters = [
+        module
+        for module in modules
+        if module["section"] not in ("members", "payment_plans")
+    ]
     return {
         "workspace_modules": modules,
-        "master_modules": modules[1:],
-        "has_master_access": any(module["visible"] for module in modules[1:]),
+        "has_district_access": accessible_districts(request.user).exists(),
+        "master_modules": masters,
+        "has_master_access": any(module["visible"] for module in masters),
+        "payment_module": next(
+            module for module in modules if module["section"] == "payment_plans"
+        ),
     }

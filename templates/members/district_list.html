@@ -9,7 +9,7 @@
       </h1>
       <p class="muted mt-2">The foundation of a well-connected member community.</p>
     </div>
-    {% if perms.members.add_district %}
+    {% if request.user.is_superuser and perms.members.add_district %}
       <a href="{% url 'district_create' %}" class="btn btn-primary">
         <svg class="icon h-4 w-4">
           <use href="#i-plus" />
@@ -197,7 +197,7 @@
           Add a district to organize your offices and members.
         {% endif %}
       </p>
-      {% if request.GET.q or perms.members.add_district %}
+      {% if request.GET.q or request.user.is_superuser and perms.members.add_district %}
         <a class="btn btn-primary mt-5"
            href="{% if request.GET.q %}{% url 'district_list' %}{% else %}{% url 'district_create' %}{% endif %}">
           {% if request.GET.q %}

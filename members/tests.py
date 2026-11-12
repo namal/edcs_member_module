@@ -17,7 +17,7 @@ from .models import District, Lager, Member, OfficeLocation, School
 class MemberWorkflowTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.user = get_user_model().objects.create_user(
+        cls.user = get_user_model().objects.create_superuser(
             "tester", password="test-only-pass", is_staff=True
         )
         cls.user.user_permissions.set(

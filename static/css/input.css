@@ -287,10 +287,10 @@
     @apply inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold;
   }
   .badge-active {
-    @apply bg-brand-50 text-brand-700;
+    @apply bg-green-50 text-green-700;
   }
   .badge-inactive {
-    @apply bg-slate-100 text-slate-500;
+    @apply bg-brand-50 text-brand-700;
   }
   .status-dot {
     @apply h-1.5 w-1.5 rounded-full bg-current;

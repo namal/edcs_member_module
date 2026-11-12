@@ -17,6 +17,17 @@
       {% endfor %}
     {% endif %}
   </td>
+  <td class="text-xs text-slate-600">
+    {% if account.is_superuser %}
+      All districts
+    {% else %}
+      {% for district in account.assigned_districts.all %}
+        {{ district.name }}
+        {% if not forloop.last %},{% endif %}
+        {% empty %}<span class="text-brand-700">No districts assigned</span>
+      {% endfor %}
+    {% endif %}
+  </td>
   <td>
     <span class="badge {% if account.is_active %}badge-active{% else %}badge-inactive{% endif %}"><span class="status-dot"></span>
     {% if account.is_active %}

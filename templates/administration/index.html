@@ -107,6 +107,7 @@
           <tr>
             <th>User</th>
             <th>Access level</th>
+            <th>Districts</th>
             <th>Status</th>
             <th>
               <span class="sr-only">Manage user</span>
@@ -157,7 +158,7 @@
     <h2 class="section-title">Workspace modules</h2>
     <p class="mt-1 text-xs text-slate-500">One connected foundation for your membership.</p>
   </div>
-  <span class="badge bg-accent-50 text-accent-700">6 modules</span>
+  <span class="badge bg-accent-50 text-accent-700">{{ workspace_modules|length }} modules</span>
 </div>
 <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
   {% for module in workspace_modules %}

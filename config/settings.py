@@ -14,7 +14,7 @@ ALLOWED_HOSTS = os.environ.get(
     "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]"
 ).split(",")
 INSTALLED_APPS = [
-    "django.contrib.admin",
+    "members.admin_apps.WorkspaceAdminConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",

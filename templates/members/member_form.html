@@ -144,12 +144,17 @@
           <div class="flex gap-2">
             <a href="{% if perms.members.view_member %}{% if member %}{% url 'member_detail' member.pk %}{% else %}{% url 'member_list' %}{% endif %}{% else %}{% url 'dashboard' %}{% endif %}"
                class="btn btn-secondary">Cancel</a>
-            <button class="btn btn-primary" data-submit-label="Saving…">
+            <button class="btn btn-primary"
+                    data-submit-label="Saving…"
+                    name="next_step"
+                    value="{% if not member and perms.members.add_paymentplan %}payment_plan{% else %}member{% endif %}">
               <svg class="icon h-4 w-4">
                 <use href="#i-check" />
               </svg>
               {% if member %}
                 Save changes
+              {% elif perms.members.add_paymentplan %}
+                Register &amp; set payment plan
               {% else %}
                 Register member
               {% endif %}
