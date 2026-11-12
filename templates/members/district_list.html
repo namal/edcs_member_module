@@ -9,11 +9,13 @@
       </h1>
       <p class="muted mt-2">The foundation of a well-connected member community.</p>
     </div>
-    <a href="{% url 'district_create' %}" class="btn btn-primary">
-      <svg class="icon h-4 w-4">
-        <use href="#i-plus" />
-      </svg>
-    Add district</a>
+    {% if perms.members.add_district %}
+      <a href="{% url 'district_create' %}" class="btn btn-primary">
+        <svg class="icon h-4 w-4">
+          <use href="#i-plus" />
+        </svg>
+      Add district</a>
+    {% endif %}
   </div>
   <div class="mb-6 flex items-start gap-3 rounded-xl border border-brand-100 bg-brand-50 px-5 py-4">
     <svg class="icon mt-0.5 h-4 w-4 text-brand-600">
@@ -43,13 +45,15 @@
         </div>
         <button class="btn btn-secondary">Search</button>
         {% if request.GET.q %}
-          <a href="{% url 'district_list' %}"
-             class="btn btn-ghost"
-             aria-label="Clear search">
-            <svg class="icon h-4 w-4">
-              <use href="#i-close" />
-            </svg>
-          </a>
+          {% if perms.members.view_district %}
+            <a href="{% url 'district_list' %}"
+               class="btn btn-ghost"
+               aria-label="Clear search">
+              <svg class="icon h-4 w-4">
+                <use href="#i-close" />
+              </svg>
+            </a>
+          {% endif %}
         {% endif %}
       </form>
     </div>
@@ -74,31 +78,55 @@
             {% for district in page_obj %}
               <tr>
                 <td>
-                  <a class="flex items-center gap-3"
-                     href="{% url 'district_edit' district.pk %}"><span class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-                    <svg class="icon h-4 w-4">
-                      <use href="#i-pin" />
-                    </svg>
-                  </span><span class="table-link">{{ district.name }}</span></a>
+                  {% if perms.members.change_district %}
+                    <a class="flex items-center gap-3"
+                       href="{% url 'district_edit' district.pk %}"><span class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+                      <svg class="icon h-4 w-4">
+                        <use href="#i-pin" />
+                      </svg>
+                    </span><span class="table-link">{{ district.name }}</span></a>
+                  {% else %}
+                    <span class="flex items-center gap-3 font-medium text-slate-600"><span class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+                      <svg class="icon h-4 w-4">
+                        <use href="#i-pin" />
+                      </svg>
+                    </span><span class="table-link">{{ district.name }}</span></span>
+                  {% endif %}
                 </td>
                 <td class="font-mono text-xs text-slate-600">{{ district.code }}</td>
                 <td class="text-xs text-slate-500">{{ district.province|default:'—' }}</td>
                 <td class="text-xs text-slate-500">{{ district.province_short_name|default:'—' }}</td>
                 <td>
-                  <a href="{% url 'office_list' %}?district={{ district.pk }}"
-                     class="text-link">{{ district.office_count }}</a>
+                  {% if perms.members.view_officelocation %}
+                    <a href="{% url 'office_list' %}?district={{ district.pk }}"
+                       class="text-link">{{ district.office_count }}</a>
+                  {% else %}
+                    <span class="font-medium text-slate-600">{{ district.office_count }}</span>
+                  {% endif %}
                 </td>
                 <td>
-                  <a href="{% url 'school_list' %}?district={{ district.pk }}"
-                     class="text-link">{{ district.school_count }}</a>
+                  {% if perms.members.view_school %}
+                    <a href="{% url 'school_list' %}?district={{ district.pk }}"
+                       class="text-link">{{ district.school_count }}</a>
+                  {% else %}
+                    <span class="font-medium text-slate-600">{{ district.school_count }}</span>
+                  {% endif %}
                 </td>
                 <td>
-                  <a href="{% url 'lager_list' %}?district={{ district.pk }}"
-                     class="text-link">{{ district.lager_count }}</a>
+                  {% if perms.members.view_lager %}
+                    <a href="{% url 'lager_list' %}?district={{ district.pk }}"
+                       class="text-link">{{ district.lager_count }}</a>
+                  {% else %}
+                    <span class="font-medium text-slate-600">{{ district.lager_count }}</span>
+                  {% endif %}
                 </td>
                 <td>
-                  <a href="{% url 'member_list' %}?district={{ district.pk }}"
-                     class="text-link">{{ district.member_count }}</a>
+                  {% if perms.members.view_member %}
+                    <a href="{% url 'member_list' %}?district={{ district.pk }}"
+                       class="text-link">{{ district.member_count }}</a>
+                  {% else %}
+                    <span class="font-medium text-slate-600">{{ district.member_count }}</span>
+                  {% endif %}
                 </td>
                 <td>
                   <span class="badge {% if district.is_active %}badge-active{% else %}badge-inactive{% endif %}"><span class="status-dot"></span>
@@ -111,66 +139,76 @@
               </td>
               <td>
                 <div class="flex justify-end gap-1">
-                  <a href="{% url 'office_create' %}?district={{ district.pk }}"
-                     class="action-icon"
-                     title="Add zonal office"
-                     aria-label="Add zonal office to {{ district.name }}">
-                    <svg class="icon h-4 w-4">
-                      <use href="#i-plus" />
-                    </svg>
-                  </a><a href="{% url 'district_edit' district.pk %}"
-   class="action-icon"
-   title="Edit district"
-   aria-label="Edit {{ district.name }}">
-                  <svg class="icon h-4 w-4">
-                    <use href="#i-edit" />
-                  </svg>
-                </a><a href="{% url 'district_delete' district.pk %}"
-   class="action-icon hover:text-red-500"
-   title="Delete district"
-   aria-label="Delete {{ district.name }}">
-                <svg class="icon h-4 w-4">
-                  <use href="#i-trash" />
-                </svg>
-              </a>
-            </div>
-          </td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% else %}
-<div class="empty-state">
-  <span class="empty-icon">
-    <svg class="icon">
-      <use href="#i-pin" />
-    </svg>
-  </span>
-  <h3 class="font-semibold text-slate-700">
-    {% if request.GET.q %}
-      No matching districts
-    {% else %}
-      Start with a district
-    {% endif %}
-  </h3>
-  <p class="muted mt-2">
-    {% if request.GET.q %}
-      Try another district name, code or province.
-    {% else %}
-      Add a district to organize your offices and members.
-    {% endif %}
-  </p>
-  <a class="btn btn-primary mt-5"
-     href="{% if request.GET.q %}{% url 'district_list' %}{% else %}{% url 'district_create' %}{% endif %}">
-    {% if request.GET.q %}
-      Clear search
-    {% else %}
-      Add district
-    {% endif %}
-  </a>
-</div>
-{% endif %}
-{% include 'components/pagination.html' %}
+                  {% if perms.members.add_officelocation %}
+                    <a href="{% url 'office_create' %}?district={{ district.pk }}"
+                       class="action-icon"
+                       title="Add zonal office"
+                       aria-label="Add zonal office to {{ district.name }}">
+                      <svg class="icon h-4 w-4">
+                        <use href="#i-plus" />
+                      </svg>
+                    </a>
+                  {% endif %}
+                  {% if perms.members.change_district %}
+                    <a href="{% url 'district_edit' district.pk %}"
+                       class="action-icon"
+                       title="Edit district"
+                       aria-label="Edit {{ district.name }}">
+                      <svg class="icon h-4 w-4">
+                        <use href="#i-edit" />
+                      </svg>
+                    </a>
+                  {% endif %}
+                  {% if perms.members.delete_district %}
+                    <a href="{% url 'district_delete' district.pk %}"
+                       class="action-icon hover:text-red-500"
+                       title="Delete district"
+                       aria-label="Delete {{ district.name }}">
+                      <svg class="icon h-4 w-4">
+                        <use href="#i-trash" />
+                      </svg>
+                    </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <span class="empty-icon">
+        <svg class="icon">
+          <use href="#i-pin" />
+        </svg>
+      </span>
+      <h3 class="font-semibold text-slate-700">
+        {% if request.GET.q %}
+          No matching districts
+        {% else %}
+          Start with a district
+        {% endif %}
+      </h3>
+      <p class="muted mt-2">
+        {% if request.GET.q %}
+          Try another district name, code or province.
+        {% else %}
+          Add a district to organize your offices and members.
+        {% endif %}
+      </p>
+      {% if request.GET.q or perms.members.add_district %}
+        <a class="btn btn-primary mt-5"
+           href="{% if request.GET.q %}{% url 'district_list' %}{% else %}{% url 'district_create' %}{% endif %}">
+          {% if request.GET.q %}
+            Clear search
+          {% else %}
+            Add district
+          {% endif %}
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
+  {% include 'components/pagination.html' %}
 </section>
 {% endblock %}

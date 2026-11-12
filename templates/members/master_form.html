@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  <a href="{% url back %}"
+  <a href="{% if can_view_list %}{% url back %}{% else %}{% url 'dashboard' %}{% endif %}"
      class="mb-5 inline-flex items-center gap-2 text-xs text-slate-600 hover:text-brand-600">
     <svg class="icon h-3.5 w-3.5">
       <use href="#i-back" />
@@ -50,7 +50,8 @@
         {% for error in form.is_active.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
       </div>
       <div class="flex justify-end gap-2 border-t border-slate-100 bg-slate-50/50 px-6 py-5">
-        <a href="{% url back %}" class="btn btn-secondary">Cancel</a>
+        <a href="{% if can_view_list %}{% url back %}{% else %}{% url 'dashboard' %}{% endif %}"
+           class="btn btn-secondary">Cancel</a>
         <button class="btn btn-primary" data-submit-label="Saving…">
           <svg class="icon h-4 w-4">
             <use href="#i-check" />

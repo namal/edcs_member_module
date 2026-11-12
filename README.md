@@ -11,7 +11,25 @@ source .venv/bin/activate
 python manage.py runserver
 ```
 
-Open **http://127.0.0.1:8000/**. Sign in with the initial administrator credentials saved in the local `.admin-credentials` file. Change the initial password at `/admin/password_change/`. Django admin at `/admin/` also lets you manage authorized user accounts. All authenticated accounts can manage the workspace; only staff accounts can use Django admin.
+Open **http://127.0.0.1:8000/**. Sign in with the initial administrator credentials saved in the local `.admin-credentials` file. Administrators land in the custom Tailwind control center at `/admin/`; other users land in their workspace. The panel uses the EDCS logo, burgundy and gold palette, and responsive navigation. Advanced Django administration is available at `/admin/django/`, including password changes at `/admin/django/password_change/`.
+
+## Users, roles and permissions
+
+Only active superusers can open the control center, **Users & access**, and **Roles & permissions**. Staff status alone does not grant workspace access. Existing users, passwords and assigned permissions are retained.
+
+In **Users & access**, create or edit accounts, reset passwords, activate/deactivate users, assign roles, and select direct permissions. Each of the six modules has independent **View**, **Add**, **Edit** and **Delete** checkboxes. Edit uses Django's `change` permission. Server checks apply to both page visits and submitted requests; unavailable navigation and actions are hidden. Registration users can use location lookups without gaining access to master-data management. Member viewing also includes the dashboard, CSV export and profile printing.
+
+For the `edcs` account, keep only **Members → View** and **Members → Add** selected, with no additional grants from roles. This allows member browsing and registration while blocking editing, deletion, master modules and administration. Its existing assignment already matches these two permissions.
+
+To share this access, create a **Member registration** role with the same two permissions, then assign it to users. Roles use Django groups, and effective access combines all roles with direct permissions. Remove a permission from every source to revoke it. Saved changes apply on the next request; inactive accounts lose access even with an existing session. The user editor shows current effective access beside the direct-permission matrix.
+
+User and role changes are recorded in the control center's activity feed. Deletion requires confirmation and a POST request. The panel prevents deleting superusers, deactivating superusers and deleting your own account. New accounts are ordinary workspace users; staff/superuser flags and advanced permissions are preserved and managed through Django administration.
+
+New users receive a welcome email after the account and permissions are saved when an email address is provided. Blank email addresses skip delivery. This applies to both **Users & access** and the advanced Django user administration. The message contains the username and sign-in link; provide passwords separately. Editing an existing account does not send another welcome email. Delivery failures show a warning while preserving the saved account.
+
+Configure `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` and `DEFAULT_FROM_EMAIL` in `.env` using your SMTP provider's settings. Use `EMAIL_USE_TLS=true` for STARTTLS (typically port 587), or `EMAIL_USE_SSL=true` for implicit TLS (typically port 465); enable only the option your provider requires. `.env.example` lists all supported settings. Restart Django after changing them. For local email previews without delivery, set `EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend` to print messages to the server console.
+
+## Workspace setup
 
 All 25 Sri Lankan districts are provided as editable master records with provinces. Run `python manage.py migrate` after updating to apply the location hierarchy migration; it preserves existing districts, offices and members.
 
@@ -19,7 +37,7 @@ All 25 Sri Lankan districts are provided as editable master records with provinc
 2. Open **Zonal offices → Add zonal office** and select its district. Add optional subdivisions under **Subdivisions**.
 3. Open **Schools** to add a school code and name, district, zonal office and optional subdivision. Filter schools by district or search by name/code. The District master links to school counts per district.
 4. Open **Lagers** to add a lager name, unique code and district. A district can have many lagers; each lager shows its registered member count with a link to those members.
-5. Open **Member directory → Register member**. School and lager are mandatory. Select a school first to fill its district, full province name, short name, zonal office and optional subdivision from the saved relationships. Select a lager from the school’s district. School labels include the school name, full province name with its short name in parentheses, district, zonal office and subdivision when present.
+5. Open **Member directory → Register member**. School and lager are mandatory. Type a school name or code directly in the **School** combo to filter its alphabetical dropdown, then click a result or use the arrow keys and Enter to select it. Choosing a district narrows schools to that district; choosing a zonal office narrows them further. Clear the text or location selections to broaden the list. You can also select a school first to fill its district, full province name, short name, zonal office and optional subdivision from the saved relationships. Select a lager from the school’s district. School labels include the school name, full province name with its short name in parentheses, district, zonal office and subdivision when present.
 6. Enter the member information, including the required office address. Search and filter the directory, export records, or open a profile to edit and print it.
 
 ## Setup on another machine
@@ -76,7 +94,7 @@ python manage.py makemigrations --check --dry-run
 python manage.py test members
 ```
 
-The integration suite uses a separate `test_member_module` PostgreSQL database, which Django creates and removes. The configured database user must have permission to create test databases. Tests cover registrations, identifier uniqueness, district/office matching, inactive records, protected deletions, CSRF, authentication, templates, filtering, exports and master record management.
+The integration suite uses a separate `test_member_module` PostgreSQL database, which Django creates and removes. The configured database user must have permission to create test databases. Tests cover registrations, identifier uniqueness, district/office matching, inactive records, protected deletions, CSRF, authentication, templates, filtering, exports, master record management, per-action permission checks, role grants/revocations, and custom account administration.
 
 Compiled CSS is included at `static/css/tailwind.css`; the interface needs no external CDN, fonts or JavaScript framework.
 

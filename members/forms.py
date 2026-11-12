@@ -1,5 +1,6 @@
 from django import forms
 from django.db.models import Q
+from django.db.models.functions import Lower
 
 from .models import District, Lager, Member, OfficeLocation, School, Subdivision
 
@@ -26,7 +27,7 @@ def school_choices(current_id=None):
     )
     return schools.filter(
         Q(subdivision__isnull=True) | Q(subdivision__is_active=True) | Q(pk=current_id)
-    )
+    ).order_by(Lower("name"), "pk")
 
 
 def location_fields(form, office_field):
@@ -157,10 +158,16 @@ class MemberForm(StyledModelForm):
             lagers.filter(district_id=district_id) if district_id else lagers.none()
         )
         self.fields["lager"].empty_label = "Select a lager"
+        if district_id:
+            schools = schools.filter(district_id=district_id)
+        office_id = selected_id(self, "office_location")
+        if office_id:
+            schools = schools.filter(zonal_office_id=office_id)
         self.fields["school"].queryset = schools
         self.fields["school"].empty_label = "Select a school"
         self.fields["school"].help_text = (
-            "Select a school to fill its district, province and zonal office automatically."
+            "Search by school name or code. District and zonal office narrow the list. "
+            "Selecting a school fills its location automatically."
         )
         self.fields["school"].error_messages["required"] = "Select a school."
         self.fields["lager"].error_messages["required"] = "Select a lager."

@@ -4,6 +4,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.core.exceptions import ValidationError
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -18,6 +19,9 @@ class MemberWorkflowTests(TestCase):
     def setUpTestData(cls):
         cls.user = get_user_model().objects.create_user(
             "tester", password="test-only-pass", is_staff=True
+        )
+        cls.user.user_permissions.set(
+            Permission.objects.filter(content_type__app_label="members")
         )
         cls.district = District.objects.get(code="COL")
         cls.other_district = District.objects.get(code="KAN")
@@ -1013,6 +1017,48 @@ class MemberWorkflowTests(TestCase):
         self.assertEqual(rows[other_school.pk]["zonal_office_id"], self.other_office.pk)
         self.assertTrue(response.context["form"].fields["school"].required)
         self.assertTrue(response.context["form"].fields["lager"].required)
+
+    def test_school_choices_filter_by_district_then_zone_and_sort_by_name(self):
+        another_office = OfficeLocation.objects.create(
+            district=self.district, name="Another Office", code="OTHER-ZONE"
+        )
+        alpha = self.make_school(name="alpha School", code="ALPHA")
+        zulu = self.make_school(name="Zulu School", code="ZULU")
+        other_zone = self.make_school(
+            name="Beta School", code="BETA", zonal_office=another_office
+        )
+        self.make_school(
+            code="OTHER-DISTRICT",
+            district=self.other_district,
+            zonal_office=self.other_office,
+        )
+        district_form = MemberForm(initial={"district": self.district.pk})
+        self.assertEqual(
+            list(district_form.fields["school"].queryset), [alpha, other_zone, zulu]
+        )
+        zone_form = MemberForm(
+            initial={
+                "district": self.district.pk,
+                "office_location": self.office.pk,
+            }
+        )
+        self.assertEqual(list(zone_form.fields["school"].queryset), [alpha, zulu])
+
+    def test_edit_retains_all_school_metadata_for_changing_district(self):
+        school = self.make_school()
+        other_school = self.make_school(
+            code="OTHER", district=self.other_district, zonal_office=self.other_office
+        )
+        member = self.create_member(school=school.pk)
+        response = self.client.get(reverse("member_edit", args=[member.pk]))
+        self.assertEqual(
+            list(response.context["form"].fields["school"].queryset), [school]
+        )
+        rows = {row["id"]: row for row in response.context["member_schools"]}
+        self.assertEqual(rows[other_school.pk]["code"], other_school.code)
+        self.assertEqual(rows[other_school.pk]["district_id"], self.other_district.pk)
+        self.assertContains(response, 'id="id_school"')
+        self.assertNotContains(response, 'id="school-search"')
 
     def test_school_first_registration_autofills_subdivision_but_allows_blank(self):
         from .models import Subdivision

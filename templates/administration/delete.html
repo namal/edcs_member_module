@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <section class="card mx-auto max-w-xl p-7 sm:p-9">
+    <span class="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-700">
+      <svg class="icon">
+        <use href="#i-trash" />
+      </svg>
+    </span>
+    <p class="eyebrow mb-2">Administration</p>
+    <h1 class="page-title">{{ title }}?</h1>
+    <p class="mt-4 text-sm leading-7 text-slate-600">
+      You are deleting <strong class="text-slate-900">{{ object }}</strong>. {{ explanation }} This action cannot be undone.
+    </p>
+    <form method="post" class="mt-7 flex flex-wrap gap-3">
+      {% csrf_token %}
+      <button class="btn btn-danger">Confirm deletion</button>
+      <a href="{% url back %}" class="btn btn-secondary">Keep {{ object }}</a>
+    </form>
+  </section>
+{% endblock %}

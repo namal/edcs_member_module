@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <a class="text-link mb-5" href="{% url 'access_users' %}">← Back to users</a>
+  <div class="mb-7">
+    <p class="eyebrow mb-2">Administration / Users & access</p>
+    <h1 class="page-title">
+      {% if account %}
+        A workspace for {{ account.username }}
+      {% else %}
+        Welcome someone new
+      {% endif %}
+      <span class="text-brand-600">.</span>
+    </h1>
+    <p class="muted mt-2">A clear identity. The right role. Just the permissions they need.</p>
+  </div>
+  <form method="post"
+        class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_290px]">
+    {% csrf_token %}
+    <div class="min-w-0 space-y-6">
+      {% if form.errors %}
+        <div class="alert message-error" role="alert">Please check the highlighted fields. {{ form.non_field_errors }}</div>
+      {% endif %}
+      <section class="card">
+        <div class="card-heading">
+          <h2 class="section-title">Account details</h2>
+          <span class="badge bg-brand-50 text-brand-700">
+            {% if account %}
+              Existing account
+            {% else %}
+              New account
+            {% endif %}
+          </span>
+        </div>
+        <div class="grid gap-5 p-6 sm:grid-cols-2">
+          {% include 'components/field.html' with field=form.username %}
+          {% include 'components/field.html' with field=form.email %}
+          {% include 'components/field.html' with field=form.first_name %}
+          {% include 'components/field.html' with field=form.last_name %}
+          {% include 'components/field.html' with field=form.password1 %}
+          {% include 'components/field.html' with field=form.password2 %}
+          <fieldset class="sm:col-span-2">
+            <legend class="field-label">
+              Assigned roles <span class="field-requirement">(optional)</span>
+            </legend>
+            <div class="grid gap-3 sm:grid-cols-2">
+              {% for choice in form.roles %}
+                <label for="{{ choice.id_for_label }}"
+                       class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-4 text-sm font-medium hover:bg-brand-50">
+                  {{ choice.tag }}{{ choice.choice_label }}
+                </label>
+              {% empty %}
+                <p class="rounded-xl border border-dashed border-slate-300 p-4 text-xs leading-6 text-slate-500 sm:col-span-2">
+                  No roles yet. Use the direct permissions below, or <a href="{% url 'access_role_create' %}" class="text-link text-xs">create a reusable role</a>.
+                </p>
+              {% endfor %}
+            </div>
+            <p class="field-help">{{ form.roles.help_text }}</p>
+            {% for error in form.roles.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+          </fieldset>
+          <div class="sm:col-span-2">
+            <label class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              {{ form.is_active }}<span><span class="block text-sm font-semibold">Active account</span><span class="mt-1 block text-xs text-slate-500">Inactive accounts cannot sign in or access the workspace.</span></span>
+            </label>
+            {% for error in form.is_active.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+          </div>
+        </div>
+      </section>
+      {% if account.is_superuser %}
+        <div class="alert border-accent-100 bg-accent-50 text-accent-700">
+          <svg class="icon">
+            <use href="#i-shield" />
+          </svg>
+          <p>This is a system administrator with full access. Module checkboxes do not restrict superusers.</p>
+        </div>
+      {% endif %}
+      {% include 'administration/permission_matrix.html' %}
+      <div class="flex flex-wrap justify-end gap-3">
+        <a href="{% url 'access_users' %}" class="btn btn-secondary">Cancel</a>
+        <button class="btn btn-primary" data-submit-label="Saving access…">
+          <svg class="icon h-4 w-4">
+            <use href="#i-check" />
+          </svg>
+          Save user & access
+        </button>
+      </div>
+    </div>
+    <aside class="space-y-5">
+      <div class="rounded-xl border border-accent-100 bg-accent-50 p-5">
+        <span class="stat-icon bg-white text-brand-600">
+          <svg class="icon">
+            <use href="#i-shield" />
+          </svg>
+        </span>
+        <h2 class="mt-4 text-sm font-semibold text-brand-900">
+          Small permissions.
+          <br>
+          Meaningful protection.
+        </h2>
+        <p class="mt-3 text-xs leading-6 text-accent-700">
+          For a member registration user, enable only <strong>Members → View and Add</strong>. They can open the directory and register members. Editing, deletion and master data stay unavailable.
+        </p>
+        <p class="mt-3 text-xs leading-6 text-accent-700">
+          New accounts are workspace users. Administrator and Django staff flags are never changed by this form.
+        </p>
+      </div>
+      {% if account %}
+        <section class="card p-5">
+          <h2 class="text-sm font-semibold">Current effective access</h2>
+          <p class="mt-2 text-xs leading-5 text-slate-500">Saved permissions, including roles. Save to apply changes.</p>
+          <dl class="mt-4 space-y-4">
+            {% for module in effective_access %}
+              <div>
+                <dt class="text-xs font-semibold">{{ module.label }}</dt>
+                <dd class="mt-1 text-[11px] leading-5 text-slate-500">
+                  {% if module.view %}View ·{% endif %}
+                  {% if module.add %}Add ·{% endif %}
+                  {% if module.change %}Edit ·{% endif %}
+                  {% if module.delete %}Delete{% endif %}
+                  {% if not module.view and not module.add and not module.change and not module.delete %}No access{% endif %}
+                </dd>
+              </div>
+            {% endfor %}
+          </dl>
+        </section>
+        {% if not account.is_superuser and account.pk != request.user.pk %}
+          <a href="{% url 'access_user_delete' account.pk %}"
+             class="btn w-full border-red-200 bg-white text-red-700 hover:bg-red-50">Delete account</a>
+        {% endif %}
+      {% endif %}
+    </aside>
+  </form>
+{% endblock %}

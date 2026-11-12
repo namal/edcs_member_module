@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="eyebrow mb-2">Administration / Access design</p>
+      <h1 class="page-title">
+        Clear roles. Confident teams<span class="text-brand-600">.</span>
+      </h1>
+      <p class="muted mt-2">Create reusable permission sets and assign them to your team.</p>
+    </div>
+    <a href="{% url 'access_role_create' %}" class="btn btn-primary">
+      <svg class="icon h-4 w-4">
+        <use href="#i-plus" />
+      </svg>
+    Create role</a>
+  </div>
+  <section class="card mb-6">
+    <div class="card-heading flex-wrap">
+      <h2 class="section-title">
+        Roles <span class="badge ml-2 bg-brand-50 text-brand-700">{{ record_count }}</span>
+      </h2>
+      <form class="flex gap-2" method="get">
+        <label class="sr-only" for="role-search">Search roles</label>
+        <input name="q"
+               id="role-search"
+               class="field-input"
+               placeholder="Search roles"
+               value="{{ request.GET.q }}">
+        <button class="btn btn-secondary">Search</button>
+      </form>
+    </div>
+    <div class="divide-y divide-slate-100">
+      {% for role in page_obj %}
+        <div class="flex flex-wrap items-center gap-4 p-6">
+          <span class="stat-icon bg-accent-50 text-accent-700">
+            <svg class="icon">
+              <use href="#i-shield" />
+            </svg>
+          </span>
+          <div class="min-w-0 flex-1">
+            <a href="{% url 'access_role_edit' role.pk %}"
+               class="table-link text-base">{{ role.name }}</a>
+            <p class="mt-1 text-xs text-slate-500">
+              {{ role.user_count }} assigned user{{ role.user_count|pluralize }} · {{ role.permissions.count }} permission{{ role.permissions.count|pluralize }}
+            </p>
+          </div>
+          <a href="{% url 'access_role_edit' role.pk %}"
+             class="btn btn-secondary text-xs">Edit role →</a>
+        </div>
+      {% empty %}
+        <div class="empty-state">
+          <span class="empty-icon">
+            <svg class="icon">
+              <use href="#i-shield" />
+            </svg>
+          </span>
+          <h2 class="section-title">Build your first shared role</h2>
+          <p class="muted mt-2 max-w-md">
+            Try “Member registration” with View and Add on Members. Assign it to everyone who handles registrations.
+          </p>
+          <a href="{% url 'access_role_create' %}" class="btn btn-primary mt-5">Create a role</a>
+        </div>
+      {% endfor %}
+    </div>
+    {% include 'components/pagination.html' %}
+  </section>
+  <p class="text-xs leading-6 text-slate-500">
+    Roles use Django groups. Changes apply to all assigned users on their next request. Direct user permissions are added to role permissions.
+  </p>
+{% endblock %}

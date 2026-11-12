@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <section class="admin-hero mb-7 rounded-2xl p-8">
+    <p class="hero-kicker">Your EDCS workspace</p>
+    <h1 class="mt-5 text-3xl font-semibold text-white">
+      Welcome, {{ request.user.first_name|default:request.user.username }}<span class="text-accent-500">.</span>
+    </h1>
+    <p class="mt-4 max-w-xl text-sm leading-6 text-white/80">
+      Open an available module below. Your administrator manages which records you can view, add, edit and delete.
+    </p>
+  </section>
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    {% for module in workspace_modules %}
+      {% if module.visible %}
+        <a href="{% url module.url %}" class="module-tile"><span class="stat-icon bg-brand-50 text-brand-600">
+          <svg class="icon">
+            <use href="#i-{{ module.icon }}" />
+          </svg>
+        </span>
+        <div>
+          <h2 class="text-sm font-semibold">{{ module.label }}</h2>
+          <p class="mt-1 text-xs text-slate-500">
+            {% if module.view %}
+              View records
+            {% else %}
+              Add a record
+            {% endif %}
+          </p>
+        </div>
+        <svg class="icon ml-auto h-4 w-4">
+          <use href="#i-arrow" />
+        </svg>
+      </a>
+    {% endif %}
+  {% endfor %}
+</div>
+<p class="mt-6 text-sm text-slate-500">Missing a module? Contact your administrator to review your access.</p>
+{% endblock %}

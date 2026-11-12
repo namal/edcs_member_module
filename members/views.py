@@ -18,9 +18,11 @@ from .forms import (
     OfficeLocationForm,
     SchoolForm,
     SubdivisionForm,
+    school_choices,
     selected_id,
 )
 from .models import District, Lager, Member, OfficeLocation, School, Subdivision
+from .permissions import require_location_access, require_permission
 
 
 def location_data(district_id, instance=None):
@@ -102,6 +104,7 @@ def member_school_data(form):
         {
             "id": school.pk,
             "name": str(school),
+            "code": school.code,
             "district_id": school.district_id,
             "zonal_office_id": school.zonal_office_id,
             "zonal_office_name": school.zonal_office.name,
@@ -113,7 +116,7 @@ def member_school_data(form):
             "office_address": school.zonal_office.address,
             "phone": school.zonal_office.phone,
         }
-        for school in form.fields["school"].queryset
+        for school in school_choices(form.instance.school_id)
     ]
 
 
@@ -170,6 +173,12 @@ def filtered_members(request):
 
 @login_required
 def dashboard(request):
+    if not request.user.has_perm("members.view_member"):
+        return render(
+            request,
+            "members/workspace.html",
+            {"section": "dashboard", "title": "Your workspace"},
+        )
     today = timezone.localdate()
     months = []
     for offset in range(5, -1, -1):
@@ -229,6 +238,7 @@ def dashboard(request):
 
 @login_required
 def member_list(request):
+    require_permission(request.user, Member, "view")
     queryset = filtered_members(request)
     district_id = request.GET.get("district", "")
     offices = OfficeLocation.objects.select_related("district")
@@ -256,7 +266,8 @@ def member_list(request):
 
 @login_required
 def member_form(request, pk=None):
-    member = get_object_or_404(Member, pk=pk) if pk else None
+    require_permission(request.user, Member, "change" if pk is not None else "add")
+    member = get_object_or_404(Member, pk=pk) if pk is not None else None
     form = MemberForm(
         request.POST if request.method == "POST" else None, instance=member
     )
@@ -264,15 +275,19 @@ def member_form(request, pk=None):
         member = form.save()
         messages.success(
             request,
-            f'{member.full_name} was successfully {"updated" if pk else "registered"}.',
+            f'{member.full_name} was successfully {"updated" if pk is not None else "registered"}.',
         )
-        return redirect("member_detail", pk=member.pk)
+        if request.user.has_perm("members.view_member"):
+            return redirect("member_detail", pk=member.pk)
+        if pk is not None:
+            return redirect("member_edit", pk=member.pk)
+        return redirect("member_create")
     return render(
         request,
         "members/member_form.html",
         {
             "section": "members",
-            "title": "Edit member" if pk else "Register member",
+            "title": "Edit member" if pk is not None else "Register member",
             "form": form,
             "member": member,
             "today": timezone.localdate(),
@@ -287,6 +302,7 @@ def member_form(request, pk=None):
 
 @login_required
 def member_detail(request, pk):
+    require_permission(request.user, Member, "view")
     member = get_object_or_404(
         Member.objects.select_related(
             "district",
@@ -308,6 +324,7 @@ def member_detail(request, pk):
 
 @login_required
 def member_export(request):
+    require_permission(request.user, Member, "view")
     response = HttpResponse(content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = (
         f'attachment; filename="members-{timezone.localdate().isoformat()}.csv"'
@@ -389,16 +406,27 @@ def delete_record(request, obj, back, section):
             )
         else:
             messages.success(request, f"{name} was deleted.")
-        return redirect(back)
+        if request.user.has_perm(f"{obj._meta.app_label}.view_{obj._meta.model_name}"):
+            return redirect(back)
+        return redirect("dashboard")
     return render(
         request,
         "members/confirm_delete.html",
-        {"title": "Delete record", "object": obj, "back": back, "section": section},
+        {
+            "title": "Delete record",
+            "object": obj,
+            "back": back,
+            "section": section,
+            "can_view_list": request.user.has_perm(
+                f"{obj._meta.app_label}.view_{obj._meta.model_name}"
+            ),
+        },
     )
 
 
 @login_required
 def member_delete(request, pk):
+    require_permission(request.user, Member, "delete")
     return delete_record(
         request, get_object_or_404(Member, pk=pk), "member_list", "members"
     )
@@ -406,6 +434,7 @@ def member_delete(request, pk):
 
 @login_required
 def district_list(request):
+    require_permission(request.user, District, "view")
     queryset = District.objects.annotate(
         office_count=Count("offices", distinct=True),
         member_count=Count("members", distinct=True),
@@ -431,6 +460,7 @@ def district_list(request):
 
 @login_required
 def office_list(request):
+    require_permission(request.user, OfficeLocation, "view")
     queryset = (
         OfficeLocation.objects.select_related("district")
         .annotate(
@@ -460,7 +490,8 @@ def office_list(request):
 
 
 def master_form(request, model, form_class, pk, section, singular, destination):
-    obj = get_object_or_404(model, pk=pk) if pk else None
+    require_permission(request.user, model, "change" if pk is not None else "add")
+    obj = get_object_or_404(model, pk=pk) if pk is not None else None
     initial = {}
     if request.GET.get("district", "").isdigit():
         initial["district"] = request.GET["district"]
@@ -477,18 +508,24 @@ def master_form(request, model, form_class, pk, section, singular, destination):
     if request.method == "POST" and form.is_valid():
         form.save()
         messages.success(
-            request, f'{singular} {"updated" if pk else "created"} successfully.'
+            request,
+            f'{singular} {"updated" if pk is not None else "created"} successfully.',
         )
-        return redirect(destination)
+        if request.user.has_perm(f"members.view_{model._meta.model_name}"):
+            return redirect(destination)
+        return redirect("dashboard")
     return render(
         request,
         "members/master_form.html",
         {
             "section": section,
-            "title": f'{"Edit" if pk else "Add"} {singular.lower()}',
+            "title": f'{"Edit" if pk is not None else "Add"} {singular.lower()}',
             "form": form,
             "back": destination,
             "singular": singular,
+            "can_view_list": request.user.has_perm(
+                f"members.view_{model._meta.model_name}"
+            ),
             **location_context(form),
         },
     )
@@ -516,6 +553,7 @@ def office_form(request, pk=None):
 
 @login_required
 def district_delete(request, pk):
+    require_permission(request.user, District, "delete")
     return delete_record(
         request, get_object_or_404(District, pk=pk), "district_list", "districts"
     )
@@ -523,6 +561,7 @@ def district_delete(request, pk):
 
 @login_required
 def office_delete(request, pk):
+    require_permission(request.user, OfficeLocation, "delete")
     return delete_record(
         request, get_object_or_404(OfficeLocation, pk=pk), "office_list", "offices"
     )
@@ -530,6 +569,7 @@ def office_delete(request, pk):
 
 @login_required
 def office_options(request):
+    require_location_access(request.user)
     district = request.GET.get("district", "")
     queryset = (
         OfficeLocation.objects.filter(
@@ -545,6 +585,7 @@ def office_options(request):
 
 @login_required
 def location_options(request):
+    require_location_access(request.user)
     return JsonResponse(location_data(request.GET.get("district", "")))
 
 
@@ -558,6 +599,7 @@ EXTRA_MASTERS = {
 @login_required
 def extra_master_list(request, kind):
     model, _, singular, prefix = EXTRA_MASTERS[kind]
+    require_permission(request.user, model, "view")
     if model is Subdivision:
         queryset = model.objects.select_related("zonal_office__district")
         district_field = "zonal_office__district_id"
@@ -588,6 +630,9 @@ def extra_master_list(request, kind):
         "edit_url": f"{prefix}_edit",
         "delete_url": f"{prefix}_delete",
         "record_count": model.objects.count(),
+        "can_add": request.user.has_perm(f"members.add_{model._meta.model_name}"),
+        "can_change": request.user.has_perm(f"members.change_{model._meta.model_name}"),
+        "can_delete": request.user.has_perm(f"members.delete_{model._meta.model_name}"),
         "filtered_count": queryset.count(),
         "districts": District.objects.all(),
     }
@@ -604,6 +649,7 @@ def extra_master_form(request, kind, pk=None):
 @login_required
 def extra_master_delete(request, kind, pk):
     model, _, _, prefix = EXTRA_MASTERS[kind]
+    require_permission(request.user, model, "delete")
     return delete_record(
         request, get_object_or_404(model, pk=pk), f"{prefix}_list", kind
     )

@@ -10,16 +10,21 @@
       <p class="muted mt-2">Every member. Every detail. Always within reach.</p>
     </div>
     <div class="flex gap-2">
-      <a href="{% url 'member_export' %}?{{ query_string }}"
-         class="btn btn-secondary">
-        <svg class="icon h-4 w-4">
-          <use href="#i-download" />
-        </svg>
-        Export CSV</a><a href="{% url 'member_create' %}" class="btn btn-primary">
-        <svg class="icon h-4 w-4">
-          <use href="#i-plus" />
-        </svg>
-      Register member</a>
+      {% if perms.members.view_member %}
+        <a href="{% url 'member_export' %}?{{ query_string }}"
+           class="btn btn-secondary">
+          <svg class="icon h-4 w-4">
+            <use href="#i-download" />
+          </svg>
+        Export CSV</a>
+      {% endif %}
+      {% if perms.members.add_member %}
+        <a href="{% url 'member_create' %}" class="btn btn-primary">
+          <svg class="icon h-4 w-4">
+            <use href="#i-plus" />
+          </svg>
+        Register member</a>
+      {% endif %}
     </div>
   </div>
   <section class="card">
@@ -138,14 +143,16 @@
         </div>
         <div class="flex gap-2">
           <button class="btn btn-primary flex-1">Apply</button>
-          <a href="{% url 'member_list' %}"
-             class="btn btn-secondary px-3"
-             title="Clear filters"
-             aria-label="Clear filters">
-            <svg class="icon h-4 w-4">
-              <use href="#i-close" />
-            </svg>
-          </a>
+          {% if perms.members.view_member %}
+            <a href="{% url 'member_list' %}"
+               class="btn btn-secondary px-3"
+               title="Clear filters"
+               aria-label="Clear filters">
+              <svg class="icon h-4 w-4">
+                <use href="#i-close" />
+              </svg>
+            </a>
+          {% endif %}
         </div>
       </div>
     </form>
@@ -190,14 +197,16 @@
             Create your first member record and start building a connected community.
           {% endif %}
         </p>
-        <a href="{% if total_members %}{% url 'member_list' %}{% else %}{% url 'member_create' %}{% endif %}"
-           class="btn btn-primary mt-5">
-          {% if total_members %}
-            Clear filters
-          {% else %}
-            Register first member
-          {% endif %}
-        </a>
+        {% if total_members or perms.members.add_member %}
+          <a href="{% if total_members %}{% url 'member_list' %}{% else %}{% url 'member_create' %}{% endif %}"
+             class="btn btn-primary mt-5">
+            {% if total_members %}
+              Clear filters
+            {% else %}
+              Register first member
+            {% endif %}
+          </a>
+        {% endif %}
       </div>
     {% endif %}
     {% include 'components/pagination.html' %}

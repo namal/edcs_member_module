@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="eyebrow mb-2">Administration / Control center</p>
+      <h1 class="page-title">
+        A stronger community.
+        <br>
+        A smarter workspace<span class="text-brand-600">.</span>
+      </h1>
+    </div>
+    <span class="flex items-center gap-2 text-xs text-slate-500"><span class="h-2 w-2 rounded-full bg-brand-600"></span>Welcome, {{ request.user.first_name|default:request.user.username }}</span>
+  </div>
+  <section class="admin-hero mb-7 rounded-2xl p-7 sm:p-9">
+    <div class="relative z-10 max-w-xl">
+      <span class="hero-kicker">
+        <svg class="icon h-3.5 w-3.5">
+          <use href="#i-shield" />
+        </svg>
+      EDCS administration</span>
+      <h2 class="mt-5 text-3xl font-semibold leading-tight tracking-tight text-white sm:text-4xl">
+        The right access.
+        <br>
+        <span class="text-accent-500">For every person.</span>
+      </h2>
+      <p class="mt-4 max-w-md text-sm leading-6 text-white/80">
+        Bring your team together with clear roles, precise permissions and one place to manage it all.
+      </p>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <a href="{% url 'access_user_create' %}" class="btn btn-gold">
+          <svg class="icon h-4 w-4">
+            <use href="#i-plus" />
+          </svg>
+          Create user</a><a href="{% url 'access_roles' %}" class="btn btn-hero">Manage roles
+          <svg class="icon h-4 w-4">
+            <use href="#i-arrow" />
+          </svg>
+        </a>
+      </div>
+    </div>
+    <div class="admin-hero-art" aria-hidden="true">
+      <svg viewBox="0 0 180 180" class="h-28 w-28 text-accent-500">
+        <path d="M90 12 151 36v49c0 40-35 67-61 82-26-15-61-42-61-82V36Z" fill="none" stroke="currentColor" stroke-width="3" />
+        <path d="m62 87 19 19 38-41" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </div>
+  </section>
+  <div class="mb-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <a href="{% url 'access_users' %}" class="admin-stat"><span class="stat-icon bg-brand-50 text-brand-600">
+      <svg class="icon">
+        <use href="#i-users" />
+      </svg>
+    </span>
+    <div>
+      <p class="text-xs text-slate-500">Team accounts</p>
+      <p class="mt-2 text-3xl font-bold tracking-tight">{{ user_count }}</p>
+    </div>
+    <svg class="icon ml-auto h-4 w-4 text-slate-400">
+      <use href="#i-arrow" />
+    </svg>
+  </a>
+  <a href="{% url 'access_users' %}?status=active" class="admin-stat"><span class="stat-icon bg-accent-50 text-accent-700">
+    <svg class="icon">
+      <use href="#i-check" />
+    </svg>
+  </span>
+  <div>
+    <p class="text-xs text-slate-500">Active accounts</p>
+    <p class="mt-2 text-3xl font-bold tracking-tight">{{ active_count }}</p>
+  </div>
+</a>
+<a href="{% url 'access_roles' %}" class="admin-stat"><span class="stat-icon bg-brand-50 text-brand-600">
+  <svg class="icon">
+    <use href="#i-shield" />
+  </svg>
+</span>
+<div>
+  <p class="text-xs text-slate-500">Shared roles</p>
+  <p class="mt-2 text-3xl font-bold tracking-tight">{{ role_count }}</p>
+</div>
+</a>
+<div class="admin-stat">
+  <span class="stat-icon bg-accent-50 text-accent-700">
+    <svg class="icon">
+      <use href="#i-lock" />
+    </svg>
+  </span>
+  <div>
+    <p class="text-xs text-slate-500">Module permissions</p>
+    <p class="mt-2 text-3xl font-bold tracking-tight">{{ permission_count }}</p>
+  </div>
+</div>
+</div>
+<div class="mb-7 grid items-start gap-6 xl:grid-cols-3">
+  <section class="card xl:col-span-2">
+    <div class="card-heading">
+      <div>
+        <h2 class="section-title">Your team</h2>
+        <p class="mt-1 text-xs text-slate-500">People who keep the society moving.</p>
+      </div>
+      <a href="{% url 'access_users' %}" class="text-link">All users →</a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Access level</th>
+            <th>Status</th>
+            <th>
+              <span class="sr-only">Manage user</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for account in latest_users %}
+            {% include 'administration/user_row.html' %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="card">
+    <div class="card-heading">
+      <h2 class="section-title">Recent activity</h2>
+      <svg class="icon h-4 w-4 text-brand-600">
+        <use href="#i-calendar" />
+      </svg>
+    </div>
+    <div class="p-5">
+      {% for entry in activity %}
+        <div class="activity-entry">
+          <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-accent-500"></span>
+          <div class="min-w-0">
+            <p class="break-words text-xs font-semibold text-slate-700">{{ entry.object_repr }}</p>
+            <p class="mt-1 text-xs leading-5 text-slate-500">{{ entry.get_action_flag_display }} by {{ entry.user.username }}</p>
+            <p class="mt-1 text-[10px] text-slate-500">{{ entry.action_time|date:'d M Y, H:i' }}</p>
+          </div>
+        </div>
+      {% empty %}
+        <div class="py-8 text-center">
+          <svg class="icon mb-3 text-brand-600">
+            <use href="#i-shield" />
+          </svg>
+          <p class="text-sm font-semibold">A fresh start</p>
+          <p class="mt-2 text-xs leading-5 text-slate-500">
+            Account and role changes made here will appear in this activity feed.
+          </p>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+<div class="mb-4 flex items-center justify-between">
+  <div>
+    <h2 class="section-title">Workspace modules</h2>
+    <p class="mt-1 text-xs text-slate-500">One connected foundation for your membership.</p>
+  </div>
+  <span class="badge bg-accent-50 text-accent-700">6 modules</span>
+</div>
+<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+  {% for module in workspace_modules %}
+    <a href="{% url module.url %}" class="module-tile"><span class="stat-icon bg-brand-50 text-brand-600">
+      <svg class="icon">
+        <use href="#i-{{ module.icon }}" />
+      </svg>
+    </span>
+    <div class="flex-1">
+      <h3 class="text-sm font-semibold">{{ module.label }}</h3>
+      <p class="mt-1 text-xs text-slate-500">View and manage records</p>
+    </div>
+    <svg class="icon h-4 w-4 text-slate-400">
+      <use href="#i-arrow" />
+    </svg>
+  </a>
+{% endfor %}
+</div>
+{% endblock %}

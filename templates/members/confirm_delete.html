@@ -15,7 +15,8 @@
       </p>
       <p class="muted mt-3">To keep historical information, cancel and mark the record inactive instead.</p>
       <form method="post" class="mt-7 flex justify-end gap-2">
-        {% csrf_token %}<a href="{% url back %}" class="btn btn-secondary">Cancel</a>
+        {% csrf_token %}<a href="{% if can_view_list %}{% url back %}{% else %}{% url 'dashboard' %}{% endif %}"
+   class="btn btn-secondary">Cancel</a>
         <button class="btn btn-danger">Delete record</button>
       </form>
     </section>

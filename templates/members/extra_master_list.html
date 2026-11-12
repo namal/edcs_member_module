@@ -9,8 +9,10 @@
       </h1>
       <p class="muted mt-2">{{ filtered_count }} matching {{ section }} · {{ record_count }} total</p>
     </div>
-    <a href="{% url create_url %}{% if request.GET.district %}?district={{ request.GET.district|urlencode }}{% endif %}"
-       class="btn btn-primary">Add {{ singular|lower }}</a>
+    {% if can_add %}
+      <a href="{% url create_url %}{% if request.GET.district %}?district={{ request.GET.district|urlencode }}{% endif %}"
+         class="btn btn-primary">Add {{ singular|lower }}</a>
+    {% endif %}
   </div>
   <section class="card">
     <form method="get"
@@ -64,13 +66,23 @@
             {% for record in page_obj %}
               <tr>
                 <td>
-                  <a class="table-link" href="{% url edit_url record.pk %}">
-                    {% if section == 'schools' %}
-                      {{ record }}
-                    {% else %}
-                      {{ record.name }}
-                    {% endif %}
-                  </a>
+                  {% if can_change %}
+                    <a class="table-link" href="{% url edit_url record.pk %}">
+                      {% if section == 'schools' %}
+                        {{ record }}
+                      {% else %}
+                        {{ record.name }}
+                      {% endif %}
+                    </a>
+                  {% else %}
+                    <span class="font-semibold text-slate-700">
+                      {% if section == 'schools' %}
+                        {{ record }}
+                      {% else %}
+                        {{ record.name }}
+                      {% endif %}
+                    </span>
+                  {% endif %}
                 </td>
                 <td>{{ record.code }}</td>
                 <td>
@@ -98,8 +110,12 @@
                 {% if section == 'schools' %}<td>{{ record.subdivision.name|default:'—' }}</td>{% endif %}
                 {% if section == 'lagers' %}
                   <td>
-                    <a class="text-link"
-                       href="{% url 'member_list' %}?lager={{ record.pk }}">{{ record.member_count }}</a>
+                    {% if perms.members.view_member %}
+                      <a class="text-link"
+                         href="{% url 'member_list' %}?lager={{ record.pk }}">{{ record.member_count }}</a>
+                    {% else %}
+                      <span class="font-medium text-slate-600">{{ record.member_count }}</span>
+                    {% endif %}
                   </td>
                 {% endif %}
                 <td>
@@ -113,7 +129,12 @@
                 </td>
                 <td>
                   <div class="flex gap-3">
-                    <a class="text-link" href="{% url edit_url record.pk %}">Edit</a><a class="text-link" href="{% url delete_url record.pk %}">Delete</a>
+                    {% if can_change %}
+                      <a class="text-link" href="{% url edit_url record.pk %}">Edit</a>
+                    {% endif %}
+                    {% if can_delete %}
+                      <a class="text-link" href="{% url delete_url record.pk %}">Delete</a>
+                    {% endif %}
                   </div>
                 </td>
               </tr>

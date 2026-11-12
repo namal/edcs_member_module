@@ -1,6 +1,23 @@
 from django.contrib import admin
+from django.contrib.auth import get_user_model
+from django.contrib.auth.admin import UserAdmin
 from django.db.models import Count
 from .models import District, Lager, Member, OfficeLocation, School, Subdivision
+from .notifications import notify_user_created
+
+admin.site.unregister(get_user_model())
+
+
+@admin.register(get_user_model())
+class WorkspaceUserAdmin(UserAdmin):
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        ("Contact details", {"fields": ("first_name", "last_name", "email")}),
+    )
+
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)
+        if not change:
+            notify_user_created(request, form.instance)
 
 
 @admin.register(District)

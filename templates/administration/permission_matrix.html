@@ -1,0 +1,57 @@
+<section class="card" data-permission-matrix>
+  <div class="card-heading flex-wrap">
+    <div>
+      <h2 class="section-title">Module permissions</h2>
+      <p class="mt-1 text-xs leading-5 text-slate-500">
+        Choose each action independently. Edit means changing an existing record.
+      </p>
+    </div>
+    <div class="flex gap-2">
+      <button type="button"
+              class="btn btn-secondary text-xs"
+              data-permissions="all">Select all</button>
+      <button type="button"
+              class="btn btn-secondary text-xs"
+              data-permissions="none">Clear all</button>
+    </div>
+  </div>
+  {% if form.module_permissions.errors %}
+    <div class="px-6 pt-4 field-error" role="alert">{{ form.module_permissions.errors }}</div>
+  {% endif %}
+  <div class="overflow-x-auto">
+    <table class="data-table permission-table">
+      <caption class="sr-only">Workspace module permissions: view, add, edit and delete</caption>
+      <thead>
+        <tr>
+          <th scope="col">Module</th>
+          <th scope="col">View</th>
+          <th scope="col">Add</th>
+          <th scope="col">Edit</th>
+          <th scope="col">Delete</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in permission_rows %}
+          <tr>
+            <th scope="row" class="text-sm font-semibold normal-case tracking-normal">{{ row.label }}</th>
+            {% for cell in row.cells %}
+              <td>
+                <label class="permission-cell">
+                  <span class="sr-only">{{ cell.label }}</span>
+                  <input class="field-check"
+                         type="checkbox"
+                         name="module_permissions"
+                         value="{{ cell.id }}"
+                         {% if cell.checked %}checked{% endif %}>
+                </label>
+              </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="border-t border-slate-100 bg-slate-50/70 px-6 py-4 text-xs leading-6 text-slate-500">
+    Unchecked direct permissions may still be granted by a role. To remove an action completely, remove it from every assigned role and from direct permissions. Advanced Django permissions are preserved.
+  </div>
+</section>

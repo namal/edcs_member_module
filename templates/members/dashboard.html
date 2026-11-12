@@ -13,11 +13,14 @@
         <svg class="icon h-4 w-4">
           <use href="#i-calendar" />
         </svg>
-        {{ today|date:'d M Y' }}</span><a href="{% url 'member_create' %}" class="btn btn-primary">
-        <svg class="icon h-4 w-4">
-          <use href="#i-plus" />
-        </svg>
-      Register member</a>
+      {{ today|date:'d M Y' }}</span>
+      {% if perms.members.add_member %}
+        <a href="{% url 'member_create' %}" class="btn btn-primary">
+          <svg class="icon h-4 w-4">
+            <use href="#i-plus" />
+          </svg>
+        Register member</a>
+      {% endif %}
     </div>
   </div>
   <section class="welcome-art relative mb-7 flex min-h-[175px] items-center overflow-hidden rounded-xl border border-accent-100 bg-accent-50 px-7 py-6 sm:px-8">
@@ -75,40 +78,44 @@
         <p class="text-[30px] font-bold leading-none tracking-tight text-slate-800">{{ active_members }}</p>
         <p class="mt-3 text-[10px] text-slate-600">Currently part of your community</p>
       </div>
-      <a href="{% url 'district_list' %}"
-         class="card px-5 py-5 hover:border-brand-100">
-        <div class="mb-4 flex items-center justify-between">
-          <span class="text-xs font-medium text-slate-500">Districts</span><span class="stat-icon bg-brand-50 text-brand-700">
-            <svg class="icon">
-              <use href="#i-pin" />
+      {% if perms.members.view_district %}
+        <a href="{% url 'district_list' %}"
+           class="card px-5 py-5 hover:border-brand-100">
+          <div class="mb-4 flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-500">Districts</span><span class="stat-icon bg-brand-50 text-brand-700">
+              <svg class="icon">
+                <use href="#i-pin" />
+              </svg>
+            </span>
+          </div>
+          <p class="text-[30px] font-bold leading-none tracking-tight text-slate-800">{{ district_count }}</p>
+          <p class="mt-3 flex items-center gap-1 text-[10px] text-slate-600">
+            Active district master records
+            <svg class="icon ml-auto h-3 w-3">
+              <use href="#i-arrow" />
             </svg>
-          </span>
-        </div>
-        <p class="text-[30px] font-bold leading-none tracking-tight text-slate-800">{{ district_count }}</p>
-        <p class="mt-3 flex items-center gap-1 text-[10px] text-slate-600">
-          Active district master records
-          <svg class="icon ml-auto h-3 w-3">
-            <use href="#i-arrow" />
-          </svg>
-        </p>
-      </a>
-      <a href="{% url 'office_list' %}"
-         class="card px-5 py-5 hover:border-brand-100">
-        <div class="mb-4 flex items-center justify-between">
-          <span class="text-xs font-medium text-slate-500">Zonal offices</span><span class="stat-icon bg-accent-50 text-accent-700">
-            <svg class="icon">
-              <use href="#i-building" />
+          </p>
+        </a>
+      {% endif %}
+      {% if perms.members.view_officelocation %}
+        <a href="{% url 'office_list' %}"
+           class="card px-5 py-5 hover:border-brand-100">
+          <div class="mb-4 flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-500">Zonal offices</span><span class="stat-icon bg-accent-50 text-accent-700">
+              <svg class="icon">
+                <use href="#i-building" />
+              </svg>
+            </span>
+          </div>
+          <p class="text-[30px] font-bold leading-none tracking-tight text-slate-800">{{ office_count }}</p>
+          <p class="mt-3 flex items-center gap-1 text-[10px] text-slate-600">
+            Active offices across your districts
+            <svg class="icon ml-auto h-3 w-3">
+              <use href="#i-arrow" />
             </svg>
-          </span>
-        </div>
-        <p class="text-[30px] font-bold leading-none tracking-tight text-slate-800">{{ office_count }}</p>
-        <p class="mt-3 flex items-center gap-1 text-[10px] text-slate-600">
-          Active offices across your districts
-          <svg class="icon ml-auto h-3 w-3">
-            <use href="#i-arrow" />
-          </svg>
-        </p>
-      </a>
+          </p>
+        </a>
+      {% endif %}
     </div>
     <div class="mb-7 grid gap-5 xl:grid-cols-5">
       <section class="card xl:col-span-3">
@@ -161,8 +168,11 @@
             {% for district in districts %}
               <div>
                 <div class="mb-1.5 flex justify-between text-[11px]">
-                  <a class="font-medium text-slate-600 hover:text-brand-600"
-                     href="{% url 'member_list' %}?district={{ district.pk }}">{{ district.name }}</a><span class="text-slate-600"><span class="mr-2 font-semibold text-slate-600">{{ district.member_count }}</span>{{ district.percent }}%</span>
+                  {% if perms.members.view_member %}
+                    <a class="font-medium text-slate-600 hover:text-brand-600"
+                       href="{% url 'member_list' %}?district={{ district.pk }}">{{ district.name }}</a>
+                  {% endif %}
+                  <span class="text-slate-600"><span class="mr-2 font-semibold text-slate-600">{{ district.member_count }}</span>{{ district.percent }}%</span>
                 </div>
                 <div class="h-1.5 overflow-hidden rounded-full bg-slate-100">
                   <div class="h-full rounded-full bg-brand-600"
@@ -182,11 +192,13 @@
             <p class="mt-2 max-w-56 text-[11px] leading-5 text-slate-600">
               Register your first member to see your district distribution.
             </p>
-            <a href="{% url 'member_create' %}" class="text-link mt-4">Register a member
-              <svg class="icon h-3 w-3">
-                <use href="#i-arrow" />
-              </svg>
-            </a>
+            {% if perms.members.add_member %}
+              <a href="{% url 'member_create' %}" class="text-link mt-4">Register a member
+                <svg class="icon h-3 w-3">
+                  <use href="#i-arrow" />
+                </svg>
+              </a>
+            {% endif %}
           </div>
         {% endif %}
       </section>
@@ -197,11 +209,13 @@
           <h2 class="section-title">Recently registered</h2>
           <p class="mt-1 text-[11px] text-slate-600">The newest faces in your member community.</p>
         </div>
-        <a href="{% url 'member_list' %}" class="text-link">View all members
-          <svg class="icon h-3.5 w-3.5">
-            <use href="#i-arrow" />
-          </svg>
-        </a>
+        {% if perms.members.view_member %}
+          <a href="{% url 'member_list' %}" class="text-link">View all members
+            <svg class="icon h-3.5 w-3.5">
+              <use href="#i-arrow" />
+            </svg>
+          </a>
+        {% endif %}
       </div>
       {% if recent_members %}
         <div class="overflow-x-auto">
@@ -235,11 +249,13 @@
             Start with a zonal office, then bring your people into one organized
             workspace.
           </p>
-          <a href="{% url 'office_create' %}" class="btn btn-primary mt-5 text-xs">
-            <svg class="icon h-4 w-4">
-              <use href="#i-plus" />
-            </svg>
-          Set up an office</a>
+          {% if perms.members.add_officelocation %}
+            <a href="{% url 'office_create' %}" class="btn btn-primary mt-5 text-xs">
+              <svg class="icon h-4 w-4">
+                <use href="#i-plus" />
+              </svg>
+            Set up an office</a>
+          {% endif %}
         </div>
       {% endif %}
     </section>

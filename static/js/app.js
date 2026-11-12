@@ -28,6 +28,16 @@
     .getElementById('print-profile')
     ?.addEventListener('click', () => window.print());
 
+  document.querySelectorAll('[data-permission-matrix]').forEach((matrix) => {
+    matrix.querySelectorAll('[data-permissions]').forEach((button) => {
+      button.addEventListener('click', () => {
+        matrix.querySelectorAll('input[name="module_permissions"]').forEach((input) => {
+          input.checked = button.dataset.permissions === 'all';
+        });
+      });
+    });
+  });
+
   const fillOptions = (select, rows, label, selected = '') => {
     if (!select) return;
     select.replaceChildren(new Option(label, ''));
@@ -37,6 +47,174 @@
       : '';
   };
   const readJSON = (id) => JSON.parse(document.getElementById(id)?.textContent || '{}');
+  const searchableSelect = (select, searchTerms) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'school-combo';
+    const input = document.createElement('input');
+    input.id = `${select.id}_combo`;
+    input.type = 'text';
+    input.className = 'field-input school-combo-input';
+    input.placeholder = 'Type or select a school…';
+    input.autocomplete = 'off';
+    input.required = select.required;
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-expanded', 'false');
+    input.setAttribute('aria-required', String(select.required));
+    for (const attribute of ['aria-describedby', 'aria-invalid']) {
+      if (select.hasAttribute(attribute))
+        input.setAttribute(attribute, select.getAttribute(attribute));
+    }
+    const list = document.createElement('div');
+    list.id = `${select.id}_options`;
+    list.className = 'school-combo-options';
+    list.setAttribute('role', 'listbox');
+    list.setAttribute('aria-label', 'Schools');
+    list.hidden = true;
+    input.setAttribute('aria-controls', list.id);
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'school-combo-toggle';
+    toggle.tabIndex = -1;
+    toggle.textContent = '▾';
+    toggle.setAttribute('aria-label', 'Show schools');
+    toggle.setAttribute('aria-controls', list.id);
+    const status = document.createElement('span');
+    status.className = 'sr-only';
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
+    select.before(wrapper);
+    wrapper.append(input, toggle, list, status, select);
+    select.closest('.form-section')?.classList.add('has-school-combo');
+    const label = select.closest('.form-field')?.querySelector('label');
+    if (label) label.htmlFor = input.id;
+    select.hidden = true;
+    select.required = false;
+    let query = '';
+    let matches = [];
+    let active = -1;
+    const validate = () => {
+      input.setCustomValidity(
+        input.value && !select.value ? 'Select a school from the dropdown.' : '',
+      );
+    };
+    const close = () => {
+      list.hidden = true;
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
+    };
+    const highlight = (index) => {
+      active = index;
+      [...list.children].forEach((option, position) => {
+        option.classList.toggle('is-highlighted', position === active);
+      });
+      const option = list.children[active];
+      if (option && matches.length) {
+        input.setAttribute('aria-activedescendant', option.id);
+        option.scrollIntoView({ block: 'nearest' });
+      } else input.removeAttribute('aria-activedescendant');
+    };
+    const choose = (option) => {
+      select.value = option.value;
+      query = '';
+      input.value = option.text;
+      validate();
+      close();
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    const renderOptions = () => {
+      const term = query.trim().toLocaleLowerCase();
+      matches = [...select.options].filter(
+        (option) =>
+          option.value &&
+          `${option.text} ${searchTerms.get(option.value) || ''}`
+            .toLocaleLowerCase()
+            .includes(term),
+      );
+      list.replaceChildren();
+      matches.forEach((option, index) => {
+        const item = document.createElement('div');
+        item.id = `${list.id}_${index}`;
+        item.className = 'school-combo-option';
+        item.setAttribute('role', 'option');
+        item.setAttribute('aria-selected', String(option.value === select.value));
+        item.textContent = option.text;
+        item.addEventListener('pointerdown', (event) => event.preventDefault());
+        item.addEventListener('click', () => choose(option));
+        list.append(item);
+      });
+      if (!matches.length) {
+        const empty = document.createElement('div');
+        empty.className = 'school-combo-empty';
+        empty.textContent =
+          'No matching schools. Change the text, district or zonal office.';
+        list.append(empty);
+      }
+      status.textContent = `${matches.length} school${matches.length === 1 ? '' : 's'} available.`;
+      highlight(
+        matches.length
+          ? Math.max(
+              0,
+              matches.findIndex((option) => option.value === select.value),
+            )
+          : -1,
+      );
+    };
+    const open = () => {
+      list.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      renderOptions();
+    };
+    input.addEventListener('focus', () => {
+      input.select();
+      open();
+    });
+    input.addEventListener('click', open);
+    input.addEventListener('input', () => {
+      query = input.value;
+      select.value = '';
+      validate();
+      open();
+    });
+    input.addEventListener('keydown', (event) => {
+      if (event.isComposing) return;
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        const wasClosed = list.hidden;
+        if (wasClosed) open();
+        if (matches.length)
+          highlight(
+            wasClosed
+              ? event.key === 'ArrowDown'
+                ? 0
+                : matches.length - 1
+              : (active + (event.key === 'ArrowDown' ? 1 : -1) + matches.length) %
+                  matches.length,
+          );
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
+        if (!list.hidden && matches[active]) choose(matches[active]);
+        else input.reportValidity();
+      } else if (event.key === 'Escape' || event.key === 'Tab') close();
+    });
+    input.addEventListener('blur', close);
+    toggle.addEventListener('pointerdown', (event) => event.preventDefault());
+    toggle.addEventListener('click', () => {
+      const wasClosed = list.hidden;
+      input.focus();
+      if (wasClosed) open();
+      else close();
+    });
+    return {
+      refresh() {
+        const option = select.selectedOptions[0];
+        if (select.value) query = '';
+        input.value = select.value ? option.text : query;
+        validate();
+        if (!list.hidden) renderOptions();
+      },
+    };
+  };
   document.querySelectorAll('[data-location-form]').forEach((form) => {
     const district = form.querySelector('#id_district');
     const province = form.querySelector('#id_province');
@@ -49,6 +227,12 @@
     const provinces = readJSON('district-provinces');
     const provinceShortNames = readJSON('district-province-short-names');
     const schools = school ? readJSON('member-schools') : [];
+    const schoolCombo = school
+      ? searchableSelect(
+          school,
+          new Map(schools.map((row) => [String(row.id), row.code])),
+        )
+      : null;
     let locations = readJSON('initial-locations');
     let pending;
     let loading = false;
@@ -62,8 +246,21 @@
       if (provinceShortName)
         provinceShortName.value = provinceShortNames[district.value] || '';
     };
-    const updateSchool = (selected = '') =>
-      fillOptions(school, schools, 'Select a school', selected);
+    const updateSchool = (selected = school?.value || '') => {
+      if (!school) return;
+      const rows = schools.filter(
+        (row) =>
+          (!district.value || String(row.district_id) === district.value) &&
+          (!office.value || String(row.zonal_office_id) === office.value),
+      );
+      fillOptions(
+        school,
+        rows,
+        rows.length ? 'Select a school' : 'No matching schools',
+        selected,
+      );
+      schoolCombo.refresh();
+    };
     const updateSubdivisions = (selected = '') => {
       const rows = (locations.subdivisions || []).filter(
         (row) => String(row.zonal_office_id) === office.value,
@@ -163,7 +360,13 @@
         if (previousLager && !data.lagers.some((row) => row.id === previousLager.id))
           data.lagers.push(previousLager);
         locations = data;
-        render(selection);
+        render({
+          ...selection,
+          school:
+            selection.school && school.value !== String(selection.school)
+              ? school.value
+              : selection.school,
+        });
         return true;
       } catch (error) {
         if (pending !== controller || error.name === 'AbortError') return false;
@@ -205,7 +408,7 @@
         subdivision.value &&
         String(selectedSchool.subdivision_id || '') !== subdivision.value
       )
-        updateSchool();
+        updateSchool('');
     });
     school?.addEventListener('change', async () => {
       const row = schools.find((item) => String(item.id) === school.value);

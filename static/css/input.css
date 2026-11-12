@@ -6,13 +6,96 @@
   --color-brand-50: #fff4f6;
   --color-brand-100: #f8dce5;
   --color-brand-500: #b52b56;
-  --color-brand-600: #a21c45;
-  --color-brand-700: #811637;
+  --color-brand-600: #9d1948;
+  --color-brand-700: #81143b;
+  --color-brand-900: #3d1024;
   --color-accent-50: #fff8dc;
   --color-accent-100: #fff0a6;
-  --color-accent-500: #ffca0a;
+  --color-accent-500: #ffcc00;
   --color-accent-700: #715200;
   --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+@layer components {
+  .workspace-sidebar {
+    background: linear-gradient(175deg, #59112e 0%, #3d1024 75%);
+  }
+  .workspace-sidebar .nav-link {
+    @apply text-white/75 hover:bg-white/10 hover:text-white;
+  }
+  .workspace-sidebar .nav-link.active {
+    @apply bg-white/10 text-white;
+    box-shadow: inset 3px 0 0 #ffcc00;
+  }
+  .workspace-sidebar .nav-link.active::before {
+    display: none;
+  }
+  .nav-caption {
+    @apply mb-2 px-3 pt-2 text-[10px] font-bold uppercase tracking-[.16em] text-white/55;
+  }
+  .sidebar-signout {
+    @apply flex h-9 w-9 items-center justify-center rounded-lg text-white/75 hover:bg-white/10 hover:text-white;
+  }
+  .skip-link {
+    @apply fixed left-4 top-4 z-50 -translate-y-24 rounded-lg bg-white px-5 py-3 font-semibold text-brand-700 focus:translate-y-0;
+  }
+  .admin-hero {
+    @apply relative overflow-hidden;
+    background: linear-gradient(115deg, #3d1024 0%, #81143b 65%, #9d1948 100%);
+  }
+  .admin-hero::after {
+    content: '';
+    position: absolute;
+    width: 360px;
+    height: 360px;
+    right: -150px;
+    top: -110px;
+    border: 1px solid #ffcc0040;
+    transform: rotate(45deg);
+    box-shadow:
+      0 0 0 40px #ffcc0008,
+      0 0 0 80px #ffcc0008;
+  }
+  .hero-kicker {
+    @apply inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[.13em] text-accent-500;
+  }
+  .admin-hero-art {
+    @apply absolute right-14 top-1/2 hidden h-44 w-44 -translate-y-1/2 items-center justify-center rounded-[36px] border border-white/15 bg-white/5 xl:flex;
+    transform: rotate(-8deg);
+    box-shadow: 18px 18px 0 #ffffff05;
+  }
+  .btn-gold {
+    @apply bg-accent-500 text-brand-900 shadow-sm hover:bg-accent-100;
+  }
+  .btn-hero {
+    @apply border-white/30 bg-white/5 text-white hover:bg-white/15;
+  }
+  .admin-stat {
+    @apply flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs;
+  }
+  a.admin-stat:hover,
+  .module-tile:hover {
+    @apply border-brand-100 shadow-sm;
+  }
+  .module-tile {
+    @apply flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-5;
+  }
+  .activity-entry {
+    @apply flex gap-3 border-b border-slate-100 pb-4;
+  }
+  .activity-entry + .activity-entry {
+    @apply mt-4;
+  }
+  .activity-entry:last-child {
+    @apply border-0 pb-0;
+  }
+  .permission-table td,
+  .permission-table thead th:not(:first-child) {
+    text-align: center;
+  }
+  .permission-cell {
+    @apply inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg hover:bg-brand-50;
+  }
 }
 
 @layer base {
@@ -140,6 +223,40 @@
   .field-check {
     @apply h-5 w-5 rounded border-2 border-slate-500;
     accent-color: #a21c45;
+  }
+  .school-combo {
+    position: relative;
+  }
+  .form-section.has-school-combo {
+    overflow: visible;
+  }
+  .school-combo-input {
+    padding-right: 3rem;
+  }
+  .school-combo-toggle {
+    @apply absolute right-1 top-1 flex h-11 w-10 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100;
+  }
+  .school-combo-options {
+    @apply absolute left-0 right-0 z-50 mt-2 max-h-64 overflow-y-auto rounded-lg border-2 border-slate-500 bg-white p-1 shadow-lg;
+    top: 100%;
+  }
+  .school-combo-options[hidden] {
+    display: none;
+  }
+  .school-combo-option {
+    @apply cursor-pointer rounded-md px-3 py-3 text-sm text-slate-900 hover:bg-brand-50;
+    overflow-wrap: anywhere;
+  }
+  .school-combo-option.is-highlighted {
+    @apply bg-brand-50 text-brand-900;
+    outline: 2px solid #811637;
+    outline-offset: -2px;
+  }
+  .school-combo-option[aria-selected='true'] {
+    font-weight: 700;
+  }
+  .school-combo-empty {
+    @apply px-3 py-3 text-sm text-slate-600;
   }
   .field-label {
     @apply mb-2 block text-sm font-bold text-slate-900;
