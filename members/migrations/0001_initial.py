@@ -11,80 +11,243 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='District',
+            name="District",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100, unique=True)),
-                ('code', models.CharField(max_length=12, unique=True)),
-                ('province', models.CharField(blank=True, max_length=100)),
-                ('is_active', models.BooleanField(default=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100, unique=True)),
+                ("code", models.CharField(max_length=12, unique=True)),
+                ("province", models.CharField(blank=True, max_length=100)),
+                ("is_active", models.BooleanField(default=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
             options={
-                'ordering': ['name'],
+                "ordering": ["name"],
             },
         ),
         migrations.CreateModel(
-            name='OfficeLocation',
+            name="OfficeLocation",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=150)),
-                ('code', models.CharField(max_length=20, unique=True)),
-                ('address', models.TextField(blank=True)),
-                ('phone', models.CharField(blank=True, max_length=22, validators=[django.core.validators.RegexValidator('^\\+?[\\d\\s()\\-]{7,22}$', 'Enter a valid phone number (7–15 digits).')])),
-                ('is_active', models.BooleanField(default=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('district', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='offices', to='members.district')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=150)),
+                ("code", models.CharField(max_length=20, unique=True)),
+                ("address", models.TextField(blank=True)),
+                (
+                    "phone",
+                    models.CharField(
+                        blank=True,
+                        max_length=22,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                "^\\+?[\\d\\s()\\-]{7,22}$",
+                                "Enter a valid phone number (7–15 digits).",
+                            )
+                        ],
+                    ),
+                ),
+                ("is_active", models.BooleanField(default=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "district",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="offices",
+                        to="members.district",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['district__name', 'name'],
+                "ordering": ["district__name", "name"],
             },
         ),
         migrations.CreateModel(
-            name='Member',
+            name="Member",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('member_no', models.CharField(max_length=30, unique=True, verbose_name='Member number')),
-                ('computer_no', models.CharField(blank=True, max_length=30, null=True, unique=True, verbose_name='Computer number')),
-                ('full_name', models.CharField(max_length=200)),
-                ('salary', models.DecimalField(decimal_places=2, max_digits=12, validators=[django.core.validators.MinValueValidator(Decimal('0'))], verbose_name='Monthly salary (LKR)')),
-                ('office_address', models.TextField(blank=True)),
-                ('private_address', models.TextField()),
-                ('phone_office', models.CharField(blank=True, max_length=22, validators=[django.core.validators.RegexValidator('^\\+?[\\d\\s()\\-]{7,22}$', 'Enter a valid phone number (7–15 digits).')], verbose_name='Office phone')),
-                ('phone_mobile', models.CharField(max_length=22, validators=[django.core.validators.RegexValidator('^\\+?[\\d\\s()\\-]{7,22}$', 'Enter a valid phone number (7–15 digits).')], verbose_name='Mobile phone')),
-                ('phone_home', models.CharField(blank=True, max_length=22, validators=[django.core.validators.RegexValidator('^\\+?[\\d\\s()\\-]{7,22}$', 'Enter a valid phone number (7–15 digits).')], verbose_name='Home phone')),
-                ('admit_date', models.DateField(default=django.utils.timezone.localdate, verbose_name='Admission date')),
-                ('gender', models.CharField(choices=[('male', 'Male'), ('female', 'Female'), ('other', 'Other'), ('unspecified', 'Prefer not to say')], max_length=15)),
-                ('nic_no', models.CharField(max_length=12, unique=True, validators=[django.core.validators.RegexValidator('^(?:\\d{9}[VXvx]|\\d{12})$', 'Enter a valid NIC: 9 digits followed by V/X, or 12 digits.')], verbose_name='NIC number')),
-                ('status', models.CharField(choices=[('active', 'Active'), ('inactive', 'Inactive')], default='active', max_length=10)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('district', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='members', to='members.district')),
-                ('office_location', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='members', to='members.officelocation')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "member_no",
+                    models.CharField(
+                        max_length=30, unique=True, verbose_name="Member number"
+                    ),
+                ),
+                (
+                    "computer_no",
+                    models.CharField(
+                        blank=True,
+                        max_length=30,
+                        null=True,
+                        unique=True,
+                        verbose_name="Computer number",
+                    ),
+                ),
+                ("full_name", models.CharField(max_length=200)),
+                (
+                    "salary",
+                    models.DecimalField(
+                        decimal_places=2,
+                        max_digits=12,
+                        validators=[
+                            django.core.validators.MinValueValidator(Decimal("0"))
+                        ],
+                        verbose_name="Monthly salary (LKR)",
+                    ),
+                ),
+                ("office_address", models.TextField(blank=True)),
+                ("private_address", models.TextField()),
+                (
+                    "phone_office",
+                    models.CharField(
+                        blank=True,
+                        max_length=22,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                "^\\+?[\\d\\s()\\-]{7,22}$",
+                                "Enter a valid phone number (7–15 digits).",
+                            )
+                        ],
+                        verbose_name="Office phone",
+                    ),
+                ),
+                (
+                    "phone_mobile",
+                    models.CharField(
+                        max_length=22,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                "^\\+?[\\d\\s()\\-]{7,22}$",
+                                "Enter a valid phone number (7–15 digits).",
+                            )
+                        ],
+                        verbose_name="Mobile phone",
+                    ),
+                ),
+                (
+                    "phone_home",
+                    models.CharField(
+                        blank=True,
+                        max_length=22,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                "^\\+?[\\d\\s()\\-]{7,22}$",
+                                "Enter a valid phone number (7–15 digits).",
+                            )
+                        ],
+                        verbose_name="Home phone",
+                    ),
+                ),
+                (
+                    "admit_date",
+                    models.DateField(
+                        default=django.utils.timezone.localdate,
+                        verbose_name="Admission date",
+                    ),
+                ),
+                (
+                    "gender",
+                    models.CharField(
+                        choices=[
+                            ("male", "Male"),
+                            ("female", "Female"),
+                            ("other", "Other"),
+                            ("unspecified", "Prefer not to say"),
+                        ],
+                        max_length=15,
+                    ),
+                ),
+                (
+                    "nic_no",
+                    models.CharField(
+                        max_length=12,
+                        unique=True,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                "^(?:\\d{9}[VXvx]|\\d{12})$",
+                                "Enter a valid NIC: 9 digits followed by V/X, or 12 digits.",
+                            )
+                        ],
+                        verbose_name="NIC number",
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[("active", "Active"), ("inactive", "Inactive")],
+                        default="active",
+                        max_length=10,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "district",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="members",
+                        to="members.district",
+                    ),
+                ),
+                (
+                    "office_location",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="members",
+                        to="members.officelocation",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
         migrations.AddConstraint(
-            model_name='officelocation',
-            constraint=models.UniqueConstraint(fields=('district', 'name'), name='unique_office_in_district'),
+            model_name="officelocation",
+            constraint=models.UniqueConstraint(
+                fields=("district", "name"), name="unique_office_in_district"
+            ),
         ),
         migrations.AddIndex(
-            model_name='member',
-            index=models.Index(fields=['district', 'status'], name='members_mem_distric_200e21_idx'),
+            model_name="member",
+            index=models.Index(
+                fields=["district", "status"], name="members_mem_distric_200e21_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='member',
-            index=models.Index(fields=['full_name'], name='members_mem_full_na_3f8d20_idx'),
+            model_name="member",
+            index=models.Index(
+                fields=["full_name"], name="members_mem_full_na_3f8d20_idx"
+            ),
         ),
         migrations.AddConstraint(
-            model_name='member',
-            constraint=models.CheckConstraint(condition=models.Q(('salary__gte', 0)), name='member_salary_nonnegative'),
+            model_name="member",
+            constraint=models.CheckConstraint(
+                condition=models.Q(("salary__gte", 0)), name="member_salary_nonnegative"
+            ),
         ),
     ]

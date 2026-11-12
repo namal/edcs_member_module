@@ -7,74 +7,144 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('members', '0002_initial_districts'),
+        ("members", "0002_initial_districts"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='officelocation',
-            options={'ordering': ['district__name', 'name'], 'verbose_name': 'zonal office', 'verbose_name_plural': 'zonal offices'},
+            name="officelocation",
+            options={
+                "ordering": ["district__name", "name"],
+                "verbose_name": "zonal office",
+                "verbose_name_plural": "zonal offices",
+            },
         ),
         migrations.AlterField(
-            model_name='district',
-            name='province',
+            model_name="district",
+            name="province",
             field=models.CharField(max_length=100),
         ),
         migrations.AlterField(
-            model_name='member',
-            name='office_address',
+            model_name="member",
+            name="office_address",
             field=models.TextField(),
         ),
         migrations.AlterField(
-            model_name='member',
-            name='office_location',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='members', to='members.officelocation', verbose_name='Zonal office'),
+            model_name="member",
+            name="office_location",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="members",
+                to="members.officelocation",
+                verbose_name="Zonal office",
+            ),
         ),
         migrations.CreateModel(
-            name='School',
+            name="School",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=200)),
-                ('code', models.CharField(max_length=20, unique=True)),
-                ('address', models.TextField(blank=True)),
-                ('is_active', models.BooleanField(default=True)),
-                ('district', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='schools', to='members.district')),
-                ('zonal_office', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='schools', to='members.officelocation')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=200)),
+                ("code", models.CharField(max_length=20, unique=True)),
+                ("address", models.TextField(blank=True)),
+                ("is_active", models.BooleanField(default=True)),
+                (
+                    "district",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="schools",
+                        to="members.district",
+                    ),
+                ),
+                (
+                    "zonal_office",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="schools",
+                        to="members.officelocation",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['district__name', 'zonal_office__name', 'name'],
+                "ordering": ["district__name", "zonal_office__name", "name"],
             },
         ),
         migrations.AddField(
-            model_name='member',
-            name='school',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='members', to='members.school'),
+            model_name="member",
+            name="school",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="members",
+                to="members.school",
+            ),
         ),
         migrations.CreateModel(
-            name='Subdivision',
+            name="Subdivision",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=150)),
-                ('code', models.CharField(max_length=20, unique=True)),
-                ('is_active', models.BooleanField(default=True)),
-                ('zonal_office', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='subdivisions', to='members.officelocation')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=150)),
+                ("code", models.CharField(max_length=20, unique=True)),
+                ("is_active", models.BooleanField(default=True)),
+                (
+                    "zonal_office",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="subdivisions",
+                        to="members.officelocation",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['zonal_office__district__name', 'zonal_office__name', 'name'],
+                "ordering": [
+                    "zonal_office__district__name",
+                    "zonal_office__name",
+                    "name",
+                ],
             },
         ),
         migrations.AddField(
-            model_name='school',
-            name='subdivision',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='schools', to='members.subdivision'),
+            model_name="school",
+            name="subdivision",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="schools",
+                to="members.subdivision",
+            ),
         ),
         migrations.AddField(
-            model_name='member',
-            name='subdivision',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='members', to='members.subdivision'),
+            model_name="member",
+            name="subdivision",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="members",
+                to="members.subdivision",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='subdivision',
-            constraint=models.UniqueConstraint(fields=('zonal_office', 'name'), name='unique_subdivision_in_zone'),
+            model_name="subdivision",
+            constraint=models.UniqueConstraint(
+                fields=("zonal_office", "name"), name="unique_subdivision_in_zone"
+            ),
         ),
     ]

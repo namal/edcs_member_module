@@ -2,8 +2,14 @@
   "name": "memberly",
   "private": true,
   "scripts": {
+    "format": "python -m black . && python -m djlint templates --reformat --warn --quiet && prettier --write \"**/*.{js,css,json,md,svg}\"",
+    "format:check": "python -m black . --check && python -m djlint templates --check && prettier --check \"**/*.{js,css,json,md,svg}\"",
     "build:css": "tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.css --minify",
     "watch:css": "tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.css --watch"
   },
-  "devDependencies": {"@tailwindcss/cli": "^4.1.0", "tailwindcss": "^4.1.0"}
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.0",
+    "prettier": "3.10.1",
+    "tailwindcss": "^4.1.0"
+  }
 }

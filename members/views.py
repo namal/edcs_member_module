@@ -11,78 +11,161 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from .forms import DistrictForm, LagerForm, MemberForm, OfficeLocationForm, SchoolForm, SubdivisionForm, selected_id
+from .forms import (
+    DistrictForm,
+    LagerForm,
+    MemberForm,
+    OfficeLocationForm,
+    SchoolForm,
+    SubdivisionForm,
+    selected_id,
+)
 from .models import District, Lager, Member, OfficeLocation, School, Subdivision
 
 
 def location_data(district_id, instance=None):
-    if not str(district_id or '').isdigit():
-        return {'offices': [], 'subdivisions': [], 'schools': [], 'lagers': []}
-    current_office = getattr(instance, 'office_location_id', None) or getattr(instance, 'zonal_office_id', None)
+    if not str(district_id or "").isdigit():
+        return {"offices": [], "subdivisions": [], "schools": [], "lagers": []}
+    current_office = getattr(instance, "office_location_id", None) or getattr(
+        instance, "zonal_office_id", None
+    )
     offices = OfficeLocation.objects.filter(district_id=district_id).filter(
-        Q(is_active=True, district__is_active=True) | Q(pk=current_office))
-    subdivisions = Subdivision.objects.select_related('zonal_office').filter(zonal_office__district_id=district_id).filter(
-        Q(is_active=True, zonal_office__is_active=True, zonal_office__district__is_active=True) | Q(pk=getattr(instance, 'subdivision_id', None)))
-    schools = School.objects.select_related('district', 'zonal_office', 'subdivision').filter(district_id=district_id).filter(
-        Q(is_active=True, district__is_active=True, zonal_office__is_active=True) | Q(pk=getattr(instance, 'school_id', None)))
-    schools = schools.filter(Q(subdivision__isnull=True) | Q(subdivision__is_active=True) | Q(pk=getattr(instance, 'school_id', None)))
+        Q(is_active=True, district__is_active=True) | Q(pk=current_office)
+    )
+    subdivisions = (
+        Subdivision.objects.select_related("zonal_office")
+        .filter(zonal_office__district_id=district_id)
+        .filter(
+            Q(
+                is_active=True,
+                zonal_office__is_active=True,
+                zonal_office__district__is_active=True,
+            )
+            | Q(pk=getattr(instance, "subdivision_id", None))
+        )
+    )
+    schools = (
+        School.objects.select_related("district", "zonal_office", "subdivision")
+        .filter(district_id=district_id)
+        .filter(
+            Q(is_active=True, district__is_active=True, zonal_office__is_active=True)
+            | Q(pk=getattr(instance, "school_id", None))
+        )
+    )
+    schools = schools.filter(
+        Q(subdivision__isnull=True)
+        | Q(subdivision__is_active=True)
+        | Q(pk=getattr(instance, "school_id", None))
+    )
     lagers = Lager.objects.filter(district_id=district_id).filter(
-        Q(is_active=True, district__is_active=True) | Q(pk=getattr(instance, 'lager_id', None)))
+        Q(is_active=True, district__is_active=True)
+        | Q(pk=getattr(instance, "lager_id", None))
+    )
     return {
-        'lagers': list(lagers.values('id', 'name', 'code').order_by('name', 'pk')),
-        'offices': list(offices.values('id', 'name', 'address', 'phone').order_by('name')),
-        'subdivisions': list(subdivisions.values('id', 'name', 'zonal_office_id').order_by('name')),
-        'schools': [{'id': school.pk, 'name': str(school), 'zonal_office_id': school.zonal_office_id,
-                     'subdivision_id': school.subdivision_id, 'address': school.address} for school in schools],
+        "lagers": list(lagers.values("id", "name", "code").order_by("name", "pk")),
+        "offices": list(
+            offices.values("id", "name", "address", "phone").order_by("name")
+        ),
+        "subdivisions": list(
+            subdivisions.values("id", "name", "zonal_office_id").order_by("name")
+        ),
+        "schools": [
+            {
+                "id": school.pk,
+                "name": str(school),
+                "zonal_office_id": school.zonal_office_id,
+                "subdivision_id": school.subdivision_id,
+                "address": school.address,
+            }
+            for school in schools
+        ],
     }
 
 
 def location_context(form):
-    provinces = list(District.objects.values_list('pk', 'province', 'province_short_name'))
+    provinces = list(
+        District.objects.values_list("pk", "province", "province_short_name")
+    )
     return {
-        'district_provinces': {pk: name for pk, name, short_name in provinces},
-        'district_province_short_names': {pk: short_name for pk, name, short_name in provinces},
-        'initial_locations': location_data(selected_id(form, 'district'), form.instance),
+        "district_provinces": {pk: name for pk, name, short_name in provinces},
+        "district_province_short_names": {
+            pk: short_name for pk, name, short_name in provinces
+        },
+        "initial_locations": location_data(
+            selected_id(form, "district"), form.instance
+        ),
     }
 
 
 def member_school_data(form):
-    return [{
-        'id': school.pk, 'name': str(school), 'district_id': school.district_id,
-        'zonal_office_id': school.zonal_office_id, 'zonal_office_name': school.zonal_office.name,
-        'subdivision_id': school.subdivision_id, 'subdivision_name': school.subdivision.name if school.subdivision_id else '',
-        'address': school.address, 'office_address': school.zonal_office.address, 'phone': school.zonal_office.phone,
-    } for school in form.fields['school'].queryset]
+    return [
+        {
+            "id": school.pk,
+            "name": str(school),
+            "district_id": school.district_id,
+            "zonal_office_id": school.zonal_office_id,
+            "zonal_office_name": school.zonal_office.name,
+            "subdivision_id": school.subdivision_id,
+            "subdivision_name": (
+                school.subdivision.name if school.subdivision_id else ""
+            ),
+            "address": school.address,
+            "office_address": school.zonal_office.address,
+            "phone": school.zonal_office.phone,
+        }
+        for school in form.fields["school"].queryset
+    ]
 
 
 def paginated(request, queryset):
     params = request.GET.copy()
-    params.pop('page', None)
-    return {'page_obj': Paginator(queryset, 10).get_page(request.GET.get('page')), 'query_string': params.urlencode()}
+    params.pop("page", None)
+    return {
+        "page_obj": Paginator(queryset, 10).get_page(request.GET.get("page")),
+        "query_string": params.urlencode(),
+    }
 
 
 def filtered_members(request):
-    queryset = Member.objects.select_related('district', 'lager__district', 'office_location', 'subdivision', 'school__district', 'school__zonal_office', 'school__subdivision')
-    query = request.GET.get('q', '').strip()
+    queryset = Member.objects.select_related(
+        "district",
+        "lager__district",
+        "office_location",
+        "subdivision",
+        "school__district",
+        "school__zonal_office",
+        "school__subdivision",
+    )
+    query = request.GET.get("q", "").strip()
     if query:
-        queryset = queryset.filter(Q(full_name__icontains=query) | Q(member_no__icontains=query) |
-                                  Q(nic_no__icontains=query) | Q(computer_no__icontains=query) | Q(phone_mobile__icontains=query))
-    for key, field in [('district', 'district_id'), ('lager', 'lager_id'), ('office', 'office_location_id'), ('school', 'school_id')]:
-        value = request.GET.get(key, '')
+        queryset = queryset.filter(
+            Q(full_name__icontains=query)
+            | Q(member_no__icontains=query)
+            | Q(nic_no__icontains=query)
+            | Q(computer_no__icontains=query)
+            | Q(phone_mobile__icontains=query)
+        )
+    for key, field in [
+        ("district", "district_id"),
+        ("lager", "lager_id"),
+        ("office", "office_location_id"),
+        ("school", "school_id"),
+    ]:
+        value = request.GET.get(key, "")
         if value.isdigit():
             queryset = queryset.filter(**{field: value})
-    if request.GET.get('status') in Member.Status.values:
-        queryset = queryset.filter(status=request.GET['status'])
-    if request.GET.get('gender') in Member.Gender.values:
-        queryset = queryset.filter(gender=request.GET['gender'])
-    for key, lookup in [('from', 'admit_date__gte'), ('to', 'admit_date__lte')]:
+    if request.GET.get("status") in Member.Status.values:
+        queryset = queryset.filter(status=request.GET["status"])
+    if request.GET.get("gender") in Member.Gender.values:
+        queryset = queryset.filter(gender=request.GET["gender"])
+    for key, lookup in [("from", "admit_date__gte"), ("to", "admit_date__lte")]:
         try:
-            value = date.fromisoformat(request.GET.get(key, ''))
+            value = date.fromisoformat(request.GET.get(key, ""))
         except ValueError:
             continue
         queryset = queryset.filter(**{lookup: value})
-    sorting = {'name': 'full_name', 'oldest': 'created_at', 'admitted': '-admit_date'}
-    return queryset.order_by(sorting.get(request.GET.get('sort'), '-created_at'), '-pk')
+    sorting = {"name": "full_name", "oldest": "created_at", "admitted": "-admit_date"}
+    return queryset.order_by(sorting.get(request.GET.get("sort"), "-created_at"), "-pk")
 
 
 @login_required
@@ -92,190 +175,383 @@ def dashboard(request):
     for offset in range(5, -1, -1):
         index = today.year * 12 + today.month - 1 - offset
         months.append(date(index // 12, index % 12 + 1, 1))
-    aggregates = Member.objects.filter(admit_date__gte=months[0]).annotate(month=TruncMonth('admit_date')).values('month').annotate(total=Count('id')).order_by('month')
-    counts = {item['month'].strftime('%Y-%m'): item['total'] for item in aggregates}
+    aggregates = (
+        Member.objects.filter(admit_date__gte=months[0])
+        .annotate(month=TruncMonth("admit_date"))
+        .values("month")
+        .annotate(total=Count("id"))
+        .order_by("month")
+    )
+    counts = {item["month"].strftime("%Y-%m"): item["total"] for item in aggregates}
     peak = max(counts.values(), default=0) or 1
-    chart = [{'label': month.strftime('%b'), 'count': counts.get(month.strftime('%Y-%m'), 0),
-              'height': round(counts.get(month.strftime('%Y-%m'), 0) / peak * 100)} for month in months]
+    chart = [
+        {
+            "label": month.strftime("%b"),
+            "count": counts.get(month.strftime("%Y-%m"), 0),
+            "height": round(counts.get(month.strftime("%Y-%m"), 0) / peak * 100),
+        }
+        for month in months
+    ]
     total = Member.objects.count()
-    districts = list(District.objects.annotate(member_count=Count('members')).filter(member_count__gt=0).order_by('-member_count', 'name')[:5])
+    districts = list(
+        District.objects.annotate(member_count=Count("members"))
+        .filter(member_count__gt=0)
+        .order_by("-member_count", "name")[:5]
+    )
     for district in districts:
         district.percent = round(district.member_count / total * 100) if total else 0
-    return render(request, 'members/dashboard.html', {
-        'section': 'dashboard', 'title': 'Overview', 'total_members': total,
-        'active_members': Member.objects.filter(status='active').count(),
-        'district_count': District.objects.filter(is_active=True).count(),
-        'office_count': OfficeLocation.objects.filter(is_active=True, district__is_active=True).count(),
-        'this_month': Member.objects.filter(admit_date__gte=today.replace(day=1), admit_date__lte=today).count(),
-        'recent_members': Member.objects.select_related('district', 'office_location')[:5],
-        'chart': chart, 'chart_total': sum(row['count'] for row in chart),
-        'chart_start': months[0], 'districts': districts, 'today': today,
-    })
+    return render(
+        request,
+        "members/dashboard.html",
+        {
+            "section": "dashboard",
+            "title": "Overview",
+            "total_members": total,
+            "active_members": Member.objects.filter(status="active").count(),
+            "district_count": District.objects.filter(is_active=True).count(),
+            "office_count": OfficeLocation.objects.filter(
+                is_active=True, district__is_active=True
+            ).count(),
+            "this_month": Member.objects.filter(
+                admit_date__gte=today.replace(day=1), admit_date__lte=today
+            ).count(),
+            "recent_members": Member.objects.select_related(
+                "district", "office_location"
+            )[:5],
+            "chart": chart,
+            "chart_total": sum(row["count"] for row in chart),
+            "chart_start": months[0],
+            "districts": districts,
+            "today": today,
+        },
+    )
 
 
 @login_required
 def member_list(request):
     queryset = filtered_members(request)
-    district_id = request.GET.get('district', '')
-    offices = OfficeLocation.objects.select_related('district')
-    lagers = Lager.objects.select_related('district')
+    district_id = request.GET.get("district", "")
+    offices = OfficeLocation.objects.select_related("district")
+    lagers = Lager.objects.select_related("district")
     if district_id.isdigit():
         offices = offices.filter(district_id=district_id)
         lagers = lagers.filter(district_id=district_id)
     context = {
-        'section': 'members', 'title': 'Member directory', 'total_members': Member.objects.count(),
-        'filtered_count': queryset.count(), 'districts': District.objects.all(), 'offices': offices, 'lagers': lagers,
-        'all_lagers': list(Lager.objects.values('id', 'name', 'code', 'district_id', 'district__name')),
-        'statuses': Member.Status.choices, 'genders': Member.Gender.choices,
+        "section": "members",
+        "title": "Member directory",
+        "total_members": Member.objects.count(),
+        "filtered_count": queryset.count(),
+        "districts": District.objects.all(),
+        "offices": offices,
+        "lagers": lagers,
+        "all_lagers": list(
+            Lager.objects.values("id", "name", "code", "district_id", "district__name")
+        ),
+        "statuses": Member.Status.choices,
+        "genders": Member.Gender.choices,
     }
     context.update(paginated(request, queryset))
-    return render(request, 'members/member_list.html', context)
+    return render(request, "members/member_list.html", context)
 
 
 @login_required
 def member_form(request, pk=None):
     member = get_object_or_404(Member, pk=pk) if pk else None
-    form = MemberForm(request.POST if request.method == 'POST' else None, instance=member)
-    if request.method == 'POST' and form.is_valid():
+    form = MemberForm(
+        request.POST if request.method == "POST" else None, instance=member
+    )
+    if request.method == "POST" and form.is_valid():
         member = form.save()
-        messages.success(request, f'{member.full_name} was successfully {"updated" if pk else "registered"}.')
-        return redirect('member_detail', pk=member.pk)
-    return render(request, 'members/member_form.html', {
-        'section': 'members', 'title': 'Edit member' if pk else 'Register member',
-        'form': form, 'member': member, 'today': timezone.localdate(),
-        'has_offices': OfficeLocation.objects.filter(is_active=True, district__is_active=True).exists(),
-        'member_schools': member_school_data(form),
-        **location_context(form),
-    })
+        messages.success(
+            request,
+            f'{member.full_name} was successfully {"updated" if pk else "registered"}.',
+        )
+        return redirect("member_detail", pk=member.pk)
+    return render(
+        request,
+        "members/member_form.html",
+        {
+            "section": "members",
+            "title": "Edit member" if pk else "Register member",
+            "form": form,
+            "member": member,
+            "today": timezone.localdate(),
+            "has_offices": OfficeLocation.objects.filter(
+                is_active=True, district__is_active=True
+            ).exists(),
+            "member_schools": member_school_data(form),
+            **location_context(form),
+        },
+    )
 
 
 @login_required
 def member_detail(request, pk):
-    member = get_object_or_404(Member.objects.select_related('district', 'lager__district', 'office_location', 'subdivision', 'school__district', 'school__zonal_office', 'school__subdivision'), pk=pk)
-    return render(request, 'members/member_detail.html', {'section': 'members', 'title': 'Member profile', 'member': member})
+    member = get_object_or_404(
+        Member.objects.select_related(
+            "district",
+            "lager__district",
+            "office_location",
+            "subdivision",
+            "school__district",
+            "school__zonal_office",
+            "school__subdivision",
+        ),
+        pk=pk,
+    )
+    return render(
+        request,
+        "members/member_detail.html",
+        {"section": "members", "title": "Member profile", "member": member},
+    )
 
 
 @login_required
 def member_export(request):
-    response = HttpResponse(content_type='text/csv; charset=utf-8')
-    response['Content-Disposition'] = f'attachment; filename="members-{timezone.localdate().isoformat()}.csv"'
-    response.write('\ufeff')
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = (
+        f'attachment; filename="members-{timezone.localdate().isoformat()}.csv"'
+    )
+    response.write("\ufeff")
     writer = csv.writer(response)
-    writer.writerow(['Member No', 'Computer No', 'Full Name', 'Monthly Salary (LKR)', 'District',
-                     'Zonal Office', 'Office Address', 'Private Address', 'Office Phone',
-                     'Mobile Phone', 'Home Phone', 'Admission Date', 'Gender', 'NIC No', 'Status', 'Province', 'Subdivision', 'School', 'Lager Code', 'Lager', 'Province Short Name'])
+    writer.writerow(
+        [
+            "Member No",
+            "Computer No",
+            "Full Name",
+            "Monthly Salary (LKR)",
+            "District",
+            "Zonal Office",
+            "Office Address",
+            "Private Address",
+            "Office Phone",
+            "Mobile Phone",
+            "Home Phone",
+            "Admission Date",
+            "Gender",
+            "NIC No",
+            "Status",
+            "Province",
+            "Subdivision",
+            "School",
+            "Lager Code",
+            "Lager",
+            "Province Short Name",
+        ]
+    )
     for member in filtered_members(request).iterator():
-        row = [member.member_no, member.computer_no or '', member.full_name, member.salary,
-               member.district.name, member.office_location.name, member.office_address,
-               member.private_address, member.phone_office, member.phone_mobile, member.phone_home,
-               member.admit_date.isoformat(), member.get_gender_display(), member.nic_no, member.get_status_display(),
-               member.district.province, member.subdivision.name if member.subdivision_id else '', str(member.school) if member.school_id else '',
-               member.lager.code if member.lager_id else '', member.lager.name if member.lager_id else '', member.district.province_short_name]
-        writer.writerow([f"'{value}" if isinstance(value, str) and value.lstrip().startswith(('=', '+', '-', '@', '\t', '\r')) else value for value in row])
+        row = [
+            member.member_no,
+            member.computer_no or "",
+            member.full_name,
+            member.salary,
+            member.district.name,
+            member.office_location.name,
+            member.office_address,
+            member.private_address,
+            member.phone_office,
+            member.phone_mobile,
+            member.phone_home,
+            member.admit_date.isoformat(),
+            member.get_gender_display(),
+            member.nic_no,
+            member.get_status_display(),
+            member.district.province,
+            member.subdivision.name if member.subdivision_id else "",
+            str(member.school) if member.school_id else "",
+            member.lager.code if member.lager_id else "",
+            member.lager.name if member.lager_id else "",
+            member.district.province_short_name,
+        ]
+        writer.writerow(
+            [
+                (
+                    f"'{value}"
+                    if isinstance(value, str)
+                    and value.lstrip().startswith(("=", "+", "-", "@", "\t", "\r"))
+                    else value
+                )
+                for value in row
+            ]
+        )
     return response
 
 
 def delete_record(request, obj, back, section):
-    if request.method == 'POST':
+    if request.method == "POST":
         name = str(obj)
         try:
             obj.delete()
         except ProtectedError:
-            messages.error(request, 'This record is in use. Reassign its linked records or mark it inactive instead.')
+            messages.error(
+                request,
+                "This record is in use. Reassign its linked records or mark it inactive instead.",
+            )
         else:
-            messages.success(request, f'{name} was deleted.')
+            messages.success(request, f"{name} was deleted.")
         return redirect(back)
-    return render(request, 'members/confirm_delete.html', {'title': 'Delete record', 'object': obj, 'back': back, 'section': section})
+    return render(
+        request,
+        "members/confirm_delete.html",
+        {"title": "Delete record", "object": obj, "back": back, "section": section},
+    )
 
 
 @login_required
 def member_delete(request, pk):
-    return delete_record(request, get_object_or_404(Member, pk=pk), 'member_list', 'members')
+    return delete_record(
+        request, get_object_or_404(Member, pk=pk), "member_list", "members"
+    )
 
 
 @login_required
 def district_list(request):
-    queryset = District.objects.annotate(office_count=Count('offices', distinct=True), member_count=Count('members', distinct=True), school_count=Count('schools', distinct=True), lager_count=Count('lagers', distinct=True)).order_by('name', 'pk')
-    query = request.GET.get('q', '').strip()
+    queryset = District.objects.annotate(
+        office_count=Count("offices", distinct=True),
+        member_count=Count("members", distinct=True),
+        school_count=Count("schools", distinct=True),
+        lager_count=Count("lagers", distinct=True),
+    ).order_by("name", "pk")
+    query = request.GET.get("q", "").strip()
     if query:
-        queryset = queryset.filter(Q(name__icontains=query) | Q(code__icontains=query) | Q(province__icontains=query) | Q(province_short_name__icontains=query))
-    context = {'section': 'districts', 'title': 'Districts', 'record_count': District.objects.count()}
+        queryset = queryset.filter(
+            Q(name__icontains=query)
+            | Q(code__icontains=query)
+            | Q(province__icontains=query)
+            | Q(province_short_name__icontains=query)
+        )
+    context = {
+        "section": "districts",
+        "title": "Districts",
+        "record_count": District.objects.count(),
+    }
     context.update(paginated(request, queryset))
-    return render(request, 'members/district_list.html', context)
+    return render(request, "members/district_list.html", context)
 
 
 @login_required
 def office_list(request):
-    queryset = OfficeLocation.objects.select_related('district').annotate(member_count=Count('members', distinct=True), subdivision_count=Count('subdivisions', distinct=True)).order_by('district__name', 'name', 'pk')
-    query = request.GET.get('q', '').strip()
+    queryset = (
+        OfficeLocation.objects.select_related("district")
+        .annotate(
+            member_count=Count("members", distinct=True),
+            subdivision_count=Count("subdivisions", distinct=True),
+        )
+        .order_by("district__name", "name", "pk")
+    )
+    query = request.GET.get("q", "").strip()
     if query:
-        queryset = queryset.filter(Q(name__icontains=query) | Q(code__icontains=query) | Q(address__icontains=query))
-    district = request.GET.get('district', '')
+        queryset = queryset.filter(
+            Q(name__icontains=query)
+            | Q(code__icontains=query)
+            | Q(address__icontains=query)
+        )
+    district = request.GET.get("district", "")
     if district.isdigit():
         queryset = queryset.filter(district_id=district)
-    context = {'section': 'offices', 'title': 'Zonal offices', 'record_count': OfficeLocation.objects.count(), 'districts': District.objects.all()}
+    context = {
+        "section": "offices",
+        "title": "Zonal offices",
+        "record_count": OfficeLocation.objects.count(),
+        "districts": District.objects.all(),
+    }
     context.update(paginated(request, queryset))
-    return render(request, 'members/office_list.html', context)
+    return render(request, "members/office_list.html", context)
 
 
 def master_form(request, model, form_class, pk, section, singular, destination):
     obj = get_object_or_404(model, pk=pk) if pk else None
     initial = {}
-    if request.GET.get('district', '').isdigit():
-        initial['district'] = request.GET['district']
-    if request.GET.get('zonal_office', '').isdigit():
-        initial['zonal_office'] = request.GET['zonal_office']
-        office = OfficeLocation.objects.filter(pk=initial['zonal_office']).first()
+    if request.GET.get("district", "").isdigit():
+        initial["district"] = request.GET["district"]
+    if request.GET.get("zonal_office", "").isdigit():
+        initial["zonal_office"] = request.GET["zonal_office"]
+        office = OfficeLocation.objects.filter(pk=initial["zonal_office"]).first()
         if office:
-            initial['district'] = office.district_id
-    form = form_class(request.POST if request.method == 'POST' else None, instance=obj, initial=initial)
-    if request.method == 'POST' and form.is_valid():
+            initial["district"] = office.district_id
+    form = form_class(
+        request.POST if request.method == "POST" else None,
+        instance=obj,
+        initial=initial,
+    )
+    if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, f'{singular} {"updated" if pk else "created"} successfully.')
+        messages.success(
+            request, f'{singular} {"updated" if pk else "created"} successfully.'
+        )
         return redirect(destination)
-    return render(request, 'members/master_form.html', {
-        'section': section, 'title': f'{"Edit" if pk else "Add"} {singular.lower()}',
-        'form': form, 'back': destination, 'singular': singular,
-        **location_context(form),
-    })
+    return render(
+        request,
+        "members/master_form.html",
+        {
+            "section": section,
+            "title": f'{"Edit" if pk else "Add"} {singular.lower()}',
+            "form": form,
+            "back": destination,
+            "singular": singular,
+            **location_context(form),
+        },
+    )
 
 
 @login_required
 def district_form(request, pk=None):
-    return master_form(request, District, DistrictForm, pk, 'districts', 'District', 'district_list')
+    return master_form(
+        request, District, DistrictForm, pk, "districts", "District", "district_list"
+    )
 
 
 @login_required
 def office_form(request, pk=None):
-    return master_form(request, OfficeLocation, OfficeLocationForm, pk, 'offices', 'Zonal office', 'office_list')
+    return master_form(
+        request,
+        OfficeLocation,
+        OfficeLocationForm,
+        pk,
+        "offices",
+        "Zonal office",
+        "office_list",
+    )
 
 
 @login_required
 def district_delete(request, pk):
-    return delete_record(request, get_object_or_404(District, pk=pk), 'district_list', 'districts')
+    return delete_record(
+        request, get_object_or_404(District, pk=pk), "district_list", "districts"
+    )
 
 
 @login_required
 def office_delete(request, pk):
-    return delete_record(request, get_object_or_404(OfficeLocation, pk=pk), 'office_list', 'offices')
+    return delete_record(
+        request, get_object_or_404(OfficeLocation, pk=pk), "office_list", "offices"
+    )
 
 
 @login_required
 def office_options(request):
-    district = request.GET.get('district', '')
-    queryset = OfficeLocation.objects.filter(district_id=district, is_active=True, district__is_active=True).order_by('name') if district.isdigit() else OfficeLocation.objects.none()
-    return JsonResponse({'offices': list(queryset.values('id', 'name', 'address', 'phone'))})
+    district = request.GET.get("district", "")
+    queryset = (
+        OfficeLocation.objects.filter(
+            district_id=district, is_active=True, district__is_active=True
+        ).order_by("name")
+        if district.isdigit()
+        else OfficeLocation.objects.none()
+    )
+    return JsonResponse(
+        {"offices": list(queryset.values("id", "name", "address", "phone"))}
+    )
 
 
 @login_required
 def location_options(request):
-    return JsonResponse(location_data(request.GET.get('district', '')))
+    return JsonResponse(location_data(request.GET.get("district", "")))
 
 
 EXTRA_MASTERS = {
-    'lagers': (Lager, LagerForm, 'Lager', 'lager'),
-    'subdivisions': (Subdivision, SubdivisionForm, 'Subdivision', 'subdivision'),
-    'schools': (School, SchoolForm, 'School', 'school'),
+    "lagers": (Lager, LagerForm, "Lager", "lager"),
+    "subdivisions": (Subdivision, SubdivisionForm, "Subdivision", "subdivision"),
+    "schools": (School, SchoolForm, "School", "school"),
 }
 
 
@@ -283,42 +559,51 @@ EXTRA_MASTERS = {
 def extra_master_list(request, kind):
     model, _, singular, prefix = EXTRA_MASTERS[kind]
     if model is Subdivision:
-        queryset = model.objects.select_related('zonal_office__district')
-        district_field = 'zonal_office__district_id'
+        queryset = model.objects.select_related("zonal_office__district")
+        district_field = "zonal_office__district_id"
     else:
-        queryset = model.objects.select_related('district')
-        district_field = 'district_id'
+        queryset = model.objects.select_related("district")
+        district_field = "district_id"
         if model is School:
-            queryset = queryset.select_related('zonal_office', 'subdivision')
+            queryset = queryset.select_related("zonal_office", "subdivision")
         elif model is Lager:
-            queryset = queryset.annotate(member_count=Count('members')).order_by('district__name', 'name', 'pk')
-    query = request.GET.get('q', '').strip()
+            queryset = queryset.annotate(member_count=Count("members")).order_by(
+                "district__name", "name", "pk"
+            )
+    query = request.GET.get("q", "").strip()
     if query:
         queryset = queryset.filter(Q(name__icontains=query) | Q(code__icontains=query))
-    district = request.GET.get('district', '')
+    district = request.GET.get("district", "")
     if district.isdigit():
         queryset = queryset.filter(**{district_field: district})
-    office = request.GET.get('zonal_office', '')
+    office = request.GET.get("zonal_office", "")
     if office.isdigit() and model is not Lager:
         queryset = queryset.filter(zonal_office_id=office)
     context = {
-        'section': kind, 'title': kind.capitalize(), 'singular': singular,
-        'list_url': f'{prefix}_list', 'create_url': f'{prefix}_create',
-        'edit_url': f'{prefix}_edit', 'delete_url': f'{prefix}_delete',
-        'record_count': model.objects.count(), 'filtered_count': queryset.count(),
-        'districts': District.objects.all(),
+        "section": kind,
+        "title": kind.capitalize(),
+        "singular": singular,
+        "list_url": f"{prefix}_list",
+        "create_url": f"{prefix}_create",
+        "edit_url": f"{prefix}_edit",
+        "delete_url": f"{prefix}_delete",
+        "record_count": model.objects.count(),
+        "filtered_count": queryset.count(),
+        "districts": District.objects.all(),
     }
     context.update(paginated(request, queryset))
-    return render(request, 'members/extra_master_list.html', context)
+    return render(request, "members/extra_master_list.html", context)
 
 
 @login_required
 def extra_master_form(request, kind, pk=None):
     model, form_class, singular, prefix = EXTRA_MASTERS[kind]
-    return master_form(request, model, form_class, pk, kind, singular, f'{prefix}_list')
+    return master_form(request, model, form_class, pk, kind, singular, f"{prefix}_list")
 
 
 @login_required
 def extra_master_delete(request, kind, pk):
     model, _, _, prefix = EXTRA_MASTERS[kind]
-    return delete_record(request, get_object_or_404(model, pk=pk), f'{prefix}_list', kind)
+    return delete_record(
+        request, get_object_or_404(model, pk=pk), f"{prefix}_list", kind
+    )

@@ -7,18 +7,28 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('members', '0005_province_short_name'),
+        ("members", "0005_province_short_name"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='member',
-            name='lager',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='members', to='members.lager'),
+            model_name="member",
+            name="lager",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="members",
+                to="members.lager",
+            ),
         ),
         migrations.AlterField(
-            model_name='member',
-            name='school',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='members', to='members.school'),
+            model_name="member",
+            name="school",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="members",
+                to="members.school",
+            ),
         ),
     ]

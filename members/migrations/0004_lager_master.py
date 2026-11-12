@@ -7,30 +7,53 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('members', '0003_location_hierarchy'),
+        ("members", "0003_location_hierarchy"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Lager',
+            name="Lager",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=150)),
-                ('code', models.CharField(max_length=20, unique=True)),
-                ('is_active', models.BooleanField(default=True)),
-                ('district', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='lagers', to='members.district')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=150)),
+                ("code", models.CharField(max_length=20, unique=True)),
+                ("is_active", models.BooleanField(default=True)),
+                (
+                    "district",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="lagers",
+                        to="members.district",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['district__name', 'name', 'pk'],
+                "ordering": ["district__name", "name", "pk"],
             },
         ),
         migrations.AddField(
-            model_name='member',
-            name='lager',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='members', to='members.lager'),
+            model_name="member",
+            name="lager",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="members",
+                to="members.lager",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='lager',
-            constraint=models.UniqueConstraint(fields=('district', 'name'), name='unique_lager_in_district'),
+            model_name="lager",
+            constraint=models.UniqueConstraint(
+                fields=("district", "name"), name="unique_lager_in_district"
+            ),
         ),
     ]

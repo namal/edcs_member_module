@@ -1,13 +1,249 @@
 {% extends 'base.html' %}
+
 {% block content %}
-<a href="{% url 'member_list' %}" class="no-print mb-5 inline-flex items-center gap-2 text-xs text-slate-600 hover:text-brand-600"><svg class="icon h-3.5 w-3.5"><use href="#i-back"/></svg>Back to member directory</a>
-<div class="mb-7 flex flex-wrap items-center justify-between gap-4"><div><p class="eyebrow mb-2">Member profile</p><h1 class="page-title">A closer look<span class="text-brand-600">.</span></h1><p class="muted mt-2">Everything you need to know, thoughtfully organized.</p></div><div class="no-print flex gap-2"><button class="btn btn-secondary" type="button" id="print-profile"><svg class="icon h-4 w-4"><use href="#i-print"/></svg>Print profile</button><a href="{% url 'member_edit' member.pk %}" class="btn btn-primary"><svg class="icon h-4 w-4"><use href="#i-edit"/></svg>Edit member</a></div></div>
-<section class="card mb-6"><div class="h-20 bg-accent-50"></div><div class="px-6 pb-6 sm:px-8"><div class="-mt-8 flex flex-wrap items-end justify-between gap-4"><div class="flex items-end gap-5"><span class="avatar h-20 w-20 rounded-2xl border-4 border-white bg-brand-100 text-2xl">{{ member.initials }}</span><div class="pb-1"><h2 class="text-xl font-bold tracking-tight text-slate-800">{{ member.full_name }}</h2><p class="mt-1 font-mono text-xs text-slate-600">{{ member.member_no }}</p></div></div><span class="badge mb-1 {% if member.status == 'active' %}badge-active{% else %}badge-inactive{% endif %}"><span class="status-dot"></span>{{ member.get_status_display }} member</span></div><div class="mt-6 flex flex-wrap gap-x-7 gap-y-3 border-t border-slate-100 pt-5 text-xs text-slate-500"><span class="flex items-center gap-2"><svg class="icon h-4 w-4 text-slate-600"><use href="#i-pin"/></svg>{{ member.district.name }}</span><span class="flex items-center gap-2"><svg class="icon h-4 w-4 text-slate-600"><use href="#i-building"/></svg>{{ member.office_location.name }}</span><span class="flex items-center gap-2"><svg class="icon h-4 w-4 text-slate-600"><use href="#i-calendar"/></svg>Admitted {{ member.admit_date|date:'d M Y' }}</span></div></div></section>
-<div class="grid items-start gap-6 lg:grid-cols-3"><div class="space-y-6 lg:col-span-2">
-  <section class="card"><div class="card-heading"><h2 class="section-title">Personal information</h2><svg class="icon h-4 w-4 text-slate-300"><use href="#i-user"/></svg></div><dl class="grid gap-x-7 gap-y-6 p-6 sm:grid-cols-2"><div><dt class="detail-label">Full name</dt><dd class="detail-value">{{ member.full_name }}</dd></div><div><dt class="detail-label">NIC number</dt><dd class="detail-value font-mono">{{ member.nic_no }}</dd></div><div><dt class="detail-label">Gender</dt><dd class="detail-value">{{ member.get_gender_display }}</dd></div><div><dt class="detail-label">Admission date</dt><dd class="detail-value">{{ member.admit_date|date:'d F Y' }}</dd></div><div><dt class="detail-label">Member number</dt><dd class="detail-value font-mono">{{ member.member_no }}</dd></div><div><dt class="detail-label">Computer number</dt><dd class="detail-value font-mono">{{ member.computer_no|default:'—' }}</dd></div></dl></section>
-  <section class="card"><div class="card-heading"><h2 class="section-title">Contact information</h2><svg class="icon h-4 w-4 text-slate-300"><use href="#i-phone"/></svg></div><dl class="grid gap-x-7 gap-y-6 p-6 sm:grid-cols-2"><div><dt class="detail-label">Mobile phone</dt><dd class="detail-value"><a href="tel:{{ member.phone_mobile }}" class="hover:text-brand-600">{{ member.phone_mobile }}</a></dd></div><div><dt class="detail-label">Office phone</dt><dd class="detail-value">{{ member.phone_office|default:'—' }}</dd></div><div><dt class="detail-label">Home phone</dt><dd class="detail-value">{{ member.phone_home|default:'—' }}</dd></div><div class="hidden sm:block"></div><div><dt class="detail-label">Private address</dt><dd class="detail-value whitespace-pre-line">{{ member.private_address }}</dd></div><div><dt class="detail-label">Office address</dt><dd class="detail-value whitespace-pre-line">{{ member.office_address|default:'—' }}</dd></div></dl></section>
-</div><div class="space-y-6">
-  <section class="card"><div class="card-heading"><h2 class="section-title">Location & salary</h2><svg class="icon h-4 w-4 text-slate-300"><use href="#i-building"/></svg></div><dl class="space-y-5 p-6"><div><dt class="detail-label">Province full name</dt><dd class="detail-value">{{ member.district.province }}</dd></div><div><dt class="detail-label">Province short name</dt><dd class="detail-value">{{ member.district.province_short_name|default:'—' }}</dd></div><div><dt class="detail-label">Subdivision</dt><dd class="detail-value">{{ member.subdivision.name|default:'—' }}</dd></div><div><dt class="detail-label">Lager</dt><dd class="detail-value">{% if member.lager_id %}<a class="text-link" href="{% url 'member_list' %}?lager={{ member.lager_id }}">{{ member.lager }}</a>{% else %}—{% endif %}</dd></div><div><dt class="detail-label">School</dt><dd class="detail-value">{{ member.school|default:'—' }}</dd></div><div><dt class="detail-label">District</dt><dd class="detail-value">{{ member.district.name }}</dd></div><div><dt class="detail-label">Zonal office</dt><dd class="detail-value">{{ member.office_location.name }}</dd></div><div><dt class="detail-label">Office code</dt><dd class="detail-value font-mono">{{ member.office_location.code }}</dd></div><div class="rounded-lg border border-brand-100 bg-brand-50 p-4"><dt class="text-[10px] font-semibold uppercase tracking-wider text-brand-600">Monthly salary</dt><dd class="mt-2 text-xl font-bold text-brand-700"><span class="mr-1 text-xs font-medium">LKR</span>{{ member.salary|floatformat:'2g' }}</dd></div></dl></section>
-  <section class="rounded-xl border border-slate-200 bg-white p-5"><h3 class="mb-4 text-xs font-semibold text-slate-600">Record details</h3><dl class="space-y-4"><div><dt class="detail-label">Registered</dt><dd class="text-xs text-slate-500">{{ member.created_at|date:'d M Y, h:i A' }}</dd></div><div><dt class="detail-label">Last updated</dt><dd class="text-xs text-slate-500">{{ member.updated_at|date:'d M Y, h:i A' }}</dd></div></dl><div class="no-print mt-5 border-t border-slate-100 pt-4"><a href="{% url 'member_delete' member.pk %}" class="inline-flex items-center gap-2 text-xs text-red-500 hover:text-red-700"><svg class="icon h-3.5 w-3.5"><use href="#i-trash"/></svg>Delete member record</a></div></section>
-</div></div>
+  <a href="{% url 'member_list' %}"
+     class="no-print mb-5 inline-flex items-center gap-2 text-xs text-slate-600 hover:text-brand-600">
+    <svg class="icon h-3.5 w-3.5">
+      <use href="#i-back" />
+    </svg>
+  Back to member directory</a>
+  <div class="mb-7 flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <p class="eyebrow mb-2">Member profile</p>
+      <h1 class="page-title">
+        A closer look<span class="text-brand-600">.</span>
+      </h1>
+      <p class="muted mt-2">Everything you need to know, thoughtfully organized.</p>
+    </div>
+    <div class="no-print flex gap-2">
+      <button class="btn btn-secondary" type="button" id="print-profile">
+        <svg class="icon h-4 w-4">
+          <use href="#i-print" />
+        </svg>
+        Print profile
+      </button>
+      <a href="{% url 'member_edit' member.pk %}" class="btn btn-primary">
+        <svg class="icon h-4 w-4">
+          <use href="#i-edit" />
+        </svg>
+      Edit member</a>
+    </div>
+  </div>
+  <section class="card mb-6">
+    <div class="h-20 bg-accent-50"></div>
+    <div class="px-6 pb-6 sm:px-8">
+      <div class="-mt-8 flex flex-wrap items-end justify-between gap-4">
+        <div class="flex items-end gap-5">
+          <span class="avatar h-20 w-20 rounded-2xl border-4 border-white bg-brand-100 text-2xl">{{ member.initials }}</span>
+          <div class="pb-1">
+            <h2 class="text-xl font-bold tracking-tight text-slate-800">{{ member.full_name }}</h2>
+            <p class="mt-1 font-mono text-xs text-slate-600">{{ member.member_no }}</p>
+          </div>
+        </div>
+        <span class="badge mb-1 {% if member.status == 'active' %}badge-active{% else %}badge-inactive{% endif %}"><span class="status-dot"></span>{{ member.get_status_display }} member</span>
+      </div>
+      <div class="mt-6 flex flex-wrap gap-x-7 gap-y-3 border-t border-slate-100 pt-5 text-xs text-slate-500">
+        <span class="flex items-center gap-2">
+          <svg class="icon h-4 w-4 text-slate-600">
+            <use href="#i-pin" />
+          </svg>
+          {{ member.district.name }}</span><span class="flex items-center gap-2">
+          <svg class="icon h-4 w-4 text-slate-600">
+            <use href="#i-building" />
+          </svg>
+          {{ member.office_location.name }}</span><span class="flex items-center gap-2">
+          <svg class="icon h-4 w-4 text-slate-600">
+            <use href="#i-calendar" />
+          </svg>
+        Admitted {{ member.admit_date|date:'d M Y' }}</span>
+      </div>
+    </div>
+  </section>
+  <div class="grid items-start gap-6 lg:grid-cols-3">
+    <div class="space-y-6 lg:col-span-2">
+      <section class="card">
+        <div class="card-heading">
+          <h2 class="section-title">Personal information</h2>
+          <svg class="icon h-4 w-4 text-slate-300">
+            <use href="#i-user" />
+          </svg>
+        </div>
+        <dl class="grid gap-x-7 gap-y-6 p-6 sm:grid-cols-2">
+          <div>
+            <dt class="detail-label">Full name</dt>
+            <dd class="detail-value">
+              {{ member.full_name }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">NIC number</dt>
+            <dd class="detail-value font-mono">
+              {{ member.nic_no }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Gender</dt>
+            <dd class="detail-value">
+              {{ member.get_gender_display }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Admission date</dt>
+            <dd class="detail-value">
+              {{ member.admit_date|date:'d F Y' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Member number</dt>
+            <dd class="detail-value font-mono">
+              {{ member.member_no }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Computer number</dt>
+            <dd class="detail-value font-mono">
+              {{ member.computer_no|default:'—' }}
+            </dd>
+          </div>
+        </dl>
+      </section>
+      <section class="card">
+        <div class="card-heading">
+          <h2 class="section-title">Contact information</h2>
+          <svg class="icon h-4 w-4 text-slate-300">
+            <use href="#i-phone" />
+          </svg>
+        </div>
+        <dl class="grid gap-x-7 gap-y-6 p-6 sm:grid-cols-2">
+          <div>
+            <dt class="detail-label">Mobile phone</dt>
+            <dd class="detail-value">
+              <a href="tel:{{ member.phone_mobile }}" class="hover:text-brand-600">{{ member.phone_mobile }}</a>
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Office phone</dt>
+            <dd class="detail-value">
+              {{ member.phone_office|default:'—' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Home phone</dt>
+            <dd class="detail-value">
+              {{ member.phone_home|default:'—' }}
+            </dd>
+          </div>
+          <div class="hidden sm:block"></div>
+          <div>
+            <dt class="detail-label">Private address</dt>
+            <dd class="detail-value whitespace-pre-line">
+              {{ member.private_address }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Office address</dt>
+            <dd class="detail-value whitespace-pre-line">
+              {{ member.office_address|default:'—' }}
+            </dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+    <div class="space-y-6">
+      <section class="card">
+        <div class="card-heading">
+          <h2 class="section-title">Location & salary</h2>
+          <svg class="icon h-4 w-4 text-slate-300">
+            <use href="#i-building" />
+          </svg>
+        </div>
+        <dl class="space-y-5 p-6">
+          <div>
+            <dt class="detail-label">Province full name</dt>
+            <dd class="detail-value">
+              {{ member.district.province }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Province short name</dt>
+            <dd class="detail-value">
+              {{ member.district.province_short_name|default:'—' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Subdivision</dt>
+            <dd class="detail-value">
+              {{ member.subdivision.name|default:'—' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Lager</dt>
+            <dd class="detail-value">
+              {% if member.lager_id %}
+                <a class="text-link"
+                   href="{% url 'member_list' %}?lager={{ member.lager_id }}">{{ member.lager }}</a>
+              {% else %}
+                —
+              {% endif %}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">School</dt>
+            <dd class="detail-value">
+              {{ member.school|default:'—' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">District</dt>
+            <dd class="detail-value">
+              {{ member.district.name }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Zonal office</dt>
+            <dd class="detail-value">
+              {{ member.office_location.name }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Office code</dt>
+            <dd class="detail-value font-mono">
+              {{ member.office_location.code }}
+            </dd>
+          </div>
+          <div class="rounded-lg border border-brand-100 bg-brand-50 p-4">
+            <dt class="text-[10px] font-semibold uppercase tracking-wider text-brand-600">Monthly salary</dt>
+            <dd class="mt-2 text-xl font-bold text-brand-700">
+              <span class="mr-1 text-xs font-medium">LKR</span>{{ member.salary|floatformat:'2g' }}
+            </dd>
+          </div>
+        </dl>
+      </section>
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h3 class="mb-4 text-xs font-semibold text-slate-600">Record details</h3>
+        <dl class="space-y-4">
+          <div>
+            <dt class="detail-label">Registered</dt>
+            <dd class="text-xs text-slate-500">
+              {{ member.created_at|date:'d M Y, h:i A' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Last updated</dt>
+            <dd class="text-xs text-slate-500">
+              {{ member.updated_at|date:'d M Y, h:i A' }}
+            </dd>
+          </div>
+        </dl>
+        <div class="no-print mt-5 border-t border-slate-100 pt-4">
+          <a href="{% url 'member_delete' member.pk %}"
+             class="inline-flex items-center gap-2 text-xs text-red-500 hover:text-red-700">
+            <svg class="icon h-3.5 w-3.5">
+              <use href="#i-trash" />
+            </svg>
+          Delete member record</a>
+        </div>
+      </section>
+    </div>
+  </div>
 {% endblock %}

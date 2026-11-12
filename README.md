@@ -52,6 +52,23 @@ Member, computer and NIC numbers must be unique. NIC accepts either 12 digits or
 
 ## Development and checks
 
+Activate the virtual environment and install the development tools once:
+
+```bash
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+npm ci
+```
+
+Format all source files and check their formatting with:
+
+```bash
+npm run format
+npm run format:check
+```
+
+Black formats Python, djLint formats Django templates, and Prettier formats JavaScript, source CSS, JSON, Markdown and SVG. Editor defaults are in `.editorconfig`. Generated CSS and lockfiles are excluded from formatting; rebuild Tailwind with `npm run build:css` after changing templates or source CSS.
+
 ```bash
 npm run watch:css            # Rebuild Tailwind when templates/styles change
 python manage.py check

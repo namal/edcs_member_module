@@ -1,0 +1,9 @@
+.venv/
+node_modules/
+staticfiles/
+test-results/
+templates/
+static/css/tailwind.css
+package-lock.json
+.env
+.admin-credentials
