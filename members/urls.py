@@ -1,0 +1,30 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.dashboard, name='dashboard'),
+    path('members/', views.member_list, name='member_list'),
+    path('members/new/', views.member_form, name='member_create'),
+    path('members/export/', views.member_export, name='member_export'),
+    path('members/<int:pk>/', views.member_detail, name='member_detail'),
+    path('members/<int:pk>/edit/', views.member_form, name='member_edit'),
+    path('members/<int:pk>/delete/', views.member_delete, name='member_delete'),
+    path('districts/', views.district_list, name='district_list'),
+    path('districts/new/', views.district_form, name='district_create'),
+    path('districts/<int:pk>/edit/', views.district_form, name='district_edit'),
+    path('districts/<int:pk>/delete/', views.district_delete, name='district_delete'),
+    path('offices/', views.office_list, name='office_list'),
+    path('offices/new/', views.office_form, name='office_create'),
+    path('offices/<int:pk>/edit/', views.office_form, name='office_edit'),
+    path('offices/<int:pk>/delete/', views.office_delete, name='office_delete'),
+    path('api/offices/', views.office_options, name='office_options'),
+    path('api/locations/', views.location_options, name='location_options'),
+]
+
+for kind, prefix in [('subdivisions', 'subdivision'), ('schools', 'school'), ('lagers', 'lager')]:
+    urlpatterns += [
+        path(f'{kind}/', views.extra_master_list, {'kind': kind}, name=f'{prefix}_list'),
+        path(f'{kind}/new/', views.extra_master_form, {'kind': kind}, name=f'{prefix}_create'),
+        path(f'{kind}/<int:pk>/edit/', views.extra_master_form, {'kind': kind}, name=f'{prefix}_edit'),
+        path(f'{kind}/<int:pk>/delete/', views.extra_master_delete, {'kind': kind}, name=f'{prefix}_delete'),
+    ]

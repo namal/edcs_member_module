@@ -1,0 +1,10 @@
+{% for member in member_rows %}
+<tr>
+  <td><a href="{% url 'member_detail' member.pk %}" class="group flex items-center gap-3"><span class="avatar {% cycle '' 'bg-brand-50 text-brand-700' 'bg-brand-50 text-brand-700' 'bg-accent-50 text-accent-700' %}">{{ member.initials }}</span><span><span class="table-link group-hover:text-brand-600">{{ member.full_name }}</span><span class="mt-0.5 block text-[11px] text-slate-600">{{ member.member_no }}</span></span></a></td>
+  <td class="whitespace-nowrap text-slate-500">{{ member.district.name }}</td>
+  <td class="text-slate-500">{{ member.office_location.name }}</td>
+  <td class="whitespace-nowrap text-xs text-slate-600">{{ member.admit_date|date:'d M Y' }}</td>
+  <td><span class="badge {% if member.status == 'active' %}badge-active{% else %}badge-inactive{% endif %}"><span class="status-dot"></span>{{ member.get_status_display }}</span></td>
+  <td class="text-right"><a class="action-icon" href="{% url 'member_detail' member.pk %}" aria-label="View {{ member.full_name }}"><svg class="icon h-4 w-4"><use href="#i-chevron"/></svg></a></td>
+</tr>
+{% endfor %}

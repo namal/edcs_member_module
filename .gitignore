@@ -1,0 +1,10 @@
+.env
+.admin-credentials
+.venv/
+__pycache__/
+*.py[cod]
+db.sqlite3
+node_modules/
+staticfiles/
+test-results/
+.DS_Store
