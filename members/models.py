@@ -4,7 +4,8 @@ from uuid import uuid4
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
-from django.db import models
+from django.db import models, transaction
+from django.db.models.deletion import ProtectedError
 from django.utils import timezone
 
 phone_validator = RegexValidator(
@@ -18,6 +19,10 @@ nic_validator = RegexValidator(
 
 def child_deposit_reference():
     return f"CD-{uuid4().hex[:12].upper()}"
+
+
+def fix_loan_reference():
+    return f"FDL-{uuid4().hex[:12].upper()}"
 
 
 class District(models.Model):
@@ -659,6 +664,29 @@ class PaymentTransaction(models.Model):
             raise ValidationError(
                 "Enter a positive debit or credit, with the other amount set to zero."
             )
+        from .fix_deposit_services import guard_transaction
+
+        guard_transaction(self)
+
+    def save(self, *args, **kwargs):
+        from .fix_deposit_services import guard_transaction
+
+        with transaction.atomic():
+            if self.member_id:
+                Member.objects.select_for_update().filter(pk=self.member_id).first()
+            guard_transaction(self)
+            return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        from .fix_deposit_services import guard_transaction
+
+        with transaction.atomic():
+            Member.objects.select_for_update().filter(pk=self.member_id).first()
+            try:
+                guard_transaction(self, deleting=True)
+            except ValidationError as error:
+                raise ProtectedError(" ".join(error.messages), [self])
+            return super().delete(*args, **kwargs)
 
 
 class PaymentPlan(models.Model):
@@ -729,6 +757,39 @@ class OpeningBalance(models.Model):
     def __str__(self):
         return f"Opening balances · {self.member}"
 
+    def clean(self):
+        super().clean()
+        from .fix_deposit_services import locked_payment_types
+
+        if (
+            self.pk
+            and locked_payment_types(self.member_id)
+            and type(self)
+            .objects.filter(pk=self.pk)
+            .exclude(balance_date=self.balance_date)
+            .exists()
+        ):
+            raise ValidationError(
+                {
+                    "balance_date": "The opening date is locked by Fix Deposit loan or withdrawal history."
+                }
+            )
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            if self.member_id:
+                Member.objects.select_for_update().filter(pk=self.member_id).first()
+            self.clean()
+            return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        from .fix_deposit_services import protect_opening_delete
+
+        with transaction.atomic():
+            Member.objects.select_for_update().filter(pk=self.member_id).first()
+            protect_opening_delete(self)
+            return super().delete(*args, **kwargs)
+
     @property
     def total(self):
         if not self.pk:
@@ -738,7 +799,11 @@ class OpeningBalance(models.Model):
     @property
     def type_balances(self):
         """Include new payment types without presenting missing amounts as saved zeros."""
-        existing = {item.payment_type_id: item.amount for item in self.amounts.all()}
+        existing = (
+            {item.payment_type_id: item.amount for item in self.amounts.all()}
+            if self.pk
+            else {}
+        )
         return [
             {"payment_type": item, "amount": existing.get(item.pk)}
             for item in PaymentType.objects.filter(
@@ -777,6 +842,34 @@ class OpeningBalanceAmount(models.Model):
 
     def __str__(self):
         return f"{self.payment_type} · {self.amount}"
+
+    def clean(self):
+        super().clean()
+        from .fix_deposit_services import guard_opening_amount
+
+        if self.opening_balance_id and self.payment_type_id:
+            guard_opening_amount(self)
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            Member.objects.select_for_update().filter(
+                pk=self.opening_balance.member_id
+            ).first()
+            self.clean()
+            return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        from .fix_deposit_services import guard_opening_amount
+
+        with transaction.atomic():
+            Member.objects.select_for_update().filter(
+                pk=self.opening_balance.member_id
+            ).first()
+            try:
+                guard_opening_amount(self, deleting=True)
+            except ValidationError as error:
+                raise ProtectedError(" ".join(error.messages), [self])
+            return super().delete(*args, **kwargs)
 
 
 class Child(models.Model):
@@ -1086,3 +1179,405 @@ class ChildDepositTransaction(models.Model):
             raise ValidationError(
                 "This deposit, child or deposit type is inactive. New entries cannot be added."
             )
+
+
+class FixDepositPolicy(models.Model):
+    name = models.CharField(max_length=120, unique=True)
+    payment_type = models.OneToOneField(
+        PaymentType, on_delete=models.PROTECT, related_name="fix_deposit_policy"
+    )
+    maturity_months = models.PositiveSmallIntegerField(
+        "Withdrawal cycle (months)",
+        default=36,
+        validators=[MinValueValidator(36), MaxValueValidator(1200)],
+    )
+    withdrawal_percent = models.DecimalField(
+        "Maximum withdrawal (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("75.00"),
+        validators=[
+            MinValueValidator(Decimal("0.01")),
+            MaxValueValidator(Decimal("75")),
+        ],
+    )
+    loan_percent = models.DecimalField(
+        "Maximum loan security (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("90.00"),
+        validators=[
+            MinValueValidator(Decimal("0.01")),
+            MaxValueValidator(Decimal("90")),
+        ],
+    )
+    loan_interval_months = models.PositiveSmallIntegerField(
+        "Months between loan issues",
+        default=12,
+        validators=[MinValueValidator(12), MaxValueValidator(1200)],
+    )
+    loan_interest_rate = models.DecimalField(
+        "Annual loan interest rate (%)",
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(Decimal("0.01")),
+            MaxValueValidator(Decimal("100")),
+        ],
+        help_text="Set the bank's loan rate before issuing loans. Interest charges are assessed by the bank and recorded separately from principal repayments.",
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["name", "pk"]
+        verbose_name = "Fix Deposit rule"
+        verbose_name_plural = "Fix Deposit rules"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(
+                    maturity_months__gte=36,
+                    maturity_months__lte=1200,
+                    loan_interval_months__gte=12,
+                    loan_interval_months__lte=1200,
+                ),
+                name="fix_policy_valid_periods",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    withdrawal_percent__gt=0,
+                    withdrawal_percent__lte=75,
+                    loan_percent__gt=0,
+                    loan_percent__lte=90,
+                ),
+                name="fix_policy_valid_limits",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(loan_interest_rate__isnull=True)
+                | models.Q(loan_interest_rate__gt=0, loan_interest_rate__lte=100),
+                name="fix_policy_valid_interest",
+            ),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        super().clean()
+        if self.pk:
+            old_type = (
+                type(self)
+                .objects.filter(pk=self.pk)
+                .values_list("payment_type_id", flat=True)
+                .first()
+            )
+            if old_type != self.payment_type_id and (
+                self.accounts.exists()
+                or PaymentTransaction.objects.filter(payment_type_id=old_type).exists()
+                or OpeningBalanceAmount.objects.filter(
+                    payment_type_id=old_type
+                ).exists()
+            ):
+                raise ValidationError(
+                    {
+                        "payment_type": "The linked payment type cannot change after balances or accounts are recorded."
+                    }
+                )
+
+    def delete(self, *args, **kwargs):
+        if (
+            self.payment_type.transactions.exists()
+            or self.payment_type.opening_amounts.exists()
+        ):
+            raise ProtectedError(
+                "This rule protects recorded Fix Deposit balances. Mark it inactive instead.",
+                [self],
+            )
+        return super().delete(*args, **kwargs)
+
+
+class FixDepositAccount(models.Model):
+    member = models.ForeignKey(
+        Member, on_delete=models.PROTECT, related_name="fix_deposit_accounts"
+    )
+    policy = models.ForeignKey(
+        FixDepositPolicy, on_delete=models.PROTECT, related_name="accounts"
+    )
+    cycle_started_on = models.DateField(
+        "Start of current withdrawal cycle",
+        help_text="Enter the actual start of the current 3-year cycle, even if the opening balance was imported more recently. Each released withdrawal restarts the cycle.",
+    )
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["member__member_no", "pk"]
+        verbose_name = "Fix Deposit account"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["member", "policy"], name="unique_member_fix_policy"
+            )
+        ]
+
+    @property
+    def name(self):
+        return self.member.member_no
+
+    def __str__(self):
+        return f"Fix Deposit · {self.member}"
+
+    def clean(self):
+        super().clean()
+        if self.cycle_started_on and self.cycle_started_on > timezone.localdate():
+            raise ValidationError(
+                {"cycle_started_on": "The cycle start cannot be in the future."}
+            )
+        if self.pk:
+            previous = (
+                type(self)
+                .objects.filter(pk=self.pk)
+                .values("member_id", "policy_id", "cycle_started_on")
+                .first()
+            )
+            if previous:
+                errors = {
+                    field: "This selection stays fixed on a saved account."
+                    for field in ("member", "policy")
+                    if previous[f"{field}_id"] != getattr(self, f"{field}_id")
+                }
+                if previous["cycle_started_on"] != self.cycle_started_on and (
+                    self.loans.exists() or self.withdrawals.exists()
+                ):
+                    errors["cycle_started_on"] = (
+                        "The cycle start stays fixed after loan or withdrawal activity."
+                    )
+                if errors:
+                    raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            self.cycle_started_on = self._meta.get_field("cycle_started_on").to_python(
+                self.cycle_started_on
+            )
+            if self.member_id:
+                Member.objects.select_for_update().filter(pk=self.member_id).first()
+            if self.policy_id:
+                FixDepositPolicy.objects.select_for_update().get(pk=self.policy_id)
+            self.clean()
+            return super().save(*args, **kwargs)
+
+
+class FixDepositLoan(models.Model):
+    account = models.ForeignKey(
+        FixDepositAccount, on_delete=models.PROTECT, related_name="loans"
+    )
+    reference = models.CharField(
+        max_length=20, unique=True, default=fix_loan_reference, editable=False
+    )
+    issued_on = models.DateField()
+    principal = models.DecimalField(
+        max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))]
+    )
+    interest_rate = models.DecimalField(
+        "Annual rate at issue (%)", max_digits=5, decimal_places=2
+    )
+    deposit_balance_at_issue = models.DecimalField(max_digits=14, decimal_places=2)
+    maximum_loan_at_issue = models.DecimalField(max_digits=14, decimal_places=2)
+    settled_on = models.DateField(null=True, blank=True)
+    settled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="settled_fix_loans",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="issued_fix_loans",
+    )
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-issued_on", "-pk"]
+        default_permissions = ()
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(
+                    principal__gt=0,
+                    principal__lte=models.F("maximum_loan_at_issue"),
+                    interest_rate__gt=0,
+                    interest_rate__lte=100,
+                ),
+                name="fix_loan_valid_amount_rate",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(settled_on__isnull=True)
+                | models.Q(settled_on__gte=models.F("issued_on")),
+                name="fix_loan_valid_settlement_date",
+            ),
+        ]
+
+    def __str__(self):
+        return self.reference
+
+
+class FixLoanEntry(models.Model):
+    class Kind(models.TextChoices):
+        REPAYMENT = "repayment", "Principal / interest repayment"
+        INTEREST = "interest", "Interest charge assessed by bank"
+
+    loan = models.ForeignKey(
+        FixDepositLoan, on_delete=models.PROTECT, related_name="entries"
+    )
+    operation_key = models.UUIDField(default=uuid4, unique=True, editable=False)
+    kind = models.CharField(max_length=12, choices=Kind.choices)
+    entry_date = models.DateField(default=timezone.localdate)
+    principal_amount = models.DecimalField(
+        "Principal paid (LKR)",
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    interest_amount = models.DecimalField(
+        "Interest (LKR)",
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    reference = models.CharField(max_length=100, blank=True)
+    notes = models.TextField(blank=True)
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fix_loan_entries",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["entry_date", "pk"]
+        default_permissions = ()
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(
+                    kind="interest", principal_amount=0, interest_amount__gt=0
+                )
+                | (
+                    models.Q(
+                        kind="repayment",
+                        principal_amount__gte=0,
+                        interest_amount__gte=0,
+                    )
+                    & (
+                        models.Q(principal_amount__gt=0)
+                        | models.Q(interest_amount__gt=0)
+                    )
+                ),
+                name="fix_loan_entry_valid_amounts",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.loan.reference} · {self.entry_date} · {self.get_kind_display()}"
+
+
+class FixDepositWithdrawal(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending release"
+        RELEASED = "released", "Released"
+        REJECTED = "rejected", "Rejected"
+
+    account = models.ForeignKey(
+        FixDepositAccount, on_delete=models.PROTECT, related_name="withdrawals"
+    )
+    requested_on = models.DateField(default=timezone.localdate)
+    amount = models.DecimalField(
+        "Requested withdrawal (LKR)",
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.PENDING
+    )
+    released_on = models.DateField(null=True, blank=True)
+    balance_before = models.DecimalField(
+        max_digits=14, decimal_places=2, null=True, blank=True
+    )
+    balance_after = models.DecimalField(
+        max_digits=14, decimal_places=2, null=True, blank=True
+    )
+    maximum_at_release = models.DecimalField(
+        max_digits=14, decimal_places=2, null=True, blank=True
+    )
+    ledger_transaction = models.OneToOneField(
+        PaymentTransaction,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="fix_deposit_withdrawal",
+    )
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="requested_fix_withdrawals",
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_fix_withdrawals",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-requested_on", "-pk"]
+        default_permissions = ()
+        constraints = [
+            models.UniqueConstraint(
+                fields=["account"],
+                condition=models.Q(status="pending"),
+                name="one_pending_fix_withdrawal",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(amount__gt=0), name="fix_withdrawal_positive"
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(
+                        status="released",
+                        released_on__isnull=False,
+                        ledger_transaction__isnull=False,
+                        balance_before__isnull=False,
+                        balance_after__isnull=False,
+                        maximum_at_release__isnull=False,
+                        amount__lte=models.F("maximum_at_release"),
+                        balance_after__gte=0,
+                    )
+                    | models.Q(
+                        status__in=["pending", "rejected"],
+                        released_on__isnull=True,
+                        ledger_transaction__isnull=True,
+                    )
+                ),
+                name="fix_withdrawal_valid_release",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.account.member.member_no} · {self.amount} · {self.get_status_display()}"

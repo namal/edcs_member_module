@@ -8,6 +8,11 @@ from .models import (
     ChildDepositTransaction,
     ChildDepositType,
     District,
+    FixDepositAccount,
+    FixDepositLoan,
+    FixDepositPolicy,
+    FixDepositWithdrawal,
+    FixLoanEntry,
     Lager,
     Member,
     OfficeLocation,
@@ -51,6 +56,20 @@ MODULES = (
         "wallet",
     ),
     (PaymentType, "Payment Types", "payment_types", "payment_type", "wallet"),
+    (
+        FixDepositAccount,
+        "Fix Deposit Loans & Withdrawals",
+        "fix_deposits",
+        "fix_deposit",
+        "wallet",
+    ),
+    (
+        FixDepositPolicy,
+        "Fix Deposit Rules",
+        "fix_deposit_policies",
+        "fix_deposit_policy",
+        "wallet",
+    ),
 )
 ACTIONS = ("view", "add", "change", "delete")
 
@@ -58,6 +77,10 @@ DISTRICT_LOOKUPS = {
     Child: "member__district_id",
     ChildDeposit: "child__member__district_id",
     ChildDepositTransaction: "deposit__child__member__district_id",
+    FixDepositAccount: "member__district_id",
+    FixDepositLoan: "account__member__district_id",
+    FixDepositWithdrawal: "account__member__district_id",
+    FixLoanEntry: "loan__account__member__district_id",
     District: "pk",
     Member: "district_id",
     OfficeLocation: "district_id",
@@ -100,7 +123,7 @@ def has_module_permission(user, model, action):
     if model is District and action == "add" and not user.is_superuser:
         return False
     if (
-        model in (PaymentType, ChildDepositType)
+        model in (PaymentType, ChildDepositType, FixDepositPolicy)
         and action != "view"
         and not user.is_superuser
     ):

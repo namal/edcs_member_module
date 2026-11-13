@@ -99,19 +99,63 @@ class OpeningBalanceTests(TestCase):
         balance = self.create_balance()
         for query in (self.member.member_no, self.member.full_name):
             response = self.client.get(reverse("opening_balance_list"), {"q": query})
-            self.assertContains(response, self.member.full_name)
-            self.assertNotContains(response, self.other.full_name)
+            self.assertEqual(
+                [member.pk for member in response.context["page_obj"]], [self.member.pk]
+            )
         response = self.client.get(
             reverse("opening_balance_list"), {"status": "pending"}
         )
-        self.assertNotContains(response, self.member.full_name)
-        self.assertContains(response, self.other.full_name)
+        self.assertEqual(
+            [member.pk for member in response.context["page_obj"]], [self.other.pk]
+        )
         response = self.client.get(reverse("opening_balance_list"), {"status": "ready"})
-        self.assertContains(response, self.member.full_name)
-        self.assertNotContains(response, self.other.full_name)
+        self.assertEqual(
+            [member.pk for member in response.context["page_obj"]], [self.member.pk]
+        )
         response = self.client.get(reverse("opening_balance_create"))
-        self.assertNotContains(response, balance.member.full_name)
+        self.assertContains(response, balance.member.full_name)
         self.assertContains(response, self.other.full_name)
+
+    def test_select_member_displays_saved_balances_and_edit_action(self):
+        balance = self.create_balance(**{f"amount_{self.deposit.pk}": "12345.67"})
+        response = self.client.get(
+            reverse("opening_balance_list"), {"member": self.member.pk}
+        )
+        self.assertContains(response, "12345.67")
+        self.assertContains(response, "Opening balances by payment type")
+        self.assertContains(
+            response, reverse("opening_balance_edit", args=[balance.pk])
+        )
+
+    def test_select_member_without_record_shows_each_type_and_create_action(self):
+        dividend = PaymentType.objects.create(name="Dividends")
+        response = self.client.get(
+            reverse("opening_balance_list"), {"member": self.member.pk}
+        )
+        self.assertContains(response, dividend.name)
+        self.assertContains(response, "No opening balances recorded")
+        self.assertContains(response, "Not entered")
+        self.assertContains(
+            response, f'{reverse("opening_balance_create")}?member={self.member.pk}'
+        )
+        self.assertFalse(OpeningBalance.objects.exists())
+
+    def test_member_selector_rejects_other_districts_and_invalid_ids(self):
+        for value in (self.outside.pk, "invalid", "9999999"):
+            response = self.client.get(
+                reverse("opening_balance_list"), {"member": value}
+            )
+            self.assertTrue(response.context["selection_form"].errors)
+            self.assertIsNone(response.context["selected_balance"])
+            self.assertNotContains(response, self.outside.full_name)
+
+    def test_add_only_selector_cannot_disclose_saved_amounts(self):
+        self.create_balance(**{f"amount_{self.deposit.pk}": "76543.21"})
+        self.grant("add_openingbalance")
+        response = self.client.get(reverse("opening_balance_create"))
+        self.assertContains(response, "Already recorded")
+        self.assertNotContains(response, "76543.21")
+        self.assertNotContains(response, "Opening balances by payment type")
 
     def test_save_member_balances_and_exact_total(self):
         dividend = PaymentType.objects.create(name="Dividends")

@@ -8,6 +8,11 @@ from .models import (
     ChildDepositTransaction,
     ChildDepositType,
     District,
+    FixDepositAccount,
+    FixDepositLoan,
+    FixDepositPolicy,
+    FixDepositWithdrawal,
+    FixLoanEntry,
     Lager,
     Member,
     OfficeLocation,
@@ -23,6 +28,81 @@ from .models import (
 from .notifications import notify_user_created
 
 admin.site.unregister(get_user_model())
+
+
+@admin.register(FixDepositPolicy)
+class FixDepositPolicyAdmin(admin.ModelAdmin):
+    list_display = [
+        "name",
+        "payment_type",
+        "maturity_months",
+        "withdrawal_percent",
+        "loan_percent",
+        "loan_interest_rate",
+        "is_active",
+    ]
+    search_fields = ["name", "payment_type__name"]
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        actions.pop("delete_selected", None)
+        return actions
+
+
+@admin.register(FixDepositAccount)
+class FixDepositAccountAdmin(admin.ModelAdmin):
+    list_display = ["member", "policy", "cycle_started_on", "is_active"]
+    search_fields = ["member__member_no", "member__full_name"]
+    list_select_related = ["member", "policy"]
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return (
+                ["member", "policy", "cycle_started_on"]
+                if obj.loans.exists() or obj.withdrawals.exists()
+                else ["member", "policy"]
+            )
+        return []
+
+
+class FixFinancialRecordAdmin(admin.ModelAdmin):
+    def get_readonly_fields(self, request, obj=None):
+        return [field.name for field in self.model._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(FixDepositLoan)
+class FixDepositLoanAdmin(FixFinancialRecordAdmin):
+    list_display = [
+        "reference",
+        "account",
+        "issued_on",
+        "principal",
+        "interest_rate",
+        "settled_on",
+    ]
+    search_fields = ["reference", "account__member__member_no"]
+    list_select_related = ["account__member"]
+
+
+@admin.register(FixLoanEntry)
+class FixLoanEntryAdmin(FixFinancialRecordAdmin):
+    list_display = ["loan", "entry_date", "kind", "principal_amount", "interest_amount"]
+    list_select_related = ["loan"]
+
+
+@admin.register(FixDepositWithdrawal)
+class FixDepositWithdrawalAdmin(FixFinancialRecordAdmin):
+    list_display = ["account", "requested_on", "amount", "status", "released_on"]
+    list_select_related = ["account__member"]
 
 
 @admin.register(Child)
@@ -209,6 +289,11 @@ class PaymentTransactionAdmin(admin.ModelAdmin):
     autocomplete_fields = ["member", "payment_type"]
     readonly_fields = ["created_by", "created_at", "updated_at"]
 
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        actions.pop("delete_selected", None)
+        return actions
+
     def save_model(self, request, obj, form, change):
         if not change:
             obj.created_by = request.user
@@ -233,6 +318,13 @@ class OpeningBalanceAmountInline(admin.TabularInline):
     model = OpeningBalanceAmount
     extra = 0
 
+    def get_formset(self, request, obj=None, **kwargs):
+        from .fix_deposit_services import locked_payment_types
+
+        if obj and locked_payment_types(obj.member_id):
+            kwargs["can_delete"] = False
+        return super().get_formset(request, obj, **kwargs)
+
 
 @admin.register(OpeningBalance)
 class OpeningBalanceAdmin(admin.ModelAdmin):
@@ -241,3 +333,15 @@ class OpeningBalanceAdmin(admin.ModelAdmin):
     search_fields = ["member__member_no", "member__full_name"]
     autocomplete_fields = ["member"]
     inlines = [OpeningBalanceAmountInline]
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        actions.pop("delete_selected", None)
+        return actions
+
+    def has_delete_permission(self, request, obj=None):
+        from .fix_deposit_services import locked_payment_types
+
+        if obj and locked_payment_types(obj.member_id):
+            return False
+        return super().has_delete_permission(request, obj)

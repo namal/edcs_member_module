@@ -1,0 +1,11 @@
+<nav class="mb-6 flex flex-wrap gap-3" aria-label="Fix Deposit navigation">
+  {% if perms.members.view_fixdepositaccount %}
+    <a class="btn btn-secondary" href="{% url 'fix_deposit_list' %}">Fix Deposit accounts</a>
+  {% endif %}
+  {% if perms.members.add_fixdepositaccount %}
+    <a class="btn btn-secondary" href="{% url 'fix_deposit_create' %}">Register account</a>
+  {% endif %}
+  {% if perms.members.view_fixdepositpolicy %}
+    <a class="btn btn-secondary" href="{% url 'fix_deposit_policy_list' %}">Fix Deposit rules</a>
+  {% endif %}
+</nav>

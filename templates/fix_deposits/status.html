@@ -1,0 +1,26 @@
+<div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <section class="card p-6">
+    <h2 class="detail-label">Deposit balance</h2>
+    <p class="detail-value">
+      LKR <output data-fix-balance>{{ deposit_balance|floatformat:2 }}</output>
+    </p>
+  </section>
+  <section class="card p-6">
+    <h2 class="detail-label">Additional loan limit</h2>
+    <p class="detail-value">
+      LKR <output data-fix-loan-limit>{{ loan_limit|floatformat:2 }}</output>
+    </p>
+  </section>
+  <section class="card p-6">
+    <h2 class="detail-label">Withdrawal limit</h2>
+    <p class="detail-value">
+      LKR <output data-fix-withdrawal-limit>{{ withdrawal_limit|floatformat:2 }}</output>
+    </p>
+  </section>
+  <section class="card p-6">
+    <h2 class="detail-label">Retained at maximum withdrawal</h2>
+    <p class="detail-value">
+      LKR <output data-fix-held>{{ minimum_held|floatformat:2 }}</output>
+    </p>
+  </section>
+</div>

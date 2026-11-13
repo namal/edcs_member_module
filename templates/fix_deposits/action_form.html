@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7">
+    <p class="eyebrow mb-2">Fix Deposit Loans &amp; Withdrawals</p>
+    <h1 class="page-title">
+      {{ title }}<span class="text-brand-600">.</span>
+    </h1>
+    <p class="muted mt-2">
+      {{ account.member }} · {{ account.policy.payment_type.name }}
+      {% if loan %}· {{ loan.reference }}{% endif %}
+    </p>
+  </div>
+  {% include 'fix_deposits/nav.html' %}
+  <form method="post"
+        {% if action_kind %}data-fix-action="{{ action_kind }}" data-status-url="{% url 'fix_deposit_status' account.pk %}"{% endif %}>
+    {% csrf_token %}
+    {% if form.errors %}
+      <div class="alert message-error" role="alert">The action could not be completed. {{ form.non_field_errors }}</div>
+    {% endif %}
+    {% include 'fix_deposits/status.html' %}
+    {% if action_kind %}
+      <div class="mb-5 text-sm text-slate-700"
+           data-fix-eligibility
+           role="status"
+           aria-live="polite">
+        {% if action_kind == 'loan' %}
+          {% for reason in loan_reasons %}
+            <p>{{ reason }}</p>
+          {% empty %}Eligible for a loan within the displayed limit.
+          {% endfor %}
+        {% else %}
+          {% for reason in withdrawal_reasons %}
+            <p>{{ reason }}</p>
+          {% empty %}Eligible for withdrawal within the displayed limit.
+          {% endfor %}
+        {% endif %}
+      </div>
+    {% endif %}
+    <section class="form-section">
+      <div class="form-grid">
+        {% for field in form %}
+          {% if field.is_hidden %}
+            {{ field }}
+          {% else %}
+            {% include 'components/field.html' with field=field %}
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% if action_kind == 'loan' %}
+        <p class="field-help mt-5">
+          Annual rate at issue: {{ account.policy.loan_interest_rate|floatformat:2|default:'Not configured' }}%. Issuing a loan records the disbursement separately; it does not reduce the deposit used as security.
+        </p>
+      {% elif action_kind == 'withdrawal' %}
+        <p class="field-help mt-5">
+          This creates a request. The deposit is reduced only when the bank approves and releases it. At least 25% remains at the maximum withdrawal, and the cycle restarts on release.
+        </p>
+      {% elif withdrawal %}
+        <p class="field-help mt-5">
+          Requested LKR {{ withdrawal.amount|floatformat:2 }} on {{ withdrawal.requested_on|date:'d M Y' }}. Release rechecks maturity, all loan settlements and the current limit, posts one debit to the deposit ledger, and restarts the withdrawal cycle.
+        </p>
+      {% else %}
+        <p class="field-help mt-5">
+          Interest charges are assessed by the bank; repayments split principal and interest. Posted financial records retain their history.
+        </p>
+      {% endif %}
+    </section>
+    <div class="flex justify-end gap-3">
+      <a class="btn btn-secondary"
+         href="{% if perms.members.view_fixdepositaccount %}{% url 'fix_deposit_detail' account.pk %}{% else %}{% url 'dashboard' %}{% endif %}">Cancel</a>
+      <button class="btn btn-primary" data-submit-label="Posting…">{{ title }}</button>
+    </div>
+  </form>
+{% endblock %}

@@ -1,12 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.db.models import Q
 from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .models import Member, OpeningBalance
-from .opening_balance_forms import OpeningBalanceForm
+from .opening_balance_forms import OpeningBalanceForm, OpeningBalanceMemberForm
 from .permissions import district_records, require_permission
 from .views import paginated
 
@@ -17,13 +18,27 @@ def member_directory(request, selecting=False):
         .select_related("opening_balance")
         .prefetch_related("opening_balance__amounts")
     )
+    selection_form = OpeningBalanceMemberForm(request.GET, user=request.user)
+    selected_member = selected_balance = None
+    if selection_form.is_valid():
+        selected_member = selection_form.cleaned_data["member"]
+        if selected_member:
+            members = members.filter(pk=selected_member.pk)
+            if request.user.has_perm("members.view_openingbalance"):
+                selected_balance = (
+                    OpeningBalance.objects.filter(member=selected_member)
+                    .prefetch_related("amounts")
+                    .first()
+                ) or OpeningBalance(member=selected_member)
+    else:
+        members = members.none()
     query = request.GET.get("q", "").strip()
     if query:
         members = members.filter(
             Q(member_no__icontains=query) | Q(full_name__icontains=query)
         )
     status = request.GET.get("status", "")
-    if selecting or status == "pending":
+    if status == "pending":
         members = members.filter(opening_balance__isnull=True)
     elif status == "ready":
         members = members.filter(opening_balance__isnull=False)
@@ -34,6 +49,9 @@ def member_directory(request, selecting=False):
             "section": "opening_balances",
             "title": "Opening Balances",
             "selecting": selecting,
+            "selection_form": selection_form,
+            "selected_member": selected_member,
+            "selected_balance": selected_balance,
             **paginated(request, members.order_by("member_no", "pk")),
         },
     )
@@ -77,6 +95,12 @@ def opening_balance_form(request, pk=None):
                 return redirect("opening_balance_edit", pk=existing.pk)
             if request.user.has_perm("members.view_openingbalance"):
                 return redirect("opening_balance_detail", pk=existing.pk)
+            messages.error(
+                request,
+                "Opening balances are already recorded for this member. "
+                "Ask an administrator for permission to view or edit them.",
+            )
+            return redirect("opening_balance_create")
     form = OpeningBalanceForm(
         request.POST if request.method == "POST" else None,
         instance=balance,
@@ -86,6 +110,8 @@ def opening_balance_form(request, pk=None):
     if request.method == "POST" and form.is_valid():
         try:
             saved = form.save()
+        except ValidationError as error:
+            form.add_error(None, " ".join(error.messages))
         except IntegrityError:
             if (
                 balance is not None

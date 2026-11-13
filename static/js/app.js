@@ -232,6 +232,59 @@
     combo.refresh();
     select.addEventListener('change', () => combo.refresh());
   });
+  document.querySelectorAll('[data-fix-action]').forEach((form) => {
+    const day = form.querySelector('[name="day"]');
+    const status = form.querySelector('[data-fix-eligibility]');
+    const fields = {
+      deposit_balance: '[data-fix-balance]',
+      loan_limit: '[data-fix-loan-limit]',
+      withdrawal_limit: '[data-fix-withdrawal-limit]',
+      minimum_held: '[data-fix-held]',
+    };
+    let pending;
+    const refresh = async () => {
+      pending?.abort();
+      for (const selector of Object.values(fields))
+        form.querySelector(selector).textContent = '—';
+      if (!day.value || !day.validity.valid) {
+        status.textContent = 'Choose a valid date to check eligibility.';
+        return;
+      }
+      const controller = new AbortController();
+      pending = controller;
+      status.textContent = 'Checking deposit balance and eligibility…';
+      const url = new URL(form.dataset.statusUrl, window.location.href);
+      url.searchParams.set('date', day.value);
+      try {
+        const response = await fetch(url, {
+          credentials: 'same-origin',
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error('Eligibility unavailable');
+        const data = await response.json();
+        if (controller.signal.aborted || pending !== controller) return;
+        for (const [key, selector] of Object.entries(fields))
+          form.querySelector(selector).textContent = data[key];
+        const reasons =
+          form.dataset.fixAction === 'loan'
+            ? data.loan_reasons
+            : data.withdrawal_reasons;
+        status.textContent = reasons.length
+          ? reasons.join(' ')
+          : 'Eligible within the displayed limit. Eligibility is checked again when posting.';
+        form.querySelector('[name="amount"]').max =
+          form.dataset.fixAction === 'loan' ? data.loan_limit : data.withdrawal_limit;
+      } catch (error) {
+        if (controller.signal.aborted || pending !== controller) return;
+        status.textContent =
+          'Unable to check eligibility. Change the date or reload the page to try again.';
+      }
+    };
+    day.addEventListener('change', refresh);
+    day.addEventListener('input', refresh);
+  });
   document.querySelectorAll('[data-child-deposit-form]').forEach((form) => {
     const child = form.querySelector('[name="child"]');
     const type = form.querySelector('[name="deposit_type"]');

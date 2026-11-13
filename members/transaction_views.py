@@ -5,6 +5,7 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db.models.deletion import ProtectedError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -164,13 +165,17 @@ def payment_transaction_form(request, pk=None):
         saved = form.save(commit=False)
         if entry is None:
             saved.created_by = request.user
-        saved.save()
-        messages.success(request, "Debit / credit entry saved.")
-        if request.user.has_perm("members.view_paymenttransaction"):
-            return redirect(ledger_url(saved))
-        if entry is not None:
-            return redirect("payment_transaction_edit", pk=saved.pk)
-        return redirect("payment_transaction_create")
+        try:
+            saved.save()
+        except ValidationError as error:
+            form.add_error(None, " ".join(error.messages))
+        else:
+            messages.success(request, "Debit / credit entry saved.")
+            if request.user.has_perm("members.view_paymenttransaction"):
+                return redirect(ledger_url(saved))
+            if entry is not None:
+                return redirect("payment_transaction_edit", pk=saved.pk)
+            return redirect("payment_transaction_create")
     balance_summary = None
     member_id = form["member"].value()
     if str(member_id or "").isdigit():
@@ -231,8 +236,12 @@ def payment_transaction_delete(request, pk):
     )
     if request.method == "POST":
         destination = ledger_url(entry)
-        entry.delete()
-        messages.success(request, "Debit / credit entry deleted.")
+        try:
+            entry.delete()
+        except ProtectedError as error:
+            messages.error(request, str(error.args[0]))
+        else:
+            messages.success(request, "Debit / credit entry deleted.")
         return redirect(
             destination
             if request.user.has_perm("members.view_paymenttransaction")

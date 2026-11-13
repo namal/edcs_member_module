@@ -65,9 +65,9 @@ Administrators grant **Payment Plan** actions under **Users & access** or **Role
 
 Run `python manage.py migrate` to add the Opening Balances module. It uses the shared **Payment Types** master, including any additional types you create, such as Dividends.
 
-1. Open **Opening Balances** and select **Set opening balances**. Search registered members by member number or name, then select the member.
+1. Open **Opening Balances**, choose a member in **Member number / name**, and select **Show balances** to see every payment type and its saved opening amount. Members without a record show **Not entered** and a button to set their opening balances.
 2. Choose **Balance as of** and enter the opening amount in LKR for each payment type. Blank amounts save as zero. The form shows the total before saving.
-3. Save to view the member's balances by payment type, or return later to edit them. Each member has one opening balance record; monthly Payment Plan amounts remain separate.
+3. Save to view the member's balances by payment type, or return later to edit them. **Set opening balances** includes members who already have balances; selecting an existing member opens their saved record for editing or viewing, according to your permissions. Each member has one opening balance record; monthly Payment Plan amounts remain separate.
 4. New active payment types appear automatically in new and existing balance forms. On an existing record, a newly created type displays **Not entered** until its amount is saved. Inactive types retain previously saved balances and remain editable on those records.
 
 Users with **Opening Balances → View** can also see the balances on the member profile and when selecting a member for a Payment Plan or viewing an agreement. Administrators grant separate View, Add, Edit and Delete actions through **Users & access** or **Roles & permissions**. District assignments restrict both member selection and all saved balance access. Member and Payment Plan permissions do not grant access to opening balances automatically.

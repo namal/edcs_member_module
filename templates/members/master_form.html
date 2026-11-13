@@ -11,6 +11,8 @@
       payment types
     {% elif section == 'child_deposit_types' %}
       child deposit types
+    {% elif section == 'fix_deposit_policies' %}
+      Fix Deposit rules
     {% else %}
       {{ section }}
     {% endif %}
@@ -70,7 +72,9 @@
            aria-live="polite"></p>
         <label class="mt-7 flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
           {{ form.is_active }}<span><span class="block text-sm font-medium text-slate-700">Active {{ singular|lower }}</span><span class="mt-1 block text-xs leading-5 text-slate-600">
-          {% if section == 'child_deposit_types' %}
+          {% if section == 'fix_deposit_policies' %}
+            Available for new loans and withdrawals. Existing loans can still be repaid and settled when this rule is inactive.
+          {% elif section == 'child_deposit_types' %}
             Available for new child deposit accounts. Uncheck to retain existing accounts and stop new entries for this type.
           {% elif section == 'payment_types' %}
             Available for new payment plans. Uncheck to retain existing agreements without offering this type to new plans.
@@ -110,6 +114,8 @@
         Quarterly (every 3 months) is the default interest period. The bank can choose daily, monthly, yearly, or a custom repeating interval or specific start/end dates. These settings are stored for reference; interest is not automatically calculated or posted. Lower display order numbers appear first.
       {% elif section == 'child_deposit_types' %}
         Each child deposit type has its own age threshold and two rates. By default the rate is 8% below age 18 and 5% from the 18th birthday. Change all three values here as decided by the bank. Existing entries retain their recorded rates; current balances do not include unposted interest.
+      {% elif section == 'fix_deposit_policies' %}
+        These accounts accept monthly top-ups. Withdrawals require a cycle of at least 36 months, full loan settlement and a maximum release of 75%. Loan security is capped at 90%, with at least 12 months between loan issues. Set the annual loan interest rate before issuing loans. The bank records assessed interest and payments separately.
       {% elif section == 'schools' %}
         Each department belongs to a district and zonal office, with an optional subdivision. Its selection label includes the full location.
       {% else %}

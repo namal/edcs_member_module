@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7">
+    <p class="eyebrow mb-2">Member services / Monthly top-up deposits</p>
+    <h1 class="page-title">
+      Fix Deposit Loans &amp; Withdrawals<span class="text-brand-600">.</span>
+    </h1>
+    <p class="muted mt-2">Manage loans secured by the deposit and withdrawals after the 3-year cycle matures.</p>
+  </div>
+  {% include 'fix_deposits/nav.html' %}
+  <section class="form-section">
+    <form method="get">
+      <div class="form-grid">
+        {% for field in form %}
+          {% include 'components/field.html' with field=field %}
+        {% endfor %}
+      </div>
+      <button class="btn btn-primary mt-5">Show accounts</button>
+    </form>
+  </section>
+  <section class="card">
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>Deposit balance</th>
+            <th>Principal due</th>
+            <th>Interest due</th>
+            <th>Additional loan limit</th>
+            <th>Withdrawal limit</th>
+            <th>Cycle matures</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for account in page_obj %}
+            <tr>
+              <td>
+                <a class="text-link" href="{% url 'fix_deposit_detail' account.pk %}">{{ account.member.member_no }}</a>
+                <br>
+                {{ account.member.full_name }}
+              </td>
+              <td>{{ account.summary.deposit_balance|floatformat:2 }}</td>
+              <td>{{ account.summary.principal_due|floatformat:2 }}</td>
+              <td>{{ account.summary.interest_due|floatformat:2 }}</td>
+              <td>
+                {{ account.summary.loan_limit|floatformat:2 }}
+                {% if not account.summary.can_borrow %}<p class="field-help">Not currently eligible</p>{% endif %}
+              </td>
+              <td>
+                {{ account.summary.withdrawal_limit|floatformat:2 }}
+                {% if not account.summary.can_withdraw %}<p class="field-help">Not currently eligible</p>{% endif %}
+              </td>
+              <td>{{ account.summary.maturity_date|date:'d M Y' }}</td>
+              <td>
+                <div class="flex gap-3">
+                  {% if perms.members.change_fixdepositaccount %}
+                    <a class="text-link" href="{% url 'fix_deposit_edit' account.pk %}">Edit</a>
+                  {% endif %}
+                  {% if perms.members.delete_fixdepositaccount %}
+                    <a class="text-link" href="{% url 'fix_deposit_delete' account.pk %}">Delete</a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" class="py-10 text-center text-slate-600">No registered Fix Deposit accounts for this selection.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include 'components/pagination.html' %}
+  </section>
+  <p class="field-help mt-4">
+    LKR amounts as of {{ as_of|date:'d M Y' }}. A displayed limit is subject to eligibility checks when posting. Monthly credits continue through Debit / Credit.
+  </p>
+{% endblock %}

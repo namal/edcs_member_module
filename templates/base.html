@@ -13,7 +13,7 @@
     · EDCS</title>
     <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
     <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=edcs-2">
-    <script src="{% static 'js/app.js' %}?v=11" defer></script>
+    <script src="{% static 'js/app.js' %}?v=12" defer></script>
     {% include 'components/session_security.html' %}
   </head>
   <body>
@@ -104,6 +104,16 @@
               <use href="#i-wallet" />
             </svg>
             Opening Balances
+          </a>
+        {% endif %}
+        {% if fix_deposit_module.visible %}
+          <a class="nav-link {% if section == 'fix_deposits' %}active{% endif %}"
+             href="{% url fix_deposit_module.url %}"
+             {% if section == 'fix_deposits' %}aria-current="page"{% endif %}>
+            <svg class="icon">
+              <use href="#i-wallet" />
+            </svg>
+            Fix Deposit Loans &amp; Withdrawals
           </a>
         {% endif %}
         {% for module in child_modules %}

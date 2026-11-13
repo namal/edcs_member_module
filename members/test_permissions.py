@@ -12,6 +12,8 @@ from .models import (
     ChildDeposit,
     ChildDepositType,
     District,
+    FixDepositAccount,
+    FixDepositPolicy,
     Lager,
     Member,
     OfficeLocation,
@@ -78,7 +80,12 @@ class WorkspacePermissionTests(TestCase):
             member=plan_member, name="Permission child", date_of_birth="2015-01-01"
         )
         child_type = ChildDepositType.objects.get(name="Child Savings")
+        fix_policy = FixDepositPolicy.objects.get(name="Fix Deposit Rules")
         cls.records = {
+            "fix_deposit_policy": fix_policy,
+            "fix_deposit": FixDepositAccount.objects.create(
+                member=plan_member, policy=fix_policy, cycle_started_on="2020-01-01"
+            ),
             "child": child,
             "child_deposit_type": child_type,
             "child_deposit": ChildDeposit.objects.create(
@@ -244,7 +251,8 @@ class WorkspacePermissionTests(TestCase):
                                 if operation == allowed_operation
                                 and not (model is District and operation == "create")
                                 and not (
-                                    model in (PaymentType, ChildDepositType)
+                                    model
+                                    in (PaymentType, ChildDepositType, FixDepositPolicy)
                                     and operation != "list"
                                 )
                                 else 403

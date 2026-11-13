@@ -5,8 +5,24 @@ from django.db import transaction
 from django.db.models import Q
 
 from .forms import StyledModelForm
-from .models import OpeningBalance, OpeningBalanceAmount, PaymentType
-from .permissions import accessible_districts
+from .models import Member, OpeningBalance, OpeningBalanceAmount, PaymentType
+from .permissions import accessible_districts, district_records
+
+
+class OpeningBalanceMemberForm(forms.Form):
+    member = forms.ModelChoiceField(
+        queryset=Member.objects.none(),
+        required=False,
+        label="Member number / name",
+        empty_label="All members — select a member to view balances",
+        widget=forms.Select(attrs={"class": "field-input"}),
+    )
+
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["member"].queryset = district_records(user, Member).order_by(
+            "member_no", "pk"
+        )
 
 
 class OpeningBalanceForm(StyledModelForm):
@@ -18,6 +34,14 @@ class OpeningBalanceForm(StyledModelForm):
     def __init__(self, *args, member, **kwargs):
         super().__init__(*args, **kwargs)
         self.instance.member = member
+        from .fix_deposit_services import locked_payment_types
+
+        self.locked_types = locked_payment_types(member.pk)
+        if self.instance.pk and self.locked_types:
+            self.fields["balance_date"].disabled = True
+            self.fields["balance_date"].help_text = (
+                "Locked by Fix Deposit loan or withdrawal history."
+            )
         existing = (
             {item.payment_type_id: item.amount for item in self.instance.amounts.all()}
             if self.instance.pk
@@ -47,6 +71,11 @@ class OpeningBalanceForm(StyledModelForm):
                     }
                 ),
             )
+            if payment_type.pk in self.locked_types:
+                self.fields[f"amount_{payment_type.pk}"].disabled = True
+                self.fields[f"amount_{payment_type.pk}"].help_text = (
+                    "Locked by Fix Deposit loan or withdrawal history."
+                )
 
     @property
     def amount_fields(self):
@@ -81,6 +110,11 @@ class OpeningBalanceForm(StyledModelForm):
     def save(self):
         balance = super().save()
         for payment_type in self.payment_types:
+            if (
+                payment_type.pk in self.locked_types
+                and not balance.amounts.filter(payment_type=payment_type).exists()
+            ):
+                continue
             OpeningBalanceAmount.objects.update_or_create(
                 opening_balance=balance,
                 payment_type=payment_type,

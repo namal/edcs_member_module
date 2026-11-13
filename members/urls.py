@@ -1,6 +1,7 @@
 from django.urls import path
 from . import (
     child_views,
+    fix_deposit_views,
     opening_balance_views,
     payment_views,
     transaction_views,
@@ -8,6 +9,82 @@ from . import (
 )
 
 urlpatterns = [
+    path("fix-deposits/", fix_deposit_views.fix_deposit_list, name="fix_deposit_list"),
+    path(
+        "fix-deposits/new/",
+        fix_deposit_views.fix_deposit_form,
+        name="fix_deposit_create",
+    ),
+    path(
+        "fix-deposits/<int:pk>/",
+        fix_deposit_views.fix_deposit_detail,
+        name="fix_deposit_detail",
+    ),
+    path(
+        "fix-deposits/<int:pk>/edit/",
+        fix_deposit_views.fix_deposit_form,
+        name="fix_deposit_edit",
+    ),
+    path(
+        "fix-deposits/<int:pk>/delete/",
+        fix_deposit_views.fix_deposit_delete,
+        name="fix_deposit_delete",
+    ),
+    path(
+        "fix-deposits/<int:pk>/loans/new/",
+        fix_deposit_views.fix_loan_create,
+        name="fix_loan_create",
+    ),
+    path(
+        "fix-deposit-loans/<int:pk>/",
+        fix_deposit_views.fix_loan_detail,
+        name="fix_loan_detail",
+    ),
+    path(
+        "fix-deposit-loans/<int:pk>/entries/new/",
+        fix_deposit_views.fix_loan_entry,
+        name="fix_loan_entry",
+    ),
+    path(
+        "fix-deposit-loans/<int:pk>/settle/",
+        fix_deposit_views.fix_loan_settle,
+        name="fix_loan_settle",
+    ),
+    path(
+        "fix-deposits/<int:pk>/withdrawals/new/",
+        fix_deposit_views.fix_withdrawal_create,
+        name="fix_withdrawal_create",
+    ),
+    path(
+        "fix-deposit-withdrawals/<int:pk>/review/",
+        fix_deposit_views.fix_withdrawal_review,
+        name="fix_withdrawal_review",
+    ),
+    path(
+        "fix-deposit-rules/",
+        fix_deposit_views.fix_deposit_policy_list,
+        name="fix_deposit_policy_list",
+    ),
+    path(
+        "fix-deposit-rules/new/",
+        fix_deposit_views.fix_deposit_policy_form,
+        name="fix_deposit_policy_create",
+    ),
+    path(
+        "fix-deposit-rules/<int:pk>/edit/",
+        fix_deposit_views.fix_deposit_policy_form,
+        name="fix_deposit_policy_edit",
+    ),
+    path(
+        "fix-deposit-rules/<int:pk>/delete/",
+        fix_deposit_views.fix_deposit_policy_delete,
+        name="fix_deposit_policy_delete",
+    ),
+    path(
+        "api/fix-deposits/<int:pk>/status/",
+        fix_deposit_views.fix_deposit_status,
+        name="fix_deposit_status",
+    ),
     path("children/", child_views.child_list, name="child_list"),
     path("children/new/", child_views.child_form, name="child_create"),
     path("children/<int:pk>/", child_views.child_detail, name="child_detail"),

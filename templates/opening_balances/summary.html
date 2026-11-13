@@ -2,7 +2,13 @@
   <div class="card-heading">
     <div>
       <h2 class="section-title">Opening balances by payment type</h2>
-      <p class="mt-1 text-xs text-slate-500">Balance as of {{ balance.balance_date|date:'d M Y' }}</p>
+      <p class="mt-1 text-xs text-slate-500">
+        {% if balance.pk %}
+          Balance as of {{ balance.balance_date|date:'d M Y' }}
+        {% else %}
+          No opening balances recorded for this member. Select Set opening balances to enter amounts.
+        {% endif %}
+      </p>
     </div>
     {% if show_link %}
       <a class="text-link"
