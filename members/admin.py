@@ -7,6 +7,8 @@ from .models import (
     Lager,
     Member,
     OfficeLocation,
+    OpeningBalance,
+    OpeningBalanceAmount,
     PaymentPlan,
     PaymentPlanAmount,
     PaymentType,
@@ -133,3 +135,17 @@ class PaymentPlanAdmin(admin.ModelAdmin):
     search_fields = ["member__member_no", "member__full_name"]
     autocomplete_fields = ["member"]
     inlines = [PaymentPlanAmountInline]
+
+
+class OpeningBalanceAmountInline(admin.TabularInline):
+    model = OpeningBalanceAmount
+    extra = 0
+
+
+@admin.register(OpeningBalance)
+class OpeningBalanceAdmin(admin.ModelAdmin):
+    list_display = ["member", "balance_date", "total"]
+    list_select_related = ["member"]
+    search_fields = ["member__member_no", "member__full_name"]
+    autocomplete_fields = ["member"]
+    inlines = [OpeningBalanceAmountInline]

@@ -2,6 +2,7 @@
   "name": "memberly",
   "private": true,
   "scripts": {
+    "test:session": "node --test tests/session.test.cjs",
     "format": "python -m black . && python -m djlint templates --reformat --warn --quiet && prettier --write \"**/*.{js,css,json,md,svg}\"",
     "format:check": "python -m black . --check && python -m djlint templates --check && prettier --check \"**/*.{js,css,json,md,svg}\"",
     "build:css": "tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.css --minify",

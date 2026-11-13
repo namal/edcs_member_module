@@ -5,7 +5,7 @@ from django.db.models import Count, Q
 from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import Member, PaymentPlan, PaymentType
+from .models import Member, OpeningBalance, PaymentPlan, PaymentType
 from .payment_forms import PaymentPlanForm, PaymentTypeForm
 from .permissions import district_records, require_permission
 from .views import delete_record, master_form, paginated
@@ -115,6 +115,13 @@ def payment_plan_form(request, pk=None):
             "form": form,
             "plan": plan,
             "member": member,
+            "member_opening_balance": (
+                OpeningBalance.objects.filter(member=member)
+                .prefetch_related("amounts")
+                .first()
+                if request.user.has_perm("members.view_openingbalance")
+                else None
+            ),
         },
     )
 
@@ -135,6 +142,13 @@ def payment_plan_detail(request, pk):
             "section": "payment_plans",
             "title": "Payment plan",
             "plan": plan,
+            "member_opening_balance": (
+                OpeningBalance.objects.filter(member=plan.member)
+                .prefetch_related("amounts")
+                .first()
+                if request.user.has_perm("members.view_openingbalance")
+                else None
+            ),
         },
     )
 

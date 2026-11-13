@@ -1,7 +1,32 @@
 from django.urls import path
-from . import payment_views, views
+from . import opening_balance_views, payment_views, views
 
 urlpatterns = [
+    path(
+        "opening-balances/",
+        opening_balance_views.opening_balance_list,
+        name="opening_balance_list",
+    ),
+    path(
+        "opening-balances/new/",
+        opening_balance_views.opening_balance_form,
+        name="opening_balance_create",
+    ),
+    path(
+        "opening-balances/<int:pk>/",
+        opening_balance_views.opening_balance_detail,
+        name="opening_balance_detail",
+    ),
+    path(
+        "opening-balances/<int:pk>/edit/",
+        opening_balance_views.opening_balance_form,
+        name="opening_balance_edit",
+    ),
+    path(
+        "opening-balances/<int:pk>/delete/",
+        opening_balance_views.opening_balance_delete,
+        name="opening_balance_delete",
+    ),
     path("payment-plans/", payment_views.payment_plan_list, name="payment_plan_list"),
     path(
         "payment-plans/new/",

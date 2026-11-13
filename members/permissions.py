@@ -7,6 +7,7 @@ from .models import (
     Lager,
     Member,
     OfficeLocation,
+    OpeningBalance,
     PaymentPlan,
     PaymentType,
     School,
@@ -21,6 +22,13 @@ MODULES = (
     (School, "Departments", "schools", "school", "building"),
     (Lager, "Lagers", "lagers", "lager", "building"),
     (PaymentPlan, "Payment Plan", "payment_plans", "payment_plan", "wallet"),
+    (
+        OpeningBalance,
+        "Opening Balances",
+        "opening_balances",
+        "opening_balance",
+        "wallet",
+    ),
     (PaymentType, "Payment Types", "payment_types", "payment_type", "wallet"),
 )
 ACTIONS = ("view", "add", "change", "delete")
@@ -33,6 +41,7 @@ DISTRICT_LOOKUPS = {
     School: "district_id",
     Subdivision: "zonal_office__district_id",
     PaymentPlan: "member__district_id",
+    OpeningBalance: "member__district_id",
 }
 
 

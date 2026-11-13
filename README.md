@@ -13,6 +13,8 @@ python manage.py runserver
 
 Open **http://127.0.0.1:8000/**. Sign in with the initial administrator credentials saved in the local `.admin-credentials` file. Administrators land in the custom Tailwind control center at `/admin/`; other users land in their workspace. The panel uses the EDCS logo, burgundy and gold palette, and responsive navigation. Advanced Django administration is available at `/admin/django/`, including password changes at `/admin/django/password_change/`.
 
+Sessions expire after 15 minutes of inactivity and use cookies that expire when the browser closes. Set `SESSION_IDLE_TIMEOUT` in `.env` to change the inactivity limit in seconds, then restart Django. Keyboard, pointer, touch and scroll activity across open tabs keeps the session alive, including while filling in a form. Idle pages return to sign-in automatically; the server also rejects expired sessions when JavaScript is unavailable. Authenticated responses are marked as non-cacheable. Browsers configured to restore their previous session may restore session cookies after closing; the inactivity limit still applies. Closing a single tab does not sign out other open tabs.
+
 ## Users, roles and permissions
 
 Only active superusers can open the control center, **Users & access**, and **Roles & permissions**. Staff status alone does not grant workspace access. Existing users, passwords and assigned permissions are retained.
@@ -58,6 +60,19 @@ Run `python manage.py migrate` to add the Payment Plan tables and initial paymen
 New active payment types appear in new plans and when editing existing plans. Mark a payment type inactive to stop offering it to new plans; previously saved agreements retain that type and amount. Used types and members with a plan are protected from deletion. Deleting a plan removes its amounts while keeping the member registered.
 
 Administrators grant **Payment Plan** actions under **Users & access** or **Roles & permissions**, limited to the user's assigned districts. Member registration permissions do not automatically grant access to payment agreements. Add-only plan operators can select member number/name within their districts without access to the full member directory. Payment Types is a shared master: users with View permission may read it, and administrators manage its entries.
+
+## Member opening balances
+
+Run `python manage.py migrate` to add the Opening Balances module. It uses the shared **Payment Types** master, including any additional types you create, such as Dividends.
+
+1. Open **Opening Balances** and select **Set opening balances**. Search registered members by member number or name, then select the member.
+2. Choose **Balance as of** and enter the opening amount in LKR for each payment type. Blank amounts save as zero. The form shows the total before saving.
+3. Save to view the member's balances by payment type, or return later to edit them. Each member has one opening balance record; monthly Payment Plan amounts remain separate.
+4. New active payment types appear automatically in new and existing balance forms. On an existing record, a newly created type displays **Not entered** until its amount is saved. Inactive types retain previously saved balances and remain editable on those records.
+
+Users with **Opening Balances → View** can also see the balances on the member profile and when selecting a member for a Payment Plan or viewing an agreement. Administrators grant separate View, Add, Edit and Delete actions through **Users & access** or **Roles & permissions**. District assignments restrict both member selection and all saved balance access. Member and Payment Plan permissions do not grant access to opening balances automatically.
+
+Saved opening balances protect the member and payment types from deletion. Deleting the opening balance record removes its amounts while retaining the member and any payment plan.
 
 ## Setup on another machine
 
@@ -111,6 +126,8 @@ npm run watch:css            # Rebuild Tailwind when templates/styles change
 python manage.py check
 python manage.py makemigrations --check --dry-run
 python manage.py test members
+python manage.py test config # Session security integration tests
+npm run test:session         # Browser inactivity and tab coordination tests
 ```
 
 The integration suite uses a separate `test_member_module` PostgreSQL database, which Django creates and removes. The configured database user must have permission to create test databases. Tests cover registrations, identifier uniqueness, district/office matching, inactive records, protected deletions, CSRF, authentication, templates, filtering, exports, master record management, per-action permission checks, role grants/revocations, and custom account administration.

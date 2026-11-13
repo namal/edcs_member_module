@@ -65,6 +65,9 @@
           Welcome back<span class="text-brand-600">.</span>
         </h2>
         <p class="muted mb-8 mt-2">Sign in to manage your members.</p>
+        {% if request.GET.expired %}
+          <p class="alert message-error" role="status">Your session has expired. Please sign in again.</p>
+        {% endif %}
         {% if form.errors %}
           <div id="login-error" class="alert message-error" role="alert">
             <strong>Error:</strong> Your username or password is incorrect. Please try again.

@@ -488,25 +488,29 @@
     });
   }
 
-  document.querySelectorAll('[data-payment-plan-form]').forEach((form) => {
-    const amounts = [...form.querySelectorAll('[data-monthly-amount]')];
-    const total = form.querySelector('#monthly-plan-total');
-    const formatter = new Intl.NumberFormat('en-LK', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+  document
+    .querySelectorAll('[data-payment-plan-form], [data-opening-balance-form]')
+    .forEach((form) => {
+      const amounts = [
+        ...form.querySelectorAll('[data-monthly-amount], [data-balance-amount]'),
+      ];
+      const total = form.querySelector('#monthly-plan-total, #opening-balance-total');
+      const formatter = new Intl.NumberFormat('en-LK', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      const updateTotal = () => {
+        const cents = amounts.reduce((sum, input) => {
+          const value = Number(input.value);
+          return (
+            sum + (Number.isFinite(value) && value >= 0 ? Math.round(value * 100) : 0)
+          );
+        }, 0);
+        total.textContent = formatter.format(cents / 100);
+      };
+      amounts.forEach((input) => input.addEventListener('input', updateTotal));
+      updateTotal();
     });
-    const updateTotal = () => {
-      const cents = amounts.reduce((sum, input) => {
-        const value = Number(input.value);
-        return (
-          sum + (Number.isFinite(value) && value >= 0 ? Math.round(value * 100) : 0)
-        );
-      }, 0);
-      total.textContent = formatter.format(cents / 100);
-    };
-    amounts.forEach((input) => input.addEventListener('input', updateTotal));
-    updateTotal();
-  });
 
   document.querySelectorAll('[data-submit-label]').forEach((button) => {
     button.form?.addEventListener('submit', (event) => {

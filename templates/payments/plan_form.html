@@ -82,4 +82,7 @@
       </aside>
     </div>
   </form>
+  {% if perms.members.view_openingbalance and member_opening_balance %}
+    {% include 'opening_balances/summary.html' with balance=member_opening_balance show_link=True %}
+  {% endif %}
 {% endblock %}

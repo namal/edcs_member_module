@@ -8,7 +8,7 @@ def workspace_access(request):
     masters = [
         module
         for module in modules
-        if module["section"] not in ("members", "payment_plans")
+        if module["section"] not in ("members", "payment_plans", "opening_balances")
     ]
     return {
         "workspace_modules": modules,
@@ -17,5 +17,8 @@ def workspace_access(request):
         "has_master_access": any(module["visible"] for module in masters),
         "payment_module": next(
             module for module in modules if module["section"] == "payment_plans"
+        ),
+        "opening_balance_module": next(
+            module for module in modules if module["section"] == "opening_balances"
         ),
     }

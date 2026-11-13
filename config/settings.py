@@ -28,6 +28,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "config.middleware.PrivateSessionMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -43,6 +44,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "members.context_processors.workspace_access",
+                "config.context_processors.session_policy",
             ]
         },
     }
@@ -78,6 +80,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "login"
+SESSION_COOKIE_AGE = int(os.environ.get("SESSION_IDLE_TIMEOUT", "900"))
+if SESSION_COOKIE_AGE <= 0:
+    raise ValueError("SESSION_IDLE_TIMEOUT must be a positive number of seconds.")
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 X_FRAME_OPTIONS = "DENY"

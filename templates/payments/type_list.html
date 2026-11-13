@@ -7,7 +7,7 @@
       <h1 class="page-title">
         Payment Types<span class="text-brand-600">.</span>
       </h1>
-      <p class="muted mt-2">Add the contribution fields members can use in their monthly agreements.</p>
+      <p class="muted mt-2">Manage payment types for monthly agreements and member opening balances.</p>
     </div>
     {% if request.user.is_superuser and perms.members.add_paymenttype %}
       <a class="btn btn-primary" href="{% url 'payment_type_create' %}">Add payment type</a>
@@ -71,6 +71,6 @@
     {% include 'components/pagination.html' %}
   </section>
   <p class="muted mt-4">
-    New active types appear when creating or editing a payment plan. Types used by saved agreements can be marked inactive to keep their existing amounts.
+    New active types appear when creating or editing payment plans and opening balances. Types with saved amounts can be marked inactive to preserve their history.
   </p>
 {% endblock %}

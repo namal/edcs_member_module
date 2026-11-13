@@ -17,7 +17,19 @@
       </h1>
       <p class="muted mt-2">Everything you need to know, thoughtfully organized.</p>
     </div>
-    <div class="no-print flex gap-2">
+    <div class="no-print flex flex-wrap gap-2">
+      {% if member_opening_balance %}
+        {% if perms.members.view_openingbalance %}
+          <a class="btn btn-secondary"
+             href="{% url 'opening_balance_detail' member_opening_balance.pk %}">Opening balances</a>
+        {% elif perms.members.change_openingbalance %}
+          <a class="btn btn-secondary"
+             href="{% url 'opening_balance_edit' member_opening_balance.pk %}">Edit opening balances</a>
+        {% endif %}
+      {% elif perms.members.add_openingbalance %}
+        <a class="btn btn-secondary"
+           href="{% url 'opening_balance_create' %}?member={{ member.pk }}">Set opening balances</a>
+      {% endif %}
       {% if member_payment_plan %}
         {% if perms.members.view_paymentplan %}
           <a class="btn btn-secondary"
@@ -266,4 +278,14 @@
       </section>
     </div>
   </div>
+  {% if perms.members.view_openingbalance %}
+    {% if member_opening_balance %}
+      {% include 'opening_balances/summary.html' with balance=member_opening_balance show_link=True %}
+    {% else %}
+      <section class="card mt-6 p-6">
+        <h2 class="section-title">Opening balances</h2>
+        <p class="muted mt-2">Opening balances have not been entered for this member.</p>
+      </section>
+    {% endif %}
+  {% endif %}
 {% endblock %}

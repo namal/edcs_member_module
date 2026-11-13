@@ -465,3 +465,67 @@ class PaymentPlanAmount(models.Model):
 
     def __str__(self):
         return f"{self.payment_type} · {self.amount}"
+
+
+class OpeningBalance(models.Model):
+    member = models.OneToOneField(
+        Member, on_delete=models.PROTECT, related_name="opening_balance"
+    )
+    balance_date = models.DateField("Balance as of", default=timezone.localdate)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["member__member_no"]
+
+    def __str__(self):
+        return f"Opening balances · {self.member}"
+
+    @property
+    def total(self):
+        if not self.pk:
+            return Decimal("0.00")
+        return sum((item.amount for item in self.amounts.all()), Decimal("0.00"))
+
+    @property
+    def type_balances(self):
+        """Include new payment types without presenting missing amounts as saved zeros."""
+        existing = {item.payment_type_id: item.amount for item in self.amounts.all()}
+        return [
+            {"payment_type": item, "amount": existing.get(item.pk)}
+            for item in PaymentType.objects.filter(
+                models.Q(is_active=True) | models.Q(pk__in=existing)
+            )
+        ]
+
+
+class OpeningBalanceAmount(models.Model):
+    opening_balance = models.ForeignKey(
+        OpeningBalance, on_delete=models.CASCADE, related_name="amounts"
+    )
+    payment_type = models.ForeignKey(
+        PaymentType, on_delete=models.PROTECT, related_name="opening_amounts"
+    )
+    amount = models.DecimalField(
+        "Opening balance (LKR)",
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+
+    class Meta:
+        ordering = ["payment_type__sort_order", "payment_type__name", "pk"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["opening_balance", "payment_type"],
+                name="unique_opening_balance_type",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(amount__gte=0),
+                name="opening_balance_amount_nonnegative",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.payment_type} · {self.amount}"

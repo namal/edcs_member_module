@@ -27,6 +27,7 @@ from .models import (
     Lager,
     Member,
     OfficeLocation,
+    OpeningBalance,
     PaymentPlan,
     School,
     Subdivision,
@@ -367,6 +368,16 @@ def member_detail(request, pk):
                 PaymentPlan.objects.filter(member=member).first()
                 if any(
                     request.user.has_perm(f"members.{action}_paymentplan")
+                    for action in ("view", "add", "change", "delete")
+                )
+                else None
+            ),
+            "member_opening_balance": (
+                OpeningBalance.objects.filter(member=member)
+                .prefetch_related("amounts")
+                .first()
+                if any(
+                    request.user.has_perm(f"members.{action}_openingbalance")
                     for action in ("view", "add", "change", "delete")
                 )
                 else None

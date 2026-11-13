@@ -43,6 +43,9 @@
       <p class="text-xl font-bold text-brand-700">LKR {{ plan.monthly_total|floatformat:2 }}</p>
     </div>
   </section>
+  {% if perms.members.view_openingbalance and member_opening_balance %}
+    {% include 'opening_balances/summary.html' with balance=member_opening_balance show_link=True %}
+  {% endif %}
   {% if perms.members.view_member %}
     <a class="text-link mt-5"
        href="{% url 'member_detail' plan.member_id %}">Open member profile →</a>
