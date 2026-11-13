@@ -14,6 +14,7 @@ from .models import (
     OfficeLocation,
     OpeningBalance,
     PaymentPlan,
+    PaymentTransaction,
     PaymentType,
     School,
     Subdivision,
@@ -80,6 +81,11 @@ class WorkspacePermissionTests(TestCase):
             "payment_plan": cls.plan,
             "opening_balance": OpeningBalance.objects.create(member=plan_member),
             "payment_type": PaymentType.objects.get(name="Special Deposit"),
+            "payment_transaction": PaymentTransaction.objects.create(
+                member=plan_member,
+                payment_type=PaymentType.objects.get(name="Special Deposit"),
+                credit="100.00",
+            ),
         }
 
     def setUp(self):
@@ -245,7 +251,8 @@ class WorkspacePermissionTests(TestCase):
                     if prefix == "member"
                     else (
                         self.records[prefix].member.full_name
-                        if prefix in ("payment_plan", "opening_balance")
+                        if prefix
+                        in ("payment_plan", "opening_balance", "payment_transaction")
                         else self.records[prefix].name
                     )
                 ),

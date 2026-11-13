@@ -7,7 +7,9 @@
       <h1 class="page-title">
         Payment Types<span class="text-brand-600">.</span>
       </h1>
-      <p class="muted mt-2">Manage payment types for monthly agreements and member opening balances.</p>
+      <p class="muted mt-2">
+        Manage payment types and interest rates for agreements, opening balances and debit / credit entries.
+      </p>
     </div>
     {% if request.user.is_superuser and perms.members.add_paymenttype %}
       <a class="btn btn-primary" href="{% url 'payment_type_create' %}">Add payment type</a>
@@ -28,6 +30,8 @@
         <thead>
           <tr>
             <th>Payment type</th>
+            <th>Interest rate</th>
+            <th>Calculation frequency</th>
             <th>Display order</th>
             <th>Agreements</th>
             <th>Status</th>
@@ -38,6 +42,8 @@
           {% for record in page_obj %}
             <tr>
               <td class="font-semibold">{{ record.name }}</td>
+              <td>{{ record.interest_rate|floatformat:2 }}%</td>
+              <td>{{ record.interest_period_display }}</td>
               <td>{{ record.sort_order }}</td>
               <td>{{ record.plan_count }}</td>
               <td>
@@ -62,7 +68,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="5" class="py-10 text-center text-slate-600">No matching payment types.</td>
+              <td colspan="7" class="py-10 text-center text-slate-600">No matching payment types.</td>
             </tr>
           {% endfor %}
         </tbody>

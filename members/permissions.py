@@ -9,6 +9,7 @@ from .models import (
     OfficeLocation,
     OpeningBalance,
     PaymentPlan,
+    PaymentTransaction,
     PaymentType,
     School,
     Subdivision,
@@ -22,6 +23,13 @@ MODULES = (
     (School, "Departments", "schools", "school", "building"),
     (Lager, "Lagers", "lagers", "lager", "building"),
     (PaymentPlan, "Payment Plan", "payment_plans", "payment_plan", "wallet"),
+    (
+        PaymentTransaction,
+        "Debit / Credit",
+        "payment_transactions",
+        "payment_transaction",
+        "wallet",
+    ),
     (
         OpeningBalance,
         "Opening Balances",
@@ -41,6 +49,7 @@ DISTRICT_LOOKUPS = {
     School: "district_id",
     Subdivision: "zonal_office__district_id",
     PaymentPlan: "member__district_id",
+    PaymentTransaction: "member__district_id",
     OpeningBalance: "member__district_id",
 }
 

@@ -13,7 +13,7 @@
     · EDCS</title>
     <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
     <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=edcs-2">
-    <script src="{% static 'js/app.js' %}?v=7" defer></script>
+    <script src="{% static 'js/app.js' %}?v=10" defer></script>
     {% include 'components/session_security.html' %}
   </head>
   <body>
@@ -84,6 +84,16 @@
               <use href="#i-wallet" />
             </svg>
             Payment Plan
+          </a>
+        {% endif %}
+        {% if transaction_module.visible %}
+          <a class="nav-link {% if section == 'payment_transactions' %}active{% endif %}"
+             href="{% url transaction_module.url %}"
+             {% if section == 'payment_transactions' %}aria-current="page"{% endif %}>
+            <svg class="icon">
+              <use href="#i-wallet" />
+            </svg>
+            Debit / Credit
           </a>
         {% endif %}
         {% if opening_balance_module.visible %}

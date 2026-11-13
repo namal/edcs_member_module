@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator, RegexValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
 
@@ -400,7 +400,72 @@ class Member(models.Model):
 
 
 class PaymentType(models.Model):
+    class InterestFrequency(models.TextChoices):
+        DAILY = "daily", "Daily (every day)"
+        MONTHLY = "monthly", "Monthly (every month)"
+        QUARTERLY = "quarterly", "Quarterly (every 3 months)"
+        YEARLY = "yearly", "Yearly (every year)"
+        CUSTOM = "custom", "Custom period"
+
+    class InterestPeriodType(models.TextChoices):
+        REPEATING = "repeating", "Repeating interval"
+        DATE_RANGE = "date_range", "Specific start and end dates"
+
+    class InterestIntervalUnit(models.TextChoices):
+        DAYS = "days", "Days"
+        MONTHS = "months", "Months"
+        YEARS = "years", "Years"
+
     name = models.CharField(max_length=120, unique=True)
+    interest_rate = models.DecimalField(
+        "Interest rate (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0")), MaxValueValidator(Decimal("100"))],
+        help_text="Configured percentage for this payment type. Interest is not automatically calculated or posted.",
+    )
+    interest_frequency = models.CharField(
+        "Interest calculation frequency",
+        max_length=12,
+        choices=InterestFrequency.choices,
+        default=InterestFrequency.QUARTERLY,
+        help_text="Quarterly means every 3 months and is the default. The bank can choose another frequency or a custom period. Stored for reference; no automatic calculation or posting.",
+    )
+    interest_period_type = models.CharField(
+        "Custom period type",
+        max_length=12,
+        choices=InterestPeriodType.choices,
+        blank=True,
+        default="",
+        help_text="For Custom period, choose a repeating interval or specific dates.",
+    )
+    interest_interval_count = models.PositiveSmallIntegerField(
+        "Repeat every",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+        help_text="For a repeating custom period, enter a whole number of 1 or more.",
+    )
+    interest_interval_unit = models.CharField(
+        "Interval unit",
+        max_length=6,
+        choices=InterestIntervalUnit.choices,
+        blank=True,
+        default="",
+        help_text="Days, months or years for the repeating interval.",
+    )
+    interest_start_date = models.DateField(
+        "Interest period start date",
+        null=True,
+        blank=True,
+    )
+    interest_end_date = models.DateField(
+        "Interest period end date",
+        null=True,
+        blank=True,
+        help_text="For a specific period, choose an end date on or after its start date.",
+    )
     sort_order = models.PositiveIntegerField("Display order", default=0)
     is_active = models.BooleanField(default=True)
 
@@ -408,9 +473,187 @@ class PaymentType(models.Model):
         ordering = ["sort_order", "name", "pk"]
         verbose_name = "payment type"
         verbose_name_plural = "payment types"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(interest_rate__gte=0, interest_rate__lte=100),
+                name="payment_type_interest_rate_range",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    interest_frequency__in=[
+                        "daily",
+                        "monthly",
+                        "quarterly",
+                        "yearly",
+                        "custom",
+                    ]
+                ),
+                name="payment_type_interest_frequency_valid",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(
+                        interest_frequency__in=[
+                            "daily",
+                            "monthly",
+                            "quarterly",
+                            "yearly",
+                        ],
+                        interest_period_type="",
+                        interest_interval_count__isnull=True,
+                        interest_interval_unit="",
+                        interest_start_date__isnull=True,
+                        interest_end_date__isnull=True,
+                    )
+                    | models.Q(
+                        interest_frequency="custom",
+                        interest_period_type="repeating",
+                        interest_interval_count__isnull=False,
+                        interest_interval_count__gte=1,
+                        interest_interval_unit__in=["days", "months", "years"],
+                        interest_start_date__isnull=True,
+                        interest_end_date__isnull=True,
+                    )
+                    | models.Q(
+                        interest_frequency="custom",
+                        interest_period_type="date_range",
+                        interest_interval_count__isnull=True,
+                        interest_interval_unit="",
+                        interest_start_date__isnull=False,
+                        interest_end_date__isnull=False,
+                        interest_end_date__gte=models.F("interest_start_date"),
+                    )
+                ),
+                name="payment_type_interest_period_valid",
+            ),
+        ]
 
     def __str__(self):
         return self.name
+
+    @property
+    def interest_period_display(self):
+        if self.interest_frequency != self.InterestFrequency.CUSTOM:
+            return self.get_interest_frequency_display()
+        if (
+            self.interest_period_type == self.InterestPeriodType.REPEATING
+            and self.interest_interval_count
+            and self.interest_interval_unit
+        ):
+            unit = self.interest_interval_unit
+            if self.interest_interval_count == 1:
+                unit = unit.removesuffix("s")
+            return f"Custom: every {self.interest_interval_count} {unit}"
+        if (
+            self.interest_period_type == self.InterestPeriodType.DATE_RANGE
+            and self.interest_start_date
+            and self.interest_end_date
+        ):
+            return f"Custom: {self.interest_start_date.isoformat()} to {self.interest_end_date.isoformat()}"
+        return "Custom period"
+
+    def clean(self):
+        super().clean()
+        if self.interest_frequency != self.InterestFrequency.CUSTOM:
+            self.interest_period_type = ""
+            self.interest_interval_count = None
+            self.interest_interval_unit = ""
+            self.interest_start_date = self.interest_end_date = None
+            return
+        errors = {}
+        if self.interest_period_type == self.InterestPeriodType.REPEATING:
+            self.interest_start_date = self.interest_end_date = None
+            if not self.interest_interval_count or self.interest_interval_count < 1:
+                errors["interest_interval_count"] = "Enter a whole number of 1 or more."
+            if not self.interest_interval_unit:
+                errors["interest_interval_unit"] = "Choose days, months or years."
+        elif self.interest_period_type == self.InterestPeriodType.DATE_RANGE:
+            self.interest_interval_count = None
+            self.interest_interval_unit = ""
+            if not self.interest_start_date:
+                errors["interest_start_date"] = "Choose the interest period start date."
+            if not self.interest_end_date:
+                errors["interest_end_date"] = "Choose the interest period end date."
+            elif (
+                self.interest_start_date
+                and self.interest_end_date < self.interest_start_date
+            ):
+                errors["interest_end_date"] = (
+                    "The end date must be on or after the start date."
+                )
+        else:
+            errors["interest_period_type"] = (
+                "Choose a repeating interval or specific dates."
+            )
+        if errors:
+            raise ValidationError(errors)
+
+
+class PaymentTransaction(models.Model):
+    member = models.ForeignKey(
+        Member, on_delete=models.PROTECT, related_name="payment_transactions"
+    )
+    payment_type = models.ForeignKey(
+        PaymentType, on_delete=models.PROTECT, related_name="transactions"
+    )
+    transaction_date = models.DateField("Transaction date", default=timezone.localdate)
+    debit = models.DecimalField(
+        "Debit (LKR)",
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    credit = models.DecimalField(
+        "Credit (LKR)",
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    reference = models.CharField(max_length=100, blank=True)
+    description = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="recorded_payment_transactions",
+        editable=False,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "debit / credit entry"
+        verbose_name_plural = "debit / credit entries"
+        ordering = ["transaction_date", "pk"]
+        indexes = [models.Index(fields=["member", "payment_type", "transaction_date"])]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(debit__gt=0, credit=0) | models.Q(credit__gt=0, debit=0)
+                ),
+                name="payment_transaction_one_side_positive",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.member} · {self.payment_type} · {self.transaction_date}"
+
+    def clean(self):
+        super().clean()
+        if (
+            self.debit is not None
+            and self.credit is not None
+            and not (
+                (self.debit > 0 and self.credit == 0)
+                or (self.credit > 0 and self.debit == 0)
+            )
+        ):
+            raise ValidationError(
+                "Enter a positive debit or credit, with the other amount set to zero."
+            )
 
 
 class PaymentPlan(models.Model):

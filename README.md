@@ -74,6 +74,28 @@ Users with **Opening Balances → View** can also see the balances on the member
 
 Saved opening balances protect the member and payment types from deletion. Deleting the opening balance record removes its amounts while retaining the member and any payment plan.
 
+## Member debit / credit entries and interest rates
+
+Run `python manage.py migrate` to add the **Debit / Credit** module and interest settings in **Master data → Payment Types**. Existing payment types start at 0.00%; administrators can set a percentage from 0 to 100 with two decimal places. **Quarterly (every 3 months)** is the default for new types and previously unset frequencies; any frequency already chosen by the bank is preserved. The bank can select **Daily (every day)**, **Monthly (every month)**, **Quarterly (every 3 months)** or **Yearly (every year)** independently for each payment type.
+
+Select **Custom period** for either a **Repeating interval**, such as every 45 days, 6 months or 2 years, or **Specific start and end dates** for a period chosen by the bank. A repeating interval requires a whole number from 1 to 32767 and a unit of days, months or years. A specific period requires both dates with the end on or after the start. The form shows the relevant fields and a preview of the chosen period. Switching to a standard frequency clears unused custom settings when saved. The configured period is displayed in the master list, the debit/credit entry form and the statement.
+
+The interest rate and period are stored for reference. Automatic interest calculation and posting require agreed calculation rules and are not included.
+
+1. Open **Debit / Credit → Add entry**. Search the member combo by number or name to see their saved balance immediately. The form shows the total across payment types and a balance breakdown; choosing a payment type also highlights that type's balance. The interest rate and the bank's chosen calculation frequency appear beside the selection.
+2. Enter the transaction date, a positive debit **or** credit in LKR, and an optional reference and description. Leave the other amount blank or zero. Save the entry; each member and payment type can have many dated entries.
+3. On **Debit / Credit**, choose the member and payment type, then select **Show debit / credit**. Use **Single date** for one day, or **From date / To date** for an inclusive range. With no end date, the statement runs through today. Earlier amounts are brought forward into the starting balance; changing the period start does not reset the account to zero. For a future From date, also choose an appropriate To date.
+4. The statement shows the **Starting balance / brought forward**, period debits and credits, and **Final balance** as of the selected end date. **Final balance = starting balance + credits − debits**. The starting balance includes the saved opening amount and earlier transactions after its opening date. For example, a Special Deposit opening balance of LKR 10,000 plus a LKR 2,000 credit shows LKR 12,000. Running balances include the starting amount and remain correct across pages. A day without transactions still shows the account's final balance.
+5. Open **Debit / Credit → Member balances** or **Member balances** on a member profile to see final amounts by member and payment type. Leave member or payment type blank to include all authorized records, or select either filter. The same single-date and date-range options apply. This report includes accounts with saved opening amounts or transactions, retains inactive payment-type history, and totals every page. **View statement** opens that member/type's dated entries with the date filters preserved.
+
+Administrators grant independent **Debit / Credit → View, Add, Edit and Delete** permissions in **Users & access** or **Roles & permissions**. Assigned districts restrict member choices and saved entries. Existing member, payment-plan and opening-balance permissions do not automatically grant transaction access. A member's profile links to the module when the user has permission.
+
+The entry form's **Saved member balance** updates when the member or transaction date changes. It includes opening amounts effective on or before that date, plus saved credits minus debits through that date. Opening amounts are treated as starting balances on their balance date: entries before that date for types with a saved opening amount are excluded to avoid counting historical amounts twice. A type without a saved opening amount uses its complete transaction history through the selected date. Balances before the opening date use transactions only. Unsaved amounts and the saved entry being edited are excluded from the displayed balance. An account with no saved amounts shows zero; balances can be negative.
+
+Users with **Debit / Credit → Add**, **View** or **Edit** can read these balance summaries within their assigned districts, including the opening amounts needed for the balance. This does not grant access to the Opening Balances pages or changes to opening records. Balance lookups are read-only and are not cached.
+
+Editing an entry allows correcting its date, amounts, reference and description while retaining its original member, payment type and creator. Inactive payment types retain their history and existing entries remain editable; new entries require an active type. Recorded transactions protect their member and payment type from deletion. Deleting an entry requires confirmation and changes its statement totals.
+
 ## Setup on another machine
 
 Python 3.12+, PostgreSQL 14+ and Node.js 20+ are required. Use a Python version supported by the Django release in `requirements.txt`.

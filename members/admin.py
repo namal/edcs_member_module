@@ -11,6 +11,7 @@ from .models import (
     OpeningBalanceAmount,
     PaymentPlan,
     PaymentPlanAmount,
+    PaymentTransaction,
     PaymentType,
     School,
     Subdivision,
@@ -118,9 +119,37 @@ class LagerAdmin(admin.ModelAdmin):
 
 @admin.register(PaymentType)
 class PaymentTypeAdmin(admin.ModelAdmin):
-    list_display = ["name", "sort_order", "is_active"]
-    list_filter = ["is_active"]
+    list_display = [
+        "name",
+        "interest_rate",
+        "interest_period_display",
+        "sort_order",
+        "is_active",
+    ]
+    list_filter = ["is_active", "interest_frequency"]
     search_fields = ["name"]
+
+
+@admin.register(PaymentTransaction)
+class PaymentTransactionAdmin(admin.ModelAdmin):
+    list_display = [
+        "transaction_date",
+        "member",
+        "payment_type",
+        "debit",
+        "credit",
+        "reference",
+    ]
+    list_filter = ["payment_type", "transaction_date", "member__district"]
+    search_fields = ["member__member_no", "member__full_name", "reference"]
+    list_select_related = ["member", "payment_type"]
+    autocomplete_fields = ["member", "payment_type"]
+    readonly_fields = ["created_by", "created_at", "updated_at"]
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
 
 
 class PaymentPlanAmountInline(admin.TabularInline):

@@ -47,14 +47,14 @@
       : '';
   };
   const readJSON = (id) => JSON.parse(document.getElementById(id)?.textContent || '{}');
-  const searchableSelect = (select, searchTerms) => {
+  const searchableSelect = (select, searchTerms, labels = {}) => {
     const wrapper = document.createElement('div');
     wrapper.className = 'school-combo';
     const input = document.createElement('input');
     input.id = `${select.id}_combo`;
     input.type = 'text';
     input.className = 'field-input school-combo-input';
-    input.placeholder = 'Type or select a department…';
+    input.placeholder = labels.placeholder || 'Type or select a department…';
     input.autocomplete = 'off';
     input.required = select.required;
     input.setAttribute('role', 'combobox');
@@ -69,7 +69,7 @@
     list.id = `${select.id}_options`;
     list.className = 'school-combo-options';
     list.setAttribute('role', 'listbox');
-    list.setAttribute('aria-label', 'Departments');
+    list.setAttribute('aria-label', labels.plural || 'Departments');
     list.hidden = true;
     input.setAttribute('aria-controls', list.id);
     const toggle = document.createElement('button');
@@ -77,7 +77,7 @@
     toggle.className = 'school-combo-toggle';
     toggle.tabIndex = -1;
     toggle.textContent = '▾';
-    toggle.setAttribute('aria-label', 'Show departments');
+    toggle.setAttribute('aria-label', `Show ${labels.plural || 'departments'}`);
     toggle.setAttribute('aria-controls', list.id);
     const status = document.createElement('span');
     status.className = 'sr-only';
@@ -95,7 +95,9 @@
     let active = -1;
     const validate = () => {
       input.setCustomValidity(
-        input.value && !select.value ? 'Select a department from the dropdown.' : '',
+        input.value && !select.value
+          ? `Select a ${labels.singular || 'department'} from the dropdown.`
+          : '',
       );
     };
     const close = () => {
@@ -147,10 +149,11 @@
         const empty = document.createElement('div');
         empty.className = 'school-combo-empty';
         empty.textContent =
+          labels.empty ||
           'No matching departments. Change the text, district or zonal office.';
         list.append(empty);
       }
-      status.textContent = `${matches.length} department${matches.length === 1 ? '' : 's'} available.`;
+      status.textContent = `${matches.length} ${labels.plural || 'departments'} available.`;
       highlight(
         matches.length
           ? Math.max(
@@ -215,6 +218,178 @@
       },
     };
   };
+  document.querySelectorAll('[data-searchable-select]').forEach((select) => {
+    if (select.disabled) return;
+    const singular = select.name === 'member' ? 'member' : 'payment type';
+    const combo = searchableSelect(select, new Map(), {
+      singular,
+      plural: `${singular}s`,
+      placeholder: `Type or select a ${singular}…`,
+      empty: `No matching ${singular}s. Change the search text.`,
+    });
+    combo.refresh();
+    select.addEventListener('change', () => combo.refresh());
+  });
+  document.querySelectorAll('[data-interest-period-form]').forEach((form) => {
+    const field = (name) => form.querySelector(`[name="${name}"]`);
+    const frequency = field('interest_frequency');
+    const mode = field('interest_period_type');
+    const count = field('interest_interval_count');
+    const unit = field('interest_interval_unit');
+    const start = field('interest_start_date');
+    const end = field('interest_end_date');
+    const output = form.querySelector('[data-interest-period-summary]');
+    const updatePeriod = () => {
+      const custom = frequency.value === 'custom';
+      form.querySelectorAll('[data-interest-period-control]').forEach((group) => {
+        const active =
+          custom &&
+          (group.dataset.interestPeriodControl === 'custom' ||
+            group.dataset.interestPeriodControl === mode.value);
+        group.hidden = !active;
+        group.querySelectorAll('input, select').forEach((input) => {
+          input.disabled = !active;
+          input.required = active;
+        });
+        group.querySelectorAll('.field-requirement').forEach((label) => {
+          label.textContent = active ? '* Required' : '(optional)';
+        });
+      });
+      end.min = start.value;
+      if (!custom) {
+        output.textContent =
+          frequency.selectedOptions[0]?.textContent || 'Choose a frequency.';
+      } else if (mode.value === 'repeating') {
+        const amount = Number(count.value);
+        output.textContent =
+          count.value &&
+          count.validity.valid &&
+          Number.isInteger(amount) &&
+          amount > 0 &&
+          unit.value
+            ? `Custom: every ${amount} ${amount === 1 ? unit.value.replace(/s$/, '') : unit.value}`
+            : 'Enter an interval and choose days, months or years.';
+      } else if (mode.value === 'date_range') {
+        output.textContent =
+          start.value && end.value && end.value >= start.value
+            ? `Custom: ${start.value} to ${end.value}`
+            : 'Choose a start date and an end date on or after the start date.';
+      } else {
+        output.textContent =
+          'Choose a repeating interval or specific start and end dates.';
+      }
+    };
+    for (const input of [frequency, mode, count, unit, start, end]) {
+      input.addEventListener('change', updatePeriod);
+      input.addEventListener('input', updatePeriod);
+    }
+    updatePeriod();
+  });
+  document.querySelectorAll('[data-transaction-form]').forEach((form) => {
+    const select = form.querySelector('[name="payment_type"]');
+    const output = form.querySelector('[data-interest-rate]');
+    const rates = readJSON('payment-type-rates');
+    const frequency = form.querySelector('[data-interest-frequency]');
+    const frequencies = readJSON('payment-type-frequencies');
+    const showRate = () => {
+      output.textContent = Object.hasOwn(rates, select.value)
+        ? `${rates[select.value]}%`
+        : '—';
+      if (frequency) frequency.textContent = frequencies[select.value] || '—';
+    };
+    select.addEventListener('change', showRate);
+    form.addEventListener('input', (event) => {
+      if (event.target.id === `${select.id}_combo`) showRate();
+    });
+    showRate();
+
+    const panel = form.querySelector('[data-balance-panel]');
+    if (!panel) return;
+    const member = form.querySelector('[name="member"]');
+    const date = form.querySelector('[name="transaction_date"]');
+    const status = panel.querySelector('[data-balance-status]');
+    const content = panel.querySelector('[data-balance-content]');
+    const total = panel.querySelector('[data-member-balance]');
+    const selectedBalance = panel.querySelector('[data-payment-type-balance]');
+    const rows = panel.querySelector('[data-balance-rows]');
+    let balanceData = readJSON('initial-member-balances');
+    let pendingBalance;
+    const renderBalances = () => {
+      if (!balanceData) return;
+      content.hidden = false;
+      total.textContent = balanceData.total;
+      const selected = balanceData.balances.find(
+        (row) => String(row.payment_type_id) === select.value,
+      );
+      selectedBalance.textContent = select.value ? selected?.balance || '0.00' : '—';
+      rows.replaceChildren();
+      for (const row of balanceData.balances) {
+        const tr = document.createElement('tr');
+        if (String(row.payment_type_id) === select.value)
+          tr.className = 'bg-brand-50 font-semibold';
+        const name = document.createElement('td');
+        name.textContent = row.name + (row.is_active ? '' : ' (inactive)');
+        const amount = document.createElement('td');
+        amount.textContent = row.balance;
+        tr.append(name, amount);
+        rows.append(tr);
+      }
+      status.textContent =
+        `Balances as of ${balanceData.as_of}.` +
+        (balanceData.has_records
+          ? ''
+          : ' No saved opening amounts or transactions for this date.');
+    };
+    const loadBalances = async () => {
+      pendingBalance?.abort();
+      balanceData = null;
+      content.hidden = true;
+      total.textContent = '—';
+      selectedBalance.textContent = '—';
+      rows.replaceChildren();
+      if (!member.value) {
+        status.textContent = 'Select a member to see their balance.';
+        return;
+      }
+      if (!date.value || !date.validity.valid) {
+        status.textContent = 'Choose a valid transaction date to see the balance.';
+        return;
+      }
+      const controller = new AbortController();
+      pendingBalance = controller;
+      status.textContent = 'Loading member balance…';
+      const url = new URL(form.dataset.balancesUrl, window.location.href);
+      url.searchParams.set('member', member.value);
+      url.searchParams.set('date', date.value);
+      if (form.dataset.entryId) url.searchParams.set('entry', form.dataset.entryId);
+      try {
+        const response = await fetch(url, {
+          credentials: 'same-origin',
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error('Balance unavailable');
+        const data = await response.json();
+        if (controller.signal.aborted || pendingBalance !== controller) return;
+        balanceData = data;
+        renderBalances();
+      } catch (error) {
+        if (controller.signal.aborted || pendingBalance !== controller) return;
+        status.textContent =
+          'Unable to load the member balance. Reselect the member or reload the page to try again.';
+      }
+    };
+    member.addEventListener('change', loadBalances);
+    date.addEventListener('change', loadBalances);
+    select.addEventListener('change', renderBalances);
+    form.addEventListener('input', (event) => {
+      if (event.target.id === `${member.id}_combo`) loadBalances();
+      if (event.target.id === `${select.id}_combo`) renderBalances();
+    });
+    if (balanceData) renderBalances();
+    else loadBalances();
+  });
   document.querySelectorAll('[data-location-form]').forEach((form) => {
     const district = form.querySelector('#id_district');
     const province = form.querySelector('#id_province');

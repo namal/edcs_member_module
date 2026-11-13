@@ -12,7 +12,71 @@ from .permissions import accessible_districts
 class PaymentTypeForm(StyledModelForm):
     class Meta:
         model = PaymentType
-        fields = ["name", "sort_order", "is_active"]
+        fields = [
+            "name",
+            "interest_rate",
+            "interest_frequency",
+            "interest_period_type",
+            "interest_interval_count",
+            "interest_interval_unit",
+            "interest_start_date",
+            "interest_end_date",
+            "sort_order",
+            "is_active",
+        ]
+        widgets = {
+            "interest_rate": forms.NumberInput(
+                attrs={"min": "0", "max": "100", "step": "0.01"}
+            ),
+            "interest_interval_count": forms.NumberInput(
+                attrs={"min": "1", "step": "1", "max": "32767"}
+            ),
+            "interest_start_date": forms.DateInput(attrs={"type": "date"}),
+            "interest_end_date": forms.DateInput(attrs={"type": "date"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["interest_rate"].required = False
+        # Django's positive-integer widget defaults to zero; custom periods start at one.
+        self.fields["interest_interval_count"].widget.attrs["min"] = "1"
+        # Older callers can omit the new setting; retain the bank's saved choice.
+        frequency_key = self.add_prefix("interest_frequency")
+        if self.is_bound and frequency_key not in self.data:
+            self.data = self.data.copy()
+            self.data[frequency_key] = (
+                self.instance.interest_frequency
+                or PaymentType.InterestFrequency.QUARTERLY
+            )
+
+    def clean(self):
+        data = super().clean()
+        # Ignore fields that do not belong to the selected period, including stale
+        # browser values when changing from a custom period to a preset.
+        mode = (
+            data.get("interest_period_type")
+            if data.get("interest_frequency") == PaymentType.InterestFrequency.CUSTOM
+            else ""
+        )
+        names = {
+            "interest_period_type": bool(mode),
+            "interest_interval_count": mode == PaymentType.InterestPeriodType.REPEATING,
+            "interest_interval_unit": mode == PaymentType.InterestPeriodType.REPEATING,
+            "interest_start_date": mode == PaymentType.InterestPeriodType.DATE_RANGE,
+            "interest_end_date": mode == PaymentType.InterestPeriodType.DATE_RANGE,
+        }
+        for name, relevant in names.items():
+            if not relevant:
+                self._errors.pop(name, None)
+                data[name] = (
+                    ""
+                    if name in ("interest_period_type", "interest_interval_unit")
+                    else None
+                )
+        return data
+
+    def clean_interest_rate(self):
+        return self.cleaned_data["interest_rate"] or Decimal("0.00")
 
     def clean_name(self):
         name = self.cleaned_data["name"].strip()

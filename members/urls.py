@@ -1,7 +1,37 @@
 from django.urls import path
-from . import opening_balance_views, payment_views, views
+from . import opening_balance_views, payment_views, transaction_views, views
 
 urlpatterns = [
+    path(
+        "debit-credit/balances/",
+        transaction_views.payment_transaction_report,
+        name="payment_transaction_report",
+    ),
+    path(
+        "api/debit-credit/balances/",
+        transaction_views.payment_transaction_balances,
+        name="payment_transaction_balances",
+    ),
+    path(
+        "debit-credit/",
+        transaction_views.payment_transaction_list,
+        name="payment_transaction_list",
+    ),
+    path(
+        "debit-credit/new/",
+        transaction_views.payment_transaction_form,
+        name="payment_transaction_create",
+    ),
+    path(
+        "debit-credit/<int:pk>/edit/",
+        transaction_views.payment_transaction_form,
+        name="payment_transaction_edit",
+    ),
+    path(
+        "debit-credit/<int:pk>/delete/",
+        transaction_views.payment_transaction_delete,
+        name="payment_transaction_delete",
+    ),
     path(
         "opening-balances/",
         opening_balance_views.opening_balance_list,

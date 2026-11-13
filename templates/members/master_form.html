@@ -23,6 +23,7 @@
   <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,720px)_1fr]">
     <form method="post"
           class="card"
+          {% if section == 'payment_types' %}data-interest-period-form{% endif %}
           {% if section == 'schools' or section == 'subdivisions' %}data-location-form data-office-field="zonal_office" data-location-url="{% url 'location_options' %}"{% endif %}>
       {% csrf_token %}
       <div class="card-heading">
@@ -40,11 +41,26 @@
             {% if field.name != 'is_active' %}
               {% if field.name == 'address' %}
                 {% include 'components/field.html' with field=field wide=True %}
+              {% elif field.name == 'interest_period_type' %}
+                <div class="sm:col-span-2" data-interest-period-control="custom">
+                  {% include 'components/field.html' with field=field %}
+                </div>
+              {% elif field.name == 'interest_interval_count' or field.name == 'interest_interval_unit' %}
+                <div data-interest-period-control="repeating">{% include 'components/field.html' with field=field %}</div>
+              {% elif field.name == 'interest_start_date' or field.name == 'interest_end_date' %}
+                <div data-interest-period-control="date_range">{% include 'components/field.html' with field=field %}</div>
               {% else %}
                 {% include 'components/field.html' with field=field %}
               {% endif %}
             {% endif %}
           {% endfor %}
+          {% if section == 'payment_types' %}
+            <p class="rounded-lg border border-brand-100 bg-brand-50 p-4 text-sm text-brand-900 sm:col-span-2"
+               role="status"
+               aria-live="polite">
+              Interest period: <output data-interest-period-summary>{{ form.instance.interest_period_display }}</output>
+            </p>
+          {% endif %}
         </div>
         <p id="office-feedback"
            class="field-help"
@@ -87,7 +103,7 @@
       {% elif section == 'lagers' %}
         Each lager belongs to one district and can have many registered members. Its code is unique. A lager with registered members stays in its district.
       {% elif section == 'payment_types' %}
-        Add a contribution name to make it available as a monthly amount in payment plans. Lower display order numbers appear first. Mark a type inactive to stop offering it in new plans while keeping existing agreements.
+        Quarterly (every 3 months) is the default interest period. The bank can choose daily, monthly, yearly, or a custom repeating interval or specific start/end dates. These settings are stored for reference; interest is not automatically calculated or posted. Lower display order numbers appear first.
       {% elif section == 'schools' %}
         Each department belongs to a district and zonal office, with an optional subdivision. Its selection label includes the full location.
       {% else %}
