@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7">
+    <p class="eyebrow mb-2">Child Deposits</p>
+    <h1 class="page-title">
+      {{ title }}<span class="text-brand-600">.</span>
+    </h1>
+  </div>
+  {% include 'children/nav.html' %}
+  <form method="post"
+        {% if kind == 'deposit' %}data-child-deposit-form{% endif %}>
+    {% csrf_token %}
+    {% if form.errors %}
+      <div class="alert message-error" role="alert">Please check the highlighted fields. {{ form.non_field_errors }}</div>
+    {% endif %}
+    <section class="form-section">
+      <h2 class="section-title">
+        {% if kind == 'child' %}
+          Child details
+        {% else %}
+          Child deposit account
+        {% endif %}
+      </h2>
+      <div class="form-grid">
+        {% for field in form %}
+          {% include 'components/field.html' with field=field %}
+        {% endfor %}
+      </div>
+      {% if kind == 'deposit' %}
+        <p class="field-help mt-5" role="status" aria-live="polite">
+          Configured interest rate: <output data-child-rate-preview>Select a child and deposit type.</output>
+        </p>
+        <p class="field-help">
+          Each deposit gets a separate reference and balance. The rate follows the selected type's age rule. Interest is not automatically calculated or posted.
+        </p>
+      {% else %}
+        <p class="field-help mt-5">
+          A member can have any number of children. The member stays fixed after saving this record.
+        </p>
+      {% endif %}
+    </section>
+    <div class="flex justify-end gap-3">
+      <a class="btn btn-secondary"
+         href="{% if can_view %}{% url back %}{% else %}{% url 'dashboard' %}{% endif %}">Cancel</a>
+      <button class="btn btn-primary" data-submit-label="Saving…">Save</button>
+    </div>
+  </form>
+  {% if kind == 'deposit' %}
+    {{ child_birth_dates|json_script:'child-birth-dates' }}{{ child_rate_rules|json_script:'child-rate-rules' }}
+  {% endif %}
+{% endblock %}

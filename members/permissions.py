@@ -3,6 +3,10 @@
 from django.core.exceptions import PermissionDenied
 
 from .models import (
+    Child,
+    ChildDeposit,
+    ChildDepositTransaction,
+    ChildDepositType,
     District,
     Lager,
     Member,
@@ -17,6 +21,15 @@ from .models import (
 
 MODULES = (
     (Member, "Members", "members", "member", "users"),
+    (Child, "Children", "children", "child", "users"),
+    (ChildDeposit, "Child Deposits", "child_deposits", "child_deposit", "wallet"),
+    (
+        ChildDepositType,
+        "Child Deposit Types",
+        "child_deposit_types",
+        "child_deposit_type",
+        "wallet",
+    ),
     (District, "Districts", "districts", "district", "pin"),
     (OfficeLocation, "Zonal offices", "offices", "office", "building"),
     (Subdivision, "Subdivisions", "subdivisions", "subdivision", "building"),
@@ -42,6 +55,9 @@ MODULES = (
 ACTIONS = ("view", "add", "change", "delete")
 
 DISTRICT_LOOKUPS = {
+    Child: "member__district_id",
+    ChildDeposit: "child__member__district_id",
+    ChildDepositTransaction: "deposit__child__member__district_id",
     District: "pk",
     Member: "district_id",
     OfficeLocation: "district_id",
@@ -83,7 +99,11 @@ def district_records(user, model):
 def has_module_permission(user, model, action):
     if model is District and action == "add" and not user.is_superuser:
         return False
-    if model is PaymentType and action != "view" and not user.is_superuser:
+    if (
+        model in (PaymentType, ChildDepositType)
+        and action != "view"
+        and not user.is_superuser
+    ):
         return False
     return user.is_active and user.has_perm(permission_name(model, action))
 

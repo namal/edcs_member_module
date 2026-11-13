@@ -9,6 +9,8 @@
     Back to
     {% if section == 'payment_types' %}
       payment types
+    {% elif section == 'child_deposit_types' %}
+      child deposit types
     {% else %}
       {{ section }}
     {% endif %}
@@ -68,7 +70,9 @@
            aria-live="polite"></p>
         <label class="mt-7 flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
           {{ form.is_active }}<span><span class="block text-sm font-medium text-slate-700">Active {{ singular|lower }}</span><span class="mt-1 block text-xs leading-5 text-slate-600">
-          {% if section == 'payment_types' %}
+          {% if section == 'child_deposit_types' %}
+            Available for new child deposit accounts. Uncheck to retain existing accounts and stop new entries for this type.
+          {% elif section == 'payment_types' %}
             Available for new payment plans. Uncheck to retain existing agreements without offering this type to new plans.
           {% else %}
             Available for new member registrations. Uncheck to keep the record for reference.
@@ -104,6 +108,8 @@
         Each lager belongs to one district and can have many registered members. Its code is unique. A lager with registered members stays in its district.
       {% elif section == 'payment_types' %}
         Quarterly (every 3 months) is the default interest period. The bank can choose daily, monthly, yearly, or a custom repeating interval or specific start/end dates. These settings are stored for reference; interest is not automatically calculated or posted. Lower display order numbers appear first.
+      {% elif section == 'child_deposit_types' %}
+        Each child deposit type has its own age threshold and two rates. By default the rate is 8% below age 18 and 5% from the 18th birthday. Change all three values here as decided by the bank. Existing entries retain their recorded rates; current balances do not include unposted interest.
       {% elif section == 'schools' %}
         Each department belongs to a district and zonal office, with an optional subdivision. Its selection label includes the full location.
       {% else %}

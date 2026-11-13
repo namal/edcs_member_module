@@ -96,6 +96,22 @@ Users with **Debit / Credit → Add**, **View** or **Edit** can read these balan
 
 Editing an entry allows correcting its date, amounts, reference and description while retaining its original member, payment type and creator. Inactive payment types retain their history and existing entries remain editable; new entries require an active type. Recorded transactions protect their member and payment type from deletion. Deleting an entry requires confirmation and changes its statement totals.
 
+## Child Deposits
+
+Run `python manage.py migrate` to add **Children**, **Child Deposits** and **Child Deposit Types**. A member can have any number of children, and each child can have any number of deposit accounts, including multiple accounts of the same type. Child deposits have their own balances and do not change the parent's separate member payment balances.
+
+1. Open a member profile and choose **Children**, then **Add child**, or use **Children → Add child** in the workspace. Select the parent member, enter the child's **Name** and **Date of birth**, and save. Member selection stays fixed on a saved child record.
+2. An administrator can configure **Master data → Child Deposit Types**, including a separate **Rate changes at age**, **Rate below this age (%)**, and **Rate from this age (%)** for each deposit type. The initial **Child Savings** type uses **8% below age 18** and **5% from the 18th birthday**. These values can all be changed; for example, another type can use 9.5% below age 21 and 6.25% from age 21.
+3. On a child profile, choose **Open deposit for this child**. Select the child deposit type, opening date and opening amount. The form previews the rate for the child's age on that date. Each account receives its own deposit reference. The opening date and amount stay fixed after transactions are recorded.
+4. Open an account and select **Add debit / credit**. Enter the transaction date and a positive credit or debit, leaving the other side blank or zero. The form shows the saved balance before this entry and the configured rate for that date. A transaction cannot predate the account's opening date.
+5. **Child Deposits** lists each account's balance and configured rate as of a chosen date, with optional member, child and deposit-type filters. The total includes all filtered accounts across pages. Each account's statement supports single-date and inclusive date-range filters, carries forward earlier amounts, and shows dated debits, credits and running balances. Final balance equals the opening amount plus saved credits minus debits through the selected date.
+
+Rates follow the child's completed age on the selected date, changing automatically at the type's configured birthday. Every dated entry retains the configured rate at the time it was saved. Editing an entry's note or amount preserves that rate; changing its transaction date refreshes the rate using the current type rules. Later bank rule changes affect current rate displays and new entries while retaining existing entry rates. Interest rates are reference settings: interest amounts are not automatically calculated or posted.
+
+Administrators grant independent **Children** and **Child Deposits** View, Add, Edit and Delete permissions through **Users & access** or **Roles & permissions**. Child Deposits permissions cover both accounts and dated entries. Parent member, opening-balance and member payment permissions do not grant these permissions automatically. All child and deposit records, forms, balances and lookups follow the parent member's assigned district. Child-only viewers cannot see deposit balances without Child Deposits View permission. Add-only operators can select authorized identities and save records without viewing statements. **Child Deposit Types** is a shared master managed by administrators; operators with View can read its rules.
+
+Used children, deposit types, members and accounts are protected from deletion. Mark them inactive to preserve their history and stop new accounts or entries. Historical entries remain editable with the appropriate permission. Deleting a dated entry requires confirmation and updates its account's balance.
+
 ## Setup on another machine
 
 Python 3.12+, PostgreSQL 14+ and Node.js 20+ are required. Use a Python version supported by the Django release in `requirements.txt`.

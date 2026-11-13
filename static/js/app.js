@@ -220,7 +220,9 @@
   };
   document.querySelectorAll('[data-searchable-select]').forEach((select) => {
     if (select.disabled) return;
-    const singular = select.name === 'member' ? 'member' : 'payment type';
+    const singular =
+      select.dataset.searchLabel ||
+      (select.name === 'member' ? 'member' : 'payment type');
     const combo = searchableSelect(select, new Map(), {
       singular,
       plural: `${singular}s`,
@@ -229,6 +231,82 @@
     });
     combo.refresh();
     select.addEventListener('change', () => combo.refresh());
+  });
+  document.querySelectorAll('[data-child-deposit-form]').forEach((form) => {
+    const child = form.querySelector('[name="child"]');
+    const type = form.querySelector('[name="deposit_type"]');
+    const date = form.querySelector('[name="opened_on"]');
+    const output = form.querySelector('[data-child-rate-preview]');
+    const dates = readJSON('child-birth-dates');
+    const rules = readJSON('child-rate-rules');
+    const preview = () => {
+      const birth = dates[child.value];
+      const rule = rules[type.value];
+      if (
+        !birth ||
+        !rule ||
+        !date.value ||
+        !date.validity.valid ||
+        date.value < birth
+      ) {
+        output.textContent = 'Select a child, deposit type and valid opening date.';
+        return;
+      }
+      const [year, month, day] = date.value.split('-').map(Number);
+      const [birthYear, birthMonth, birthDay] = birth.split('-').map(Number);
+      const age =
+        year -
+        birthYear -
+        Number(month < birthMonth || (month === birthMonth && day < birthDay));
+      output.textContent = `${age >= rule.age ? rule.from : rule.below}% at age ${age}. ${rule.below}% below age ${rule.age}; ${rule.from}% from age ${rule.age}.`;
+    };
+    for (const field of [child, type, date]) field.addEventListener('change', preview);
+    form.addEventListener('input', preview);
+    preview();
+  });
+  document.querySelectorAll('[data-child-entry-form]').forEach((form) => {
+    const date = form.querySelector('[name="transaction_date"]');
+    const balance = form.querySelector('[data-child-entry-balance]');
+    const rate = form.querySelector('[data-child-entry-rate]');
+    const age = form.querySelector('[data-child-entry-age]');
+    const status = form.querySelector('[data-child-entry-status]');
+    let pending;
+    const refresh = async () => {
+      pending?.abort();
+      for (const output of [balance, rate, age]) output.textContent = '—';
+      if (!date.value || !date.validity.valid) {
+        status.textContent =
+          'Choose a valid transaction date to show the balance and configured rate.';
+        return;
+      }
+      const controller = new AbortController();
+      pending = controller;
+      const url = new URL(form.dataset.statusUrl, window.location.href);
+      url.searchParams.set('date', date.value);
+      if (form.dataset.entryId) url.searchParams.set('entry', form.dataset.entryId);
+      status.textContent = 'Loading balance and configured rate…';
+      try {
+        const response = await fetch(url, {
+          credentials: 'same-origin',
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error('Balance unavailable');
+        const data = await response.json();
+        if (controller.signal.aborted || pending !== controller) return;
+        balance.textContent = data.balance;
+        rate.textContent = data.rate === null ? '—' : `${data.rate}%`;
+        age.textContent = data.age === null ? '—' : String(data.age);
+        status.textContent = `Saved balance as of ${data.as_of}, excluding this entry. Interest is not automatically posted.`;
+      } catch (error) {
+        if (controller.signal.aborted || pending !== controller) return;
+        status.textContent =
+          'Unable to load the balance and configured rate. Change the date or reload to try again.';
+      }
+    };
+    date.addEventListener('change', refresh);
+    date.addEventListener('input', refresh);
   });
   document.querySelectorAll('[data-interest-period-form]').forEach((form) => {
     const field = (name) => form.querySelector(`[name="${name}"]`);

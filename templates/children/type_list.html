@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7 flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <p class="eyebrow mb-2">Master data / Child Deposits</p>
+      <h1 class="page-title">
+        Child Deposit Types<span class="text-brand-600">.</span>
+      </h1>
+      <p class="muted mt-2">Set the age threshold and interest rates independently for each type.</p>
+    </div>
+    {% if request.user.is_superuser and perms.members.add_childdeposittype %}
+      <a class="btn btn-primary" href="{% url 'child_deposit_type_create' %}">Add child deposit type</a>
+    {% endif %}
+  </div>
+  {% include 'children/nav.html' %}
+  <section class="card">
+    <form method="get" class="flex gap-3 border-b border-slate-100 p-5">
+      <label for="type-search" class="sr-only">Child deposit type</label>
+      <input class="field-input"
+             id="type-search"
+             name="q"
+             value="{{ request.GET.q }}"
+             placeholder="Search child deposit types">
+      <button class="btn btn-secondary">Search</button>
+    </form>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Deposit type</th>
+            <th>Rate below threshold</th>
+            <th>Rate changes at age</th>
+            <th>Rate from threshold</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in page_obj %}
+            <tr>
+              <td class="font-semibold">{{ record.name }}</td>
+              <td>{{ record.rate_below_threshold|floatformat:2 }}%</td>
+              <td>{{ record.age_threshold }}</td>
+              <td>{{ record.rate_from_threshold|floatformat:2 }}%</td>
+              <td>
+                {% if record.is_active %}
+                  Active
+                {% else %}
+                  Inactive
+                {% endif %}
+              </td>
+              <td>
+                <div class="flex gap-3">
+                  {% if request.user.is_superuser and perms.members.change_childdeposittype %}
+                    <a class="text-link"
+                       href="{% url 'child_deposit_type_edit' record.pk %}">Edit</a>
+                  {% endif %}
+                  {% if request.user.is_superuser and perms.members.delete_childdeposittype %}
+                    <a class="text-link"
+                       href="{% url 'child_deposit_type_delete' record.pk %}">Delete</a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="py-10 text-center text-slate-600">No child deposit types.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include 'components/pagination.html' %}
+  </section>
+  <p class="field-help mt-4">
+    The rate changes on the configured birthday. Defaults: 8% below age 18 and 5% from age 18. Interest is not automatically posted.
+  </p>
+{% endblock %}

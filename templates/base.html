@@ -13,7 +13,7 @@
     · EDCS</title>
     <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
     <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=edcs-2">
-    <script src="{% static 'js/app.js' %}?v=10" defer></script>
+    <script src="{% static 'js/app.js' %}?v=11" defer></script>
     {% include 'components/session_security.html' %}
   </head>
   <body>
@@ -106,6 +106,18 @@
             Opening Balances
           </a>
         {% endif %}
+        {% for module in child_modules %}
+          {% if module.visible %}
+            <a class="nav-link {% if section == module.section %}active{% endif %}"
+               href="{% url module.url %}"
+               {% if section == module.section %}aria-current="page"{% endif %}>
+              <svg class="icon">
+                <use href="#i-{{ module.icon }}" />
+              </svg>
+              {{ module.label }}
+            </a>
+          {% endif %}
+        {% endfor %}
         {% if has_master_access %}
           <p class="nav-caption mt-7">Master data</p>
           {% for module in master_modules %}

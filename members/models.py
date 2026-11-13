@@ -1,4 +1,5 @@
 from decimal import Decimal
+from uuid import uuid4
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -13,6 +14,10 @@ nic_validator = RegexValidator(
     r"^(?:\d{9}[VXvx]|\d{12})$",
     "Enter a valid NIC: 9 digits followed by V/X, or 12 digits.",
 )
+
+
+def child_deposit_reference():
+    return f"CD-{uuid4().hex[:12].upper()}"
 
 
 class District(models.Model):
@@ -772,3 +777,312 @@ class OpeningBalanceAmount(models.Model):
 
     def __str__(self):
         return f"{self.payment_type} · {self.amount}"
+
+
+class Child(models.Model):
+    member = models.ForeignKey(
+        Member, on_delete=models.PROTECT, related_name="children"
+    )
+    name = models.CharField("Child name", max_length=200)
+    date_of_birth = models.DateField("Date of birth")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["member__member_no", "name", "pk"]
+        verbose_name_plural = "children"
+
+    def __str__(self):
+        return f"{self.name} · {self.date_of_birth} · {self.member.member_no}"
+
+    def age_on(self, as_of):
+        if as_of < self.date_of_birth:
+            return None
+        return (
+            as_of.year
+            - self.date_of_birth.year
+            - (
+                (as_of.month, as_of.day)
+                < (self.date_of_birth.month, self.date_of_birth.day)
+            )
+        )
+
+    @property
+    def age(self):
+        return self.age_on(timezone.localdate())
+
+    def clean(self):
+        super().clean()
+        self.name = self.name.strip()
+        errors = {}
+        if not self.name:
+            errors["name"] = "Enter the child's name."
+        if self.date_of_birth and self.date_of_birth > timezone.localdate():
+            errors["date_of_birth"] = "Date of birth cannot be in the future."
+        if self.pk:
+            previous = (
+                type(self)
+                .objects.filter(pk=self.pk)
+                .values_list("member_id", flat=True)
+                .first()
+            )
+            if previous != self.member_id:
+                errors["member"] = (
+                    "The member cannot be changed on a saved child record."
+                )
+            if (
+                self.date_of_birth
+                and self.deposits.filter(opened_on__lt=self.date_of_birth).exists()
+            ):
+                errors["date_of_birth"] = (
+                    "Date of birth cannot be after an existing deposit's opening date."
+                )
+        if errors:
+            raise ValidationError(errors)
+
+
+class ChildDepositType(models.Model):
+    name = models.CharField(max_length=120, unique=True)
+    age_threshold = models.PositiveSmallIntegerField(
+        "Rate changes at age",
+        default=18,
+        validators=[MinValueValidator(1), MaxValueValidator(150)],
+        help_text="The second rate applies from this birthday. Default: age 18.",
+    )
+    rate_below_threshold = models.DecimalField(
+        "Rate below this age (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("8.00"),
+        validators=[MinValueValidator(Decimal("0")), MaxValueValidator(Decimal("100"))],
+    )
+    rate_from_threshold = models.DecimalField(
+        "Rate from this age (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("5.00"),
+        validators=[MinValueValidator(Decimal("0")), MaxValueValidator(Decimal("100"))],
+    )
+    sort_order = models.PositiveIntegerField("Display order", default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["sort_order", "name", "pk"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(age_threshold__gte=1, age_threshold__lte=150),
+                name="child_type_valid_age",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    rate_below_threshold__gte=0,
+                    rate_below_threshold__lte=100,
+                    rate_from_threshold__gte=0,
+                    rate_from_threshold__lte=100,
+                ),
+                name="child_type_valid_rates",
+            ),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def rate_for(self, child, as_of):
+        age = child.age_on(as_of)
+        if age is None:
+            return None
+        return (
+            self.rate_from_threshold
+            if age >= self.age_threshold
+            else self.rate_below_threshold
+        )
+
+
+class ChildDeposit(models.Model):
+    child = models.ForeignKey(Child, on_delete=models.PROTECT, related_name="deposits")
+    deposit_type = models.ForeignKey(
+        ChildDepositType, on_delete=models.PROTECT, related_name="deposits"
+    )
+    account_no = models.CharField(
+        "Deposit reference",
+        max_length=20,
+        unique=True,
+        default=child_deposit_reference,
+        editable=False,
+    )
+    opened_on = models.DateField("Opening date", default=timezone.localdate)
+    opening_amount = models.DecimalField(
+        "Opening amount (LKR)",
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["child__member__member_no", "child__name", "account_no"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(opening_amount__gte=0),
+                name="child_deposit_opening_nonnegative",
+            )
+        ]
+
+    @property
+    def name(self):
+        return self.account_no
+
+    def __str__(self):
+        return f"{self.account_no} · {self.child.name} · {self.deposit_type.name}"
+
+    def rate_on(self, as_of):
+        return self.deposit_type.rate_for(self.child, as_of)
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if (
+            self.child_id
+            and self.opened_on
+            and self.opened_on < self.child.date_of_birth
+        ):
+            errors["opened_on"] = (
+                "The opening date cannot be before the child's date of birth."
+            )
+        if self.opened_on and self.opened_on > timezone.localdate():
+            errors["opened_on"] = "The opening date cannot be in the future."
+        if not self.pk:
+            if self.child_id and not self.child.is_active:
+                errors["child"] = "Choose an active child."
+            if self.deposit_type_id and not self.deposit_type.is_active:
+                errors["deposit_type"] = "Choose an active child deposit type."
+        else:
+            previous = (
+                type(self)
+                .objects.filter(pk=self.pk)
+                .values("child_id", "deposit_type_id", "opened_on", "opening_amount")
+                .first()
+            )
+            if previous:
+                for field in ("child", "deposit_type"):
+                    if previous[f"{field}_id"] != getattr(self, f"{field}_id"):
+                        errors[field] = (
+                            "This selection cannot be changed on a saved deposit."
+                        )
+                if self.transactions.exists():
+                    for field in ("opened_on", "opening_amount"):
+                        if previous[field] != getattr(self, field):
+                            errors[field] = (
+                                "The opening amount and date stay fixed after transactions are recorded."
+                            )
+        if errors:
+            raise ValidationError(errors)
+
+
+class ChildDepositTransaction(models.Model):
+    deposit = models.ForeignKey(
+        ChildDeposit, on_delete=models.PROTECT, related_name="transactions"
+    )
+    transaction_date = models.DateField("Transaction date", default=timezone.localdate)
+    debit = models.DecimalField(
+        "Debit (LKR)",
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    credit = models.DecimalField(
+        "Credit (LKR)",
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    interest_rate = models.DecimalField(
+        "Rate at entry (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        editable=False,
+    )
+    reference = models.CharField(max_length=100, blank=True)
+    description = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        editable=False,
+        related_name="recorded_child_deposit_entries",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["transaction_date", "pk"]
+        default_permissions = ()  # Entry actions use the Child Deposits module permissions.
+        indexes = [models.Index(fields=["deposit", "transaction_date"])]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(debit__gt=0, credit=0)
+                | models.Q(credit__gt=0, debit=0),
+                name="child_entry_one_positive_side",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(interest_rate__gte=0, interest_rate__lte=100),
+                name="child_entry_valid_rate",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.deposit.account_no} · {self.transaction_date}"
+
+    def clean(self):
+        super().clean()
+        if (
+            self.pk
+            and type(self)
+            .objects.filter(pk=self.pk)
+            .exclude(deposit_id=self.deposit_id)
+            .exists()
+        ):
+            raise ValidationError(
+                {"deposit": "The deposit cannot be changed on a saved entry."}
+            )
+        if (
+            self.debit is not None
+            and self.credit is not None
+            and not (
+                (self.debit > 0 and self.credit == 0)
+                or (self.credit > 0 and self.debit == 0)
+            )
+        ):
+            raise ValidationError(
+                "Enter a positive debit or credit, with the other side blank or zero."
+            )
+        if (
+            self.deposit_id
+            and self.transaction_date
+            and self.transaction_date < self.deposit.opened_on
+        ):
+            raise ValidationError(
+                {
+                    "transaction_date": "The transaction date cannot be before the deposit's opening date."
+                }
+            )
+        if (
+            not self.pk
+            and self.deposit_id
+            and not (
+                self.deposit.is_active
+                and self.deposit.child.is_active
+                and self.deposit.deposit_type.is_active
+            )
+        ):
+            raise ValidationError(
+                "This deposit, child or deposit type is inactive. New entries cannot be added."
+            )

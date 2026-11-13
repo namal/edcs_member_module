@@ -18,6 +18,17 @@
       <p class="muted mt-2">Everything you need to know, thoughtfully organized.</p>
     </div>
     <div class="no-print flex flex-wrap gap-2">
+      {% if perms.members.view_child %}
+        <a class="btn btn-secondary"
+           href="{% url 'child_list' %}?member={{ member.pk }}">Children</a>
+      {% elif perms.members.add_child %}
+        <a class="btn btn-secondary"
+           href="{% url 'child_create' %}?member={{ member.pk }}">Add child</a>
+      {% endif %}
+      {% if perms.members.view_childdeposit %}
+        <a class="btn btn-secondary"
+           href="{% url 'child_deposit_list' %}?member={{ member.pk }}">Child deposits</a>
+      {% endif %}
       {% if perms.members.view_paymenttransaction %}
         <a class="btn btn-secondary"
            href="{% url 'payment_transaction_report' %}?member={{ member.pk }}">Member balances</a>

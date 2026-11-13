@@ -1,7 +1,79 @@
 from django.urls import path
-from . import opening_balance_views, payment_views, transaction_views, views
+from . import (
+    child_views,
+    opening_balance_views,
+    payment_views,
+    transaction_views,
+    views,
+)
 
 urlpatterns = [
+    path("children/", child_views.child_list, name="child_list"),
+    path("children/new/", child_views.child_form, name="child_create"),
+    path("children/<int:pk>/", child_views.child_detail, name="child_detail"),
+    path("children/<int:pk>/edit/", child_views.child_form, name="child_edit"),
+    path("children/<int:pk>/delete/", child_views.child_delete, name="child_delete"),
+    path(
+        "child-deposit-types/",
+        child_views.child_deposit_type_list,
+        name="child_deposit_type_list",
+    ),
+    path(
+        "child-deposit-types/new/",
+        child_views.child_deposit_type_form,
+        name="child_deposit_type_create",
+    ),
+    path(
+        "child-deposit-types/<int:pk>/edit/",
+        child_views.child_deposit_type_form,
+        name="child_deposit_type_edit",
+    ),
+    path(
+        "child-deposit-types/<int:pk>/delete/",
+        child_views.child_deposit_type_delete,
+        name="child_deposit_type_delete",
+    ),
+    path("child-deposits/", child_views.child_deposit_list, name="child_deposit_list"),
+    path(
+        "child-deposits/new/",
+        child_views.child_deposit_form,
+        name="child_deposit_create",
+    ),
+    path(
+        "child-deposits/<int:pk>/",
+        child_views.child_deposit_detail,
+        name="child_deposit_detail",
+    ),
+    path(
+        "child-deposits/<int:pk>/edit/",
+        child_views.child_deposit_form,
+        name="child_deposit_edit",
+    ),
+    path(
+        "child-deposits/<int:pk>/delete/",
+        child_views.child_deposit_delete,
+        name="child_deposit_delete",
+    ),
+    path(
+        "child-deposits/<int:deposit_pk>/entries/new/",
+        child_views.child_entry_form,
+        name="child_entry_create",
+    ),
+    path(
+        "child-deposit-entries/<int:pk>/edit/",
+        child_views.child_entry_form,
+        name="child_entry_edit",
+    ),
+    path(
+        "child-deposit-entries/<int:pk>/delete/",
+        child_views.child_entry_delete,
+        name="child_entry_delete",
+    ),
+    path(
+        "api/child-deposits/<int:pk>/balance/",
+        child_views.child_deposit_status,
+        name="child_deposit_status",
+    ),
     path(
         "debit-credit/balances/",
         transaction_views.payment_transaction_report,

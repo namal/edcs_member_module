@@ -3,6 +3,10 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 from django.db.models import Count
 from .models import (
+    Child,
+    ChildDeposit,
+    ChildDepositTransaction,
+    ChildDepositType,
     District,
     Lager,
     Member,
@@ -19,6 +23,65 @@ from .models import (
 from .notifications import notify_user_created
 
 admin.site.unregister(get_user_model())
+
+
+@admin.register(Child)
+class ChildAdmin(admin.ModelAdmin):
+    list_display = ["name", "member", "date_of_birth", "is_active"]
+    list_filter = ["member__district", "is_active"]
+    search_fields = ["name", "member__member_no", "member__full_name"]
+    autocomplete_fields = ["member"]
+    list_select_related = ["member"]
+
+
+@admin.register(ChildDepositType)
+class ChildDepositTypeAdmin(admin.ModelAdmin):
+    list_display = [
+        "name",
+        "age_threshold",
+        "rate_below_threshold",
+        "rate_from_threshold",
+        "is_active",
+    ]
+    search_fields = ["name"]
+    list_filter = ["is_active"]
+
+
+@admin.register(ChildDeposit)
+class ChildDepositAdmin(admin.ModelAdmin):
+    list_display = [
+        "account_no",
+        "child",
+        "deposit_type",
+        "opened_on",
+        "opening_amount",
+        "is_active",
+    ]
+    list_filter = ["deposit_type", "child__member__district", "is_active"]
+    search_fields = ["account_no", "child__name", "child__member__member_no"]
+    autocomplete_fields = ["child", "deposit_type"]
+    list_select_related = ["child__member", "deposit_type"]
+    readonly_fields = ["account_no", "created_at", "updated_at"]
+
+
+@admin.register(ChildDepositTransaction)
+class ChildDepositTransactionAdmin(admin.ModelAdmin):
+    list_display = ["deposit", "transaction_date", "debit", "credit", "interest_rate"]
+    list_filter = ["transaction_date", "deposit__child__member__district"]
+    search_fields = ["deposit__account_no", "deposit__child__name", "reference"]
+    autocomplete_fields = ["deposit"]
+    list_select_related = ["deposit__child", "deposit__deposit_type"]
+    readonly_fields = ["interest_rate", "created_by", "created_at", "updated_at"]
+
+    def get_readonly_fields(self, request, obj=None):
+        return [*self.readonly_fields, "deposit"] if obj else self.readonly_fields
+
+    def save_model(self, request, obj, form, change):
+        if not change or "transaction_date" in form.changed_data:
+            obj.interest_rate = obj.deposit.rate_on(obj.transaction_date)
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
 
 
 class DistrictAccessInline(admin.TabularInline):

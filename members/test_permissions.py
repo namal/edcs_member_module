@@ -8,6 +8,9 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .models import (
+    Child,
+    ChildDeposit,
+    ChildDepositType,
     District,
     Lager,
     Member,
@@ -71,7 +74,16 @@ class WorkspacePermissionTests(TestCase):
             nic_no="199012345681",
         )
         cls.plan = PaymentPlan.objects.create(member=plan_member)
+        child = Child.objects.create(
+            member=plan_member, name="Permission child", date_of_birth="2015-01-01"
+        )
+        child_type = ChildDepositType.objects.get(name="Child Savings")
         cls.records = {
+            "child": child,
+            "child_deposit_type": child_type,
+            "child_deposit": ChildDeposit.objects.create(
+                child=child, deposit_type=child_type
+            ),
             "member": cls.member,
             "district": cls.district,
             "office": cls.office,
@@ -231,7 +243,10 @@ class WorkspacePermissionTests(TestCase):
                                 200
                                 if operation == allowed_operation
                                 and not (model is District and operation == "create")
-                                and not (model is PaymentType and operation != "list")
+                                and not (
+                                    model in (PaymentType, ChildDepositType)
+                                    and operation != "list"
+                                )
                                 else 403
                             ),
                         )

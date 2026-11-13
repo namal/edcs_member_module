@@ -1,0 +1,19 @@
+<nav class="mb-6 flex flex-wrap gap-3"
+     aria-label="Child deposits navigation">
+  {% if perms.members.view_child %}
+    <a class="btn btn-secondary" href="{% url 'child_list' %}">Children</a>
+  {% endif %}
+  {% if perms.members.add_child %}
+    <a class="btn btn-secondary"
+       href="{% url 'child_create' %}{% if selected_member %}?member={{ selected_member.pk }}{% elif child %}?member={{ child.member_id }}{% elif deposit %}?member={{ deposit.child.member_id }}{% endif %}">Add child</a>
+  {% endif %}
+  {% if perms.members.view_childdeposit %}
+    <a class="btn btn-secondary" href="{% url 'child_deposit_list' %}">Child deposits</a>
+  {% endif %}
+  {% if perms.members.add_childdeposit %}
+    <a class="btn btn-secondary" href="{% url 'child_deposit_create' %}">Open child deposit</a>
+  {% endif %}
+  {% if perms.members.view_childdeposittype %}
+    <a class="btn btn-secondary" href="{% url 'child_deposit_type_list' %}">Child deposit types &amp; rates</a>
+  {% endif %}
+</nav>
