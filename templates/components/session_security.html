@@ -1,6 +1,0 @@
-{% load static %}
-
-{% if session_policy %}
-  {{ session_policy|json_script:"session-policy" }}
-  <script src="{% static 'js/session.js' %}?v=1" defer></script>
-{% endif %}
