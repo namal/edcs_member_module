@@ -169,4 +169,37 @@
     </div>
     {% include 'opening_balances/summary.html' with balance=selected_balance show_link=selected_balance.pk %}
   {% endif %}
+  {% if carried_interest_years %}
+    <section class="card mt-6">
+      <div class="card-heading">
+        <h2 class="section-title">Annual opening balances carried forward</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Financial year ended</th>
+              <th>Payment type</th>
+              <th>Annual interest (LKR)</th>
+              <th>Next year's opening balance (LKR)</th>
+              <th>Calculation</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for year in carried_interest_years %}
+              <tr>
+                <td>{{ year.year_end|date:'d M Y' }}</td>
+                <td>{{ year.payment_type.name }}</td>
+                <td>{{ year.annual_interest|floatformat:2 }}</td>
+                <td>{{ year.next_opening_balance|floatformat:2 }}</td>
+                <td>
+                  <a class="text-link" href="{% url 'deposit_interest_detail' year.pk %}">View quarterly calculation</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
 {% endblock %}

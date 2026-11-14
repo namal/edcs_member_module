@@ -17,6 +17,7 @@ def workspace_access(request):
             "children",
             "child_deposits",
             "fix_deposits",
+            "deposit_interest",
         )
     ]
     return {
@@ -32,6 +33,9 @@ def workspace_access(request):
         ),
         "transaction_module": next(
             module for module in modules if module["section"] == "payment_transactions"
+        ),
+        "interest_module": next(
+            module for module in modules if module["section"] == "deposit_interest"
         ),
         "child_modules": [
             module

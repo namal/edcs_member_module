@@ -8,3 +8,5 @@ node_modules/
 staticfiles/
 test-results/
 .DS_Store
+.interest-scheduler.log
+.interest-scheduler.lock

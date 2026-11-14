@@ -5,9 +5,11 @@ from django.core.exceptions import PermissionDenied
 from .models import (
     Child,
     ChildDeposit,
+    ChildDepositInterestYear,
     ChildDepositTransaction,
     ChildDepositType,
     District,
+    DepositInterestYear,
     FixDepositAccount,
     FixDepositLoan,
     FixDepositPolicy,
@@ -41,6 +43,13 @@ MODULES = (
     (School, "Departments", "schools", "school", "building"),
     (Lager, "Lagers", "lagers", "lager", "building"),
     (PaymentPlan, "Payment Plan", "payment_plans", "payment_plan", "wallet"),
+    (
+        DepositInterestYear,
+        "Quarterly Interest",
+        "deposit_interest",
+        "deposit_interest",
+        "wallet",
+    ),
     (
         PaymentTransaction,
         "Debit / Credit",
@@ -76,6 +85,7 @@ ACTIONS = ("view", "add", "change", "delete")
 DISTRICT_LOOKUPS = {
     Child: "member__district_id",
     ChildDeposit: "child__member__district_id",
+    ChildDepositInterestYear: "deposit__child__member__district_id",
     ChildDepositTransaction: "deposit__child__member__district_id",
     FixDepositAccount: "member__district_id",
     FixDepositLoan: "account__member__district_id",
@@ -90,6 +100,7 @@ DISTRICT_LOOKUPS = {
     PaymentPlan: "member__district_id",
     PaymentTransaction: "member__district_id",
     OpeningBalance: "member__district_id",
+    DepositInterestYear: "member__district_id",
 }
 
 

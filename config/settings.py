@@ -71,6 +71,9 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Asia/Colombo"
+FINANCIAL_YEAR_START_MONTH = int(os.environ.get("FINANCIAL_YEAR_START_MONTH", "1"))
+if not 1 <= FINANCIAL_YEAR_START_MONTH <= 12:
+    raise ValueError("FINANCIAL_YEAR_START_MONTH must be between 1 and 12.")
 USE_I18N = True
 USE_TZ = True
 STATIC_URL = "/static/"

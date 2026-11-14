@@ -45,6 +45,10 @@
         <a class="btn btn-secondary"
            href="{% url 'payment_transaction_create' %}?member={{ member.pk }}">Add debit / credit</a>
       {% endif %}
+      {% if perms.members.view_depositinterestyear %}
+        <a class="btn btn-secondary"
+           href="{% url 'deposit_interest_list' %}?member={{ member.pk }}">Quarterly interest</a>
+      {% endif %}
       {% if member_opening_balance %}
         {% if perms.members.view_openingbalance %}
           <a class="btn btn-secondary"
@@ -146,6 +150,12 @@
             <dt class="detail-label">Admission date</dt>
             <dd class="detail-value">
               {{ member.admit_date|date:'d F Y' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Pension date</dt>
+            <dd class="detail-value">
+              {{ member.pension_date|date:'d F Y'|default:'Not recorded' }}
             </dd>
           </div>
           <div>

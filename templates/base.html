@@ -96,6 +96,16 @@
             Debit / Credit
           </a>
         {% endif %}
+        {% if interest_module.visible %}
+          <a class="nav-link {% if section == 'deposit_interest' %}active{% endif %}"
+             href="{% url interest_module.url %}"
+             {% if section == 'deposit_interest' %}aria-current="page"{% endif %}>
+            <svg class="icon">
+              <use href="#i-wallet" />
+            </svg>
+            Quarterly Interest
+          </a>
+        {% endif %}
         {% if opening_balance_module.visible %}
           <a class="nav-link {% if section == 'opening_balances' %}active{% endif %}"
              href="{% url opening_balance_module.url %}"

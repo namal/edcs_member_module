@@ -111,9 +111,9 @@
       {% elif section == 'lagers' %}
         Each lager belongs to one district and can have many registered members. Its code is unique. A lager with registered members stays in its district.
       {% elif section == 'payment_types' %}
-        Quarterly (every 3 months) is the default interest period. The bank can choose daily, monthly, yearly, or a custom repeating interval or specific start/end dates. These settings are stored for reference; interest is not automatically calculated or posted. Lower display order numbers appear first.
+        Set the annual interest rate here. Quarterly Interest calculates the minimum month-end balance for each quarter and posts the annual total after year-end. Other frequency settings remain bank reference settings. Lower display order numbers appear first.
       {% elif section == 'child_deposit_types' %}
-        Each child deposit type has its own age threshold and two rates. By default the rate is 8% below age 18 and 5% from the 18th birthday. Change all three values here as decided by the bank. Existing entries retain their recorded rates; current balances do not include unposted interest.
+        Each child deposit type has its own age threshold and two annual rates. By default the rate is 8% below age 18 and 5% afterwards. The quarter containing that birthday earns no interest; the next complete quarter uses the new rate. Quarterly Interest credits the annual total after year-end. Existing posted years retain their saved rates and calculations.
       {% elif section == 'fix_deposit_policies' %}
         These accounts accept monthly top-ups. Withdrawals require a cycle of at least 36 months, full loan settlement and a maximum release of 75%. Loan security is capped at 90%, with at least 12 months between loan issues. Set the annual loan interest rate before issuing loans. The bank records assessed interest and payments separately.
       {% elif section == 'schools' %}

@@ -10,6 +10,10 @@
       <p class="muted mt-2">Member {{ child.member.member_no }} · {{ child.member.full_name }}</p>
     </div>
     <div class="flex gap-3">
+      {% if perms.members.view_depositinterestyear %}
+        <a class="btn btn-secondary"
+           href="{% url 'deposit_interest_list' %}?account_group=children&amp;child={{ child.pk }}">Quarterly interest</a>
+      {% endif %}
       {% if perms.members.change_child %}
         <a class="btn btn-secondary" href="{% url 'child_edit' child.pk %}">Edit child</a>
       {% endif %}

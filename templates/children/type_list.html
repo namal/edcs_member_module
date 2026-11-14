@@ -32,6 +32,7 @@
             <th>Rate below threshold</th>
             <th>Rate changes at age</th>
             <th>Rate from threshold</th>
+            <th>Rate-change quarter</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -43,6 +44,7 @@
               <td>{{ record.rate_below_threshold|floatformat:2 }}%</td>
               <td>{{ record.age_threshold }}</td>
               <td>{{ record.rate_from_threshold|floatformat:2 }}%</td>
+              <td>Excluded from interest</td>
               <td>
                 {% if record.is_active %}
                   Active
@@ -65,7 +67,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="6" class="py-10 text-center text-slate-600">No child deposit types.</td>
+              <td colspan="7" class="py-10 text-center text-slate-600">No child deposit types.</td>
             </tr>
           {% endfor %}
         </tbody>

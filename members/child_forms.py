@@ -99,11 +99,14 @@ class ChildDepositForm(StyledModelForm):
         self.fields["opened_on"].widget.attrs["max"] = timezone.localdate().isoformat()
         if self.instance.pk:
             self.fields["child"].disabled = self.fields["deposit_type"].disabled = True
-            if self.instance.transactions.exists():
+            if (
+                self.instance.transactions.exists()
+                or self.instance.interest_years.filter(posted_at__isnull=False).exists()
+            ):
                 for name in ("opened_on", "opening_amount"):
                     self.fields[name].disabled = True
                     self.fields[name].help_text = (
-                        "Fixed after dated entries have been recorded."
+                        "Fixed after dated entries or posted annual interest."
                     )
 
 

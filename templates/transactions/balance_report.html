@@ -10,6 +10,9 @@
       <p class="muted mt-2">Final amounts for each member and payment type, including saved opening balances.</p>
     </div>
     <div class="flex flex-wrap gap-3">
+      {% if perms.members.view_depositinterestyear %}
+        <a class="btn btn-secondary" href="{% url 'deposit_interest_list' %}">Quarterly interest</a>
+      {% endif %}
       <a class="btn btn-secondary" href="{% url 'payment_transaction_list' %}">Debit / credit statement</a>
       {% if perms.members.add_paymenttransaction %}
         <a class="btn btn-primary" href="{% url 'payment_transaction_create' %}">Add entry</a>

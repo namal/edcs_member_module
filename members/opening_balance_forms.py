@@ -5,7 +5,13 @@ from django.db import transaction
 from django.db.models import Q
 
 from .forms import StyledModelForm
-from .models import Member, OpeningBalance, OpeningBalanceAmount, PaymentType
+from .models import (
+    DepositInterestYear,
+    Member,
+    OpeningBalance,
+    OpeningBalanceAmount,
+    PaymentType,
+)
 from .permissions import accessible_districts, district_records
 
 
@@ -37,10 +43,15 @@ class OpeningBalanceForm(StyledModelForm):
         from .fix_deposit_services import locked_payment_types
 
         self.locked_types = locked_payment_types(member.pk)
+        self.locked_types.update(
+            DepositInterestYear.objects.filter(
+                member=member, posted_at__isnull=False
+            ).values_list("payment_type_id", flat=True)
+        )
         if self.instance.pk and self.locked_types:
             self.fields["balance_date"].disabled = True
             self.fields["balance_date"].help_text = (
-                "Locked by Fix Deposit loan or withdrawal history."
+                "Locked by posted interest or Fix Deposit loan/withdrawal history."
             )
         existing = (
             {item.payment_type_id: item.amount for item in self.instance.amounts.all()}
@@ -74,7 +85,7 @@ class OpeningBalanceForm(StyledModelForm):
             if payment_type.pk in self.locked_types:
                 self.fields[f"amount_{payment_type.pk}"].disabled = True
                 self.fields[f"amount_{payment_type.pk}"].help_text = (
-                    "Locked by Fix Deposit loan or withdrawal history."
+                    "Locked by posted interest or Fix Deposit loan/withdrawal history."
                 )
 
     @property

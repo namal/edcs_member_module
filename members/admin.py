@@ -5,9 +5,11 @@ from django.db.models import Count
 from .models import (
     Child,
     ChildDeposit,
+    ChildDepositInterestYear,
     ChildDepositTransaction,
     ChildDepositType,
     District,
+    DepositInterestYear,
     FixDepositAccount,
     FixDepositLoan,
     FixDepositPolicy,
@@ -28,6 +30,45 @@ from .models import (
 from .notifications import notify_user_created
 
 admin.site.unregister(get_user_model())
+
+
+@admin.register(DepositInterestYear)
+class DepositInterestYearAdmin(admin.ModelAdmin):
+    list_display = [
+        "member",
+        "payment_type",
+        "year_start",
+        "annual_rate",
+        "annual_interest",
+        "posted_at",
+    ]
+    list_filter = ["year_start", "payment_type"]
+    search_fields = ["member__member_no", "member__full_name"]
+    readonly_fields = [field.name for field in DepositInterestYear._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ChildDepositInterestYear)
+class ChildDepositInterestYearAdmin(admin.ModelAdmin):
+    list_display = ["deposit", "year_start", "annual_interest", "posted_at"]
+    list_filter = ["year_start", "deposit__deposit_type"]
+    search_fields = [
+        "deposit__account_no",
+        "deposit__child__name",
+        "deposit__child__member__member_no",
+    ]
+    readonly_fields = [field.name for field in ChildDepositInterestYear._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(FixDepositPolicy)
@@ -152,6 +193,11 @@ class ChildDepositTransactionAdmin(admin.ModelAdmin):
     autocomplete_fields = ["deposit"]
     list_select_related = ["deposit__child", "deposit__deposit_type"]
     readonly_fields = ["interest_rate", "created_by", "created_at", "updated_at"]
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        actions.pop("delete_selected", None)
+        return actions
 
     def get_readonly_fields(self, request, obj=None):
         return [*self.readonly_fields, "deposit"] if obj else self.readonly_fields
@@ -321,7 +367,12 @@ class OpeningBalanceAmountInline(admin.TabularInline):
     def get_formset(self, request, obj=None, **kwargs):
         from .fix_deposit_services import locked_payment_types
 
-        if obj and locked_payment_types(obj.member_id):
+        if obj and (
+            locked_payment_types(obj.member_id)
+            or DepositInterestYear.objects.filter(
+                member_id=obj.member_id, posted_at__isnull=False
+            ).exists()
+        ):
             kwargs["can_delete"] = False
         return super().get_formset(request, obj, **kwargs)
 
@@ -342,6 +393,11 @@ class OpeningBalanceAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         from .fix_deposit_services import locked_payment_types
 
-        if obj and locked_payment_types(obj.member_id):
+        if obj and (
+            locked_payment_types(obj.member_id)
+            or DepositInterestYear.objects.filter(
+                member_id=obj.member_id, posted_at__isnull=False
+            ).exists()
+        ):
             return False
         return super().has_delete_permission(request, obj)

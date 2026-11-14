@@ -2,6 +2,7 @@ from django.urls import path
 from . import (
     child_views,
     fix_deposit_views,
+    interest_views,
     opening_balance_views,
     payment_views,
     transaction_views,
@@ -9,6 +10,49 @@ from . import (
 )
 
 urlpatterns = [
+    path(
+        "deposit-interest/children/<int:pk>/",
+        interest_views.deposit_interest_detail,
+        {"child_account": True},
+        name="child_interest_detail",
+    ),
+    path(
+        "deposit-interest/children/<int:pk>/post/",
+        interest_views.deposit_interest_edit,
+        {"child_account": True},
+        name="child_interest_edit",
+    ),
+    path(
+        "deposit-interest/children/<int:pk>/delete/",
+        interest_views.deposit_interest_delete,
+        {"child_account": True},
+        name="child_interest_delete",
+    ),
+    path(
+        "deposit-interest/",
+        interest_views.deposit_interest_list,
+        name="deposit_interest_list",
+    ),
+    path(
+        "deposit-interest/calculate/",
+        interest_views.deposit_interest_create,
+        name="deposit_interest_create",
+    ),
+    path(
+        "deposit-interest/<int:pk>/",
+        interest_views.deposit_interest_detail,
+        name="deposit_interest_detail",
+    ),
+    path(
+        "deposit-interest/<int:pk>/post/",
+        interest_views.deposit_interest_edit,
+        name="deposit_interest_edit",
+    ),
+    path(
+        "deposit-interest/<int:pk>/delete/",
+        interest_views.deposit_interest_delete,
+        name="deposit_interest_delete",
+    ),
     path("fix-deposits/", fix_deposit_views.fix_deposit_list, name="fix_deposit_list"),
     path(
         "fix-deposits/new/",

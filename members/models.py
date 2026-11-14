@@ -311,6 +311,12 @@ class Member(models.Model):
     status = models.CharField(
         max_length=10, choices=Status.choices, default=Status.ACTIVE
     )
+    pension_date = models.DateField(
+        "Pension date",
+        blank=True,
+        null=True,
+        help_text="The quarter containing this date earns no deposit interest. Other completed quarters are calculated normally.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -335,6 +341,9 @@ class Member(models.Model):
 
     def clean(self):
         super().clean()
+        from .deposit_interest import guard_member_pension
+
+        guard_member_pension(self)
         errors = {}
         self.nic_no = self.nic_no.strip().upper()
         self.member_no = self.member_no.strip().upper()
@@ -407,6 +416,15 @@ class Member(models.Model):
                 errors[field] = "Enter a phone number with 7–15 digits."
         if errors:
             raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        from .deposit_interest import guard_member_pension
+
+        with transaction.atomic():
+            if self.pk:
+                type(self).objects.select_for_update().filter(pk=self.pk).first()
+            guard_member_pension(self)
+            return super().save(*args, **kwargs)
 
 
 class PaymentType(models.Model):
@@ -667,6 +685,9 @@ class PaymentTransaction(models.Model):
         from .fix_deposit_services import guard_transaction
 
         guard_transaction(self)
+        from .deposit_interest import guard_interest_transaction
+
+        guard_interest_transaction(self)
 
     def save(self, *args, **kwargs):
         from .fix_deposit_services import guard_transaction
@@ -675,6 +696,9 @@ class PaymentTransaction(models.Model):
             if self.member_id:
                 Member.objects.select_for_update().filter(pk=self.member_id).first()
             guard_transaction(self)
+            from .deposit_interest import guard_interest_transaction
+
+            guard_interest_transaction(self)
             return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
@@ -684,6 +708,9 @@ class PaymentTransaction(models.Model):
             Member.objects.select_for_update().filter(pk=self.member_id).first()
             try:
                 guard_transaction(self, deleting=True)
+                from .deposit_interest import guard_interest_transaction
+
+                guard_interest_transaction(self, deleting=True)
             except ValidationError as error:
                 raise ProtectedError(" ".join(error.messages), [self])
             return super().delete(*args, **kwargs)
@@ -759,6 +786,9 @@ class OpeningBalance(models.Model):
 
     def clean(self):
         super().clean()
+        from .deposit_interest import guard_interest_opening
+
+        guard_interest_opening(self)
         from .fix_deposit_services import locked_payment_types
 
         if (
@@ -787,6 +817,9 @@ class OpeningBalance(models.Model):
 
         with transaction.atomic():
             Member.objects.select_for_update().filter(pk=self.member_id).first()
+            from .deposit_interest import protect_interest_opening_delete
+
+            protect_interest_opening_delete(self)
             protect_opening_delete(self)
             return super().delete(*args, **kwargs)
 
@@ -849,6 +882,9 @@ class OpeningBalanceAmount(models.Model):
 
         if self.opening_balance_id and self.payment_type_id:
             guard_opening_amount(self)
+            from .deposit_interest import guard_interest_opening_amount
+
+            guard_interest_opening_amount(self)
 
     def save(self, *args, **kwargs):
         with transaction.atomic():
@@ -867,9 +903,97 @@ class OpeningBalanceAmount(models.Model):
             ).first()
             try:
                 guard_opening_amount(self, deleting=True)
+                from .deposit_interest import guard_interest_opening_amount
+
+                guard_interest_opening_amount(self, deleting=True)
             except ValidationError as error:
                 raise ProtectedError(" ".join(error.messages), [self])
             return super().delete(*args, **kwargs)
+
+
+class DepositInterestYear(models.Model):
+    member = models.ForeignKey(
+        Member, on_delete=models.PROTECT, related_name="interest_years"
+    )
+    payment_type = models.ForeignKey(
+        PaymentType, on_delete=models.PROTECT, related_name="interest_years"
+    )
+    year_start = models.DateField()
+    year_end = models.DateField()
+    annual_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0")), MaxValueValidator(Decimal("100"))],
+    )
+    quarters = models.JSONField(default=list)
+    calculated_through = models.DateField()
+    annual_interest = models.DecimalField(
+        max_digits=24, decimal_places=2, default=Decimal("0.00")
+    )
+    closing_balance = models.DecimalField(
+        max_digits=24, decimal_places=2, default=Decimal("0.00")
+    )
+    next_opening_balance = models.DecimalField(
+        max_digits=24, decimal_places=2, default=Decimal("0.00")
+    )
+    ledger_transaction = models.OneToOneField(
+        PaymentTransaction,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="interest_posting",
+    )
+    posted_at = models.DateTimeField(null=True, blank=True)
+    posted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="posted_interest_years",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "deposit interest year"
+        verbose_name_plural = "deposit interest years"
+        ordering = ["-year_start", "member__member_no", "payment_type__name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["member", "payment_type", "year_start"],
+                name="unique_member_type_interest_year",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(year_end__gte=models.F("year_start")),
+                name="interest_year_valid_dates",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    annual_rate__gte=0, annual_rate__lte=100, annual_interest__gte=0
+                ),
+                name="deposit_interest_valid_rate_amount",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.member} · {self.payment_type} · {self.year_start.year}"
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            previous = (
+                type(self).objects.filter(pk=self.pk, posted_at__isnull=False).first()
+            )
+            if previous and any(
+                getattr(previous, field.attname) != getattr(self, field.attname)
+                for field in self._meta.concrete_fields
+                if field.name != "updated_at"
+            ):
+                raise ValidationError("A posted interest year cannot be changed.")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.posted_at:
+            raise ProtectedError("A posted interest year cannot be deleted.", [self])
+        return super().delete(*args, **kwargs)
 
 
 class Child(models.Model):
@@ -907,6 +1031,9 @@ class Child(models.Model):
 
     def clean(self):
         super().clean()
+        from .child_interest import guard_child_identity
+
+        guard_child_identity(self)
         self.name = self.name.strip()
         errors = {}
         if not self.name:
@@ -933,6 +1060,15 @@ class Child(models.Model):
                 )
         if errors:
             raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        from .child_interest import guard_child_identity
+
+        with transaction.atomic():
+            if self.member_id:
+                Member.objects.select_for_update().filter(pk=self.member_id).first()
+            guard_child_identity(self)
+            return super().save(*args, **kwargs)
 
 
 class ChildDepositType(models.Model):
@@ -1037,6 +1173,9 @@ class ChildDeposit(models.Model):
 
     def clean(self):
         super().clean()
+        from .child_interest import guard_child_deposit
+
+        guard_child_deposit(self)
         errors = {}
         if (
             self.child_id
@@ -1074,6 +1213,17 @@ class ChildDeposit(models.Model):
                             )
         if errors:
             raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        from .child_interest import guard_child_deposit
+
+        with transaction.atomic():
+            if self.child_id:
+                Member.objects.select_for_update().filter(
+                    pk=self.child.member_id
+                ).first()
+            guard_child_deposit(self)
+            return super().save(*args, **kwargs)
 
 
 class ChildDepositTransaction(models.Model):
@@ -1136,6 +1286,9 @@ class ChildDepositTransaction(models.Model):
 
     def clean(self):
         super().clean()
+        from .child_interest import guard_child_transaction
+
+        guard_child_transaction(self)
         if (
             self.pk
             and type(self)
@@ -1169,6 +1322,7 @@ class ChildDepositTransaction(models.Model):
             )
         if (
             not self.pk
+            and not getattr(self, "_annual_interest_posting", False)
             and self.deposit_id
             and not (
                 self.deposit.is_active
@@ -1179,6 +1333,134 @@ class ChildDepositTransaction(models.Model):
             raise ValidationError(
                 "This deposit, child or deposit type is inactive. New entries cannot be added."
             )
+
+    def save(self, *args, **kwargs):
+        from .child_interest import guard_child_transaction
+
+        with transaction.atomic():
+            if self.deposit_id:
+                Member.objects.select_for_update().filter(
+                    pk=self.deposit.child.member_id
+                ).first()
+            guard_child_transaction(self)
+            return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        from .child_interest import guard_child_transaction
+
+        with transaction.atomic():
+            Member.objects.select_for_update().filter(
+                pk=self.deposit.child.member_id
+            ).first()
+            try:
+                guard_child_transaction(self, deleting=True)
+            except ValidationError as error:
+                raise ProtectedError(" ".join(error.messages), [self])
+            return super().delete(*args, **kwargs)
+
+
+class ChildDepositInterestYear(models.Model):
+    deposit = models.ForeignKey(
+        ChildDeposit, on_delete=models.PROTECT, related_name="interest_years"
+    )
+    year_start = models.DateField()
+    year_end = models.DateField()
+    annual_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0")), MaxValueValidator(Decimal("100"))],
+    )
+    rate_rules = models.JSONField(default=dict)
+    quarters = models.JSONField(default=list)
+    calculated_through = models.DateField()
+    annual_interest = models.DecimalField(
+        max_digits=24, decimal_places=2, default=Decimal("0.00")
+    )
+    closing_balance = models.DecimalField(
+        max_digits=24, decimal_places=2, default=Decimal("0.00")
+    )
+    next_opening_balance = models.DecimalField(
+        max_digits=24, decimal_places=2, default=Decimal("0.00")
+    )
+    ledger_transaction = models.OneToOneField(
+        ChildDepositTransaction,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="interest_posting",
+    )
+    posted_at = models.DateTimeField(null=True, blank=True)
+    posted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="posted_child_interest_years",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        default_permissions = ()  # Both account groups use Quarterly Interest permissions.
+        ordering = [
+            "-year_start",
+            "deposit__child__member__member_no",
+            "deposit__account_no",
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["deposit", "year_start"],
+                name="unique_child_deposit_interest_year",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(year_end__gte=models.F("year_start")),
+                name="child_interest_valid_dates",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    annual_rate__gte=0, annual_rate__lte=100, annual_interest__gte=0
+                ),
+                name="child_interest_valid_rate_amount",
+            ),
+        ]
+
+    @property
+    def member(self):
+        return self.deposit.child.member
+
+    @property
+    def member_id(self):
+        return self.deposit.child.member_id
+
+    @property
+    def payment_type(self):
+        return self.deposit.deposit_type
+
+    @property
+    def payment_type_id(self):
+        return self.deposit.deposit_type_id
+
+    def __str__(self):
+        return f"{self.deposit} · {self.year_start.year}"
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            previous = (
+                type(self).objects.filter(pk=self.pk, posted_at__isnull=False).first()
+            )
+            if previous and any(
+                getattr(previous, field.attname) != getattr(self, field.attname)
+                for field in self._meta.concrete_fields
+                if field.name != "updated_at"
+            ):
+                raise ValidationError("A posted child interest year cannot be changed.")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.posted_at:
+            raise ProtectedError(
+                "A posted child interest year cannot be deleted.", [self]
+            )
+        return super().delete(*args, **kwargs)
 
 
 class FixDepositPolicy(models.Model):

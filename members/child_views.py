@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import Q, Sum
+from django.db.models.deletion import ProtectedError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -295,6 +296,13 @@ def child_deposit_detail(request, pk):
         "title": deposit.account_no,
         "deposit": deposit,
         "form": form,
+        "interest_years": (
+            deposit.interest_years.filter(posted_at__isnull=False).order_by(
+                "-year_start"
+            )
+            if request.user.has_perm("members.view_depositinterestyear")
+            else []
+        ),
     }
     if form.is_valid():
         data = form.cleaned_data
@@ -347,13 +355,17 @@ def child_entry_form(request, deposit_pk=None, pk=None):
             saved.interest_rate = deposit.rate_on(saved.transaction_date)
         if entry is None:
             saved.created_by = request.user
-        saved.save()
-        messages.success(request, "Child deposit debit / credit entry saved.")
-        if request.user.has_perm("members.view_childdeposit"):
-            return redirect("child_deposit_detail", pk=deposit.pk)
-        if entry:
-            return redirect("child_entry_edit", pk=saved.pk)
-        return redirect("child_entry_create", deposit_pk=deposit.pk)
+        try:
+            saved.save()
+        except ValidationError as error:
+            form.add_error(None, error)
+        else:
+            messages.success(request, "Child deposit debit / credit entry saved.")
+            if request.user.has_perm("members.view_childdeposit"):
+                return redirect("child_deposit_detail", pk=deposit.pk)
+            if entry:
+                return redirect("child_entry_edit", pk=saved.pk)
+            return redirect("child_entry_create", deposit_pk=deposit.pk)
     try:
         as_of = forms.DateField().clean(form["transaction_date"].value())
     except ValidationError:
@@ -387,8 +399,12 @@ def child_entry_delete(request, pk):
     )
     if request.method == "POST":
         deposit_pk = entry.deposit_id
-        entry.delete()
-        messages.success(request, "Child deposit entry deleted.")
+        try:
+            entry.delete()
+        except ProtectedError as error:
+            messages.error(request, str(error.args[0]))
+        else:
+            messages.success(request, "Child deposit entry deleted.")
         return (
             redirect("child_deposit_detail", pk=deposit_pk)
             if request.user.has_perm("members.view_childdeposit")

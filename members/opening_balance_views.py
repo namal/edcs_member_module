@@ -3,10 +3,11 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.db.models import Q
+from django.db.models.deletion import ProtectedError
 from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import Member, OpeningBalance
+from .models import DepositInterestYear, Member, OpeningBalance
 from .opening_balance_forms import OpeningBalanceForm, OpeningBalanceMemberForm
 from .permissions import district_records, require_permission
 from .views import paginated
@@ -52,6 +53,16 @@ def member_directory(request, selecting=False):
             "selection_form": selection_form,
             "selected_member": selected_member,
             "selected_balance": selected_balance,
+            "carried_interest_years": (
+                DepositInterestYear.objects.filter(
+                    member=selected_member, posted_at__isnull=False
+                )
+                .select_related("payment_type")
+                .order_by("-year_start", "payment_type__name")
+                if selected_member
+                and request.user.has_perm("members.view_depositinterestyear")
+                else []
+            ),
             **paginated(request, members.order_by("member_no", "pk")),
         },
     )
@@ -171,11 +182,15 @@ def opening_balance_delete(request, pk):
         district_records(request.user, OpeningBalance).select_related("member"), pk=pk
     )
     if request.method == "POST":
-        balance.delete()
-        messages.success(
-            request,
-            "The opening balances have been deleted. The member is still registered.",
-        )
+        try:
+            balance.delete()
+        except ProtectedError as error:
+            messages.error(request, str(error.args[0]))
+        else:
+            messages.success(
+                request,
+                "The opening balances have been deleted. The member is still registered.",
+            )
         return redirect(
             "opening_balance_list"
             if request.user.has_perm("members.view_openingbalance")

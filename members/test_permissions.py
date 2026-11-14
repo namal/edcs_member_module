@@ -12,6 +12,7 @@ from .models import (
     ChildDeposit,
     ChildDepositType,
     District,
+    DepositInterestYear,
     FixDepositAccount,
     FixDepositPolicy,
     Lager,
@@ -82,6 +83,14 @@ class WorkspacePermissionTests(TestCase):
         child_type = ChildDepositType.objects.get(name="Child Savings")
         fix_policy = FixDepositPolicy.objects.get(name="Fix Deposit Rules")
         cls.records = {
+            "deposit_interest": DepositInterestYear.objects.create(
+                member=plan_member,
+                payment_type=PaymentType.objects.get(name="Special Deposit"),
+                year_start="2026-01-01",
+                year_end="2026-12-31",
+                annual_rate="8.00",
+                calculated_through="2026-01-01",
+            ),
             "fix_deposit_policy": fix_policy,
             "fix_deposit": FixDepositAccount.objects.create(
                 member=plan_member, policy=fix_policy, cycle_started_on="2020-01-01"
@@ -275,7 +284,12 @@ class WorkspacePermissionTests(TestCase):
                     else (
                         self.records[prefix].member.full_name
                         if prefix
-                        in ("payment_plan", "opening_balance", "payment_transaction")
+                        in (
+                            "payment_plan",
+                            "opening_balance",
+                            "payment_transaction",
+                            "deposit_interest",
+                        )
                         else self.records[prefix].name
                     )
                 ),

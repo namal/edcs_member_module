@@ -133,9 +133,11 @@ class MemberForm(StyledModelForm):
             "gender",
             "nic_no",
             "status",
+            "pension_date",
         ]
         widgets = {
             "admit_date": forms.DateInput(attrs={"type": "date"}),
+            "pension_date": forms.DateInput(attrs={"type": "date"}),
             "salary": forms.NumberInput(attrs={"step": "0.01", "min": "0"}),
         }
 

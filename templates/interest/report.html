@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7">
+    <p class="eyebrow mb-2">Deposits / Interest</p>
+    <h1 class="page-title">
+      Quarterly Interest<span class="text-brand-600">.</span>
+    </h1>
+    <p class="muted mt-2">
+      Member Payment Types and Child Deposits are calculated separately for each account. Quarterly interest = lowest of the three month-end balances × annual rate ÷ 4.
+    </p>
+  </div>
+  <section class="form-section">
+    <form method="get">
+      {% if form.errors %}
+        <div class="alert message-error" role="alert">Please check the filters. {{ form.non_field_errors }}</div>
+      {% endif %}
+      <div class="form-grid">
+        {% include 'components/field.html' with field=form.year %}
+        {% include 'components/field.html' with field=form.account_group %}
+        {% include 'components/field.html' with field=form.member %}
+        {% include 'components/field.html' with field=form.payment_type %}
+        {% include 'components/field.html' with field=form.child %}
+        {% include 'components/field.html' with field=form.child_deposit_type %}
+        {% include 'components/field.html' with field=form.deposit %}
+      </div>
+      <button class="btn btn-primary mt-5">Show quarterly interest</button>
+    </form>
+  </section>
+  {% if year_start %}
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h2 class="section-title">{{ year_start|date:'d M Y' }} – {{ year_end|date:'d M Y' }}</h2>
+        <p class="muted mt-2">
+          {{ account_count }} account{{ account_count|pluralize }} · Total accrued interest: LKR {{ total_interest|floatformat:2 }}
+        </p>
+      </div>
+      {% if perms.members.add_depositinterestyear %}
+        <form method="post" action="{% url 'deposit_interest_create' %}">
+          {% csrf_token %}
+          <input type="hidden" name="year" value="{{ form.year.value }}">
+          <input type="hidden"
+                 name="member"
+                 value="{{ form.member.value|default:'' }}">
+          <input type="hidden"
+                 name="payment_type"
+                 value="{{ form.payment_type.value|default:'' }}">
+          <input type="hidden"
+                 name="account_group"
+                 value="{{ form.account_group.value|default:'all' }}">
+          <input type="hidden" name="child" value="{{ form.child.value|default:'' }}">
+          <input type="hidden"
+                 name="child_deposit_type"
+                 value="{{ form.child_deposit_type.value|default:'' }}">
+          <input type="hidden"
+                 name="deposit"
+                 value="{{ form.deposit.value|default:'' }}">
+          <button class="btn btn-primary" data-submit-label="Calculating…">Calculate &amp; save</button>
+        </form>
+      {% endif %}
+    </div>
+    {% for row in page_obj %}
+      <section class="card mb-6 p-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="section-title">{{ row.member_no }} · {{ row.full_name }}</h2>
+            {% if row.account_group == 'children' %}
+              <p class="mt-2 font-semibold">{{ row.child_name }} · {{ row.account_no }} · {{ row.payment_type_name }}</p>
+              <p class="muted mt-2">
+                Age-based rates: {{ row.record.rate_rules.below|floatformat:2 }}% below age {{ row.record.rate_rules.age_threshold }}; {{ row.record.rate_rules.from|floatformat:2 }}% from that birthday. See the applied rate for each quarter.
+              </p>
+            {% else %}
+              <p class="muted mt-2">
+                {{ row.payment_type_name }} · Annual rate {{ row.record.annual_rate|floatformat:2 }}% · Quarterly rate {{ row.quarterly_rate|floatformat:4 }}%
+              </p>
+            {% endif %}
+          </div>
+          <div class="flex flex-wrap gap-3">
+            {% if row.record.posted_at %}
+              <span class="badge badge-active">Annual interest posted</span>
+            {% else %}
+              <span class="badge bg-accent-50 text-accent-700">Accrued — not credited</span>
+            {% endif %}
+            {% if row.record.pk %}
+              {% if perms.members.view_depositinterestyear %}
+                <a class="text-link" href="{% url row.detail_url_name row.record.pk %}">Saved calculation</a>
+              {% endif %}
+              {% if perms.members.change_depositinterestyear and row.can_post %}
+                <a class="text-link" href="{% url row.post_url_name row.record.pk %}">Review year-end posting</a>
+              {% endif %}
+              {% if perms.members.delete_depositinterestyear and not row.record.posted_at %}
+                <a class="text-link" href="{% url row.delete_url_name row.record.pk %}">Remove draft</a>
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+        {% include 'interest/quarters.html' with record=row.record child_account=row.record.deposit_id %}
+        {% if row.record.posted_at %}
+          <p class="mt-5 font-semibold text-brand-700">
+            Opening balance on {{ row.next_year_start|date:'d M Y' }}: LKR {{ row.record.next_opening_balance|floatformat:2 }}
+          </p>
+        {% endif %}
+      </section>
+    {% empty %}
+      <section class="card p-6">
+        <p class="muted">No deposit accounts with opening balances or transactions match this selection.</p>
+      </section>
+    {% endfor %}
+    {% include 'components/pagination.html' %}
+  {% endif %}
+  <p class="field-help mt-5">
+    Interest accumulates through the year and is credited once after year-end. A month before an account exists has a zero closing balance. A zero or negative quarterly minimum earns zero interest. Incomplete quarters remain pending. Amounts are rounded to two decimal places for each quarter.
+  </p>
+  <p class="field-help mt-3">
+    The quarter containing a member's pension date or a child's rate-change birthday earns no interest. Other completed quarters are calculated normally. The pension rule applies to member Payment Types; child accounts use the child's own birthday.
+  </p>
+{% endblock %}
