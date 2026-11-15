@@ -18,6 +18,17 @@
       <p class="muted mt-2">Everything you need to know, thoughtfully organized.</p>
     </div>
     <div class="no-print flex flex-wrap gap-2">
+      {% if perms.members.view_memberledger %}
+        <a class="btn btn-secondary"
+           href="{% url 'member_ledger_list' %}?member={{ member.pk }}">Ledger history</a>
+      {% endif %}
+      {% if perms.members.add_membertransfer %}
+        <a class="btn btn-secondary"
+           href="{% url 'member_transfer_create' %}?member={{ member.pk }}">Transfer member</a>
+      {% endif %}
+      {% if perms.members.change_member %}
+        <a class="btn btn-secondary" href="{% url 'member_retire' member.pk %}">Process retirement</a>
+      {% endif %}
       {% if perms.members.view_fixdepositaccount %}
         <a class="btn btn-secondary"
            href="{% url 'fix_deposit_list' %}?member={{ member.pk }}">Fix Deposit loans / withdrawals</a>
@@ -95,7 +106,10 @@
         <div class="flex items-end gap-5">
           <span class="avatar h-20 w-20 rounded-2xl border-4 border-white bg-brand-100 text-2xl">{{ member.initials }}</span>
           <div class="pb-1">
-            <h2 class="text-xl font-bold tracking-tight text-slate-800">{{ member.full_name }}</h2>
+            <h2 class="text-xl font-bold tracking-tight text-slate-800">
+              {% if member.title %}{{ member.title }}{% endif %}
+              {{ member.full_name }}
+            </h2>
             <p class="mt-1 font-mono text-xs text-slate-600">{{ member.member_no }}</p>
           </div>
         </div>
@@ -129,6 +143,36 @@
         </div>
         <dl class="grid gap-x-7 gap-y-6 p-6 sm:grid-cols-2">
           <div>
+            <dt class="detail-label">Title / Salutation</dt>
+            <dd class="detail-value">
+              {{ member.title|default:'—' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Short Name</dt>
+            <dd class="detail-value">
+              {{ member.short_name }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Date of birth</dt>
+            <dd class="detail-value">
+              {{ member.date_of_birth|date:'d F Y'|default:'Not recorded' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Retirement age</dt>
+            <dd class="detail-value">
+              {{ member.retirement_age }}
+            </dd>
+          </div>
+          <div>
+            <dt class="detail-label">Expected retirement date</dt>
+            <dd class="detail-value">
+              {{ member.expected_retirement_date|date:'d F Y'|default:'Enter date of birth to calculate' }}
+            </dd>
+          </div>
+          <div>
             <dt class="detail-label">Full name</dt>
             <dd class="detail-value">
               {{ member.full_name }}
@@ -153,7 +197,7 @@
             </dd>
           </div>
           <div>
-            <dt class="detail-label">Pension date</dt>
+            <dt class="detail-label">Recorded retirement / pension date</dt>
             <dd class="detail-value">
               {{ member.pension_date|date:'d F Y'|default:'Not recorded' }}
             </dd>
@@ -248,6 +292,10 @@
                 {% if perms.members.view_member %}
                   <a class="text-link"
                      href="{% url 'member_list' %}?lager={{ member.lager_id }}">{{ member.lager }}</a>
+                  {% if perms.members.view_lager %}
+                    <a class="text-link mt-1 block"
+                       href="{% url 'lager_activity' member.lager_id %}?member={{ member.pk }}">Lager activity</a>
+                  {% endif %}
                 {% endif %}
               {% else %}
                 —

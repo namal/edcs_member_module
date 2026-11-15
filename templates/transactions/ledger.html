@@ -104,7 +104,10 @@
           <tbody>
             {% for entry in page_obj %}
               <tr>
-                <td class="whitespace-nowrap">{{ entry.transaction_date|date:'d M Y' }}</td>
+                <td class="whitespace-nowrap">
+                  {{ entry.transaction_date|date:'d M Y' }}
+                  {% include 'components/ledger_reference.html' %}
+                </td>
                 <td>{{ entry.reference|default:'—' }}</td>
                 <td>{{ entry.description|default:'—'|linebreaksbr }}</td>
                 <td>{{ entry.debit|floatformat:2 }}</td>
@@ -112,11 +115,11 @@
                 <td class="font-semibold">{{ entry.running_balance|floatformat:2 }}</td>
                 <td>
                   <div class="flex gap-3">
-                    {% if perms.members.change_paymenttransaction %}
+                    {% if perms.members.change_paymenttransaction and not entry.ledger_readonly %}
                       <a class="text-link"
                          href="{% url 'payment_transaction_edit' entry.pk %}">Edit</a>
                     {% endif %}
-                    {% if perms.members.delete_paymenttransaction %}
+                    {% if perms.members.delete_paymenttransaction and not entry.ledger_readonly %}
                       <a class="text-link"
                          href="{% url 'payment_transaction_delete' entry.pk %}">Delete</a>
                     {% endif %}

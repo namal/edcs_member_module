@@ -1,0 +1,11 @@
+{% if entry.ledger_page %}
+  <span class="mt-1 block text-xs text-slate-600">
+    {% if entry.can_view_ledger %}
+      <a class="text-link"
+         href="{% url 'member_ledger_detail' entry.ledger_page.pk %}">{{ entry.ledger_page.reference }}</a>
+    {% else %}
+      {{ entry.ledger_page.reference }}
+    {% endif %}
+    {% if entry.ledger_readonly %}<span class="block">Historical ledger · read-only</span>{% endif %}
+  </span>
+{% endif %}

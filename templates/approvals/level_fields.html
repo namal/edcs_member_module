@@ -1,0 +1,30 @@
+<fieldset class="approval-level form-section" data-approval-level>
+  <legend class="section-title px-2">Approval level</legend>
+  {% if level.non_field_errors %}<div class="alert message-error">{{ level.non_field_errors }}</div>{% endif %}
+  <div class="form-grid">
+    {% include 'components/field.html' with field=level.position %}
+    {% include 'components/field.html' with field=level.name %}
+  </div>
+  <div class="mt-4">
+    <p class="detail-label mb-3">Designated approvers</p>
+    <div class="max-h-60 space-y-3 overflow-y-auto rounded-lg border border-slate-200 p-4">
+      {% for checkbox in level.approvers %}
+        <label class="flex items-center gap-3 text-sm">
+          {{ checkbox.tag }}<span>{{ checkbox.choice_label }}</span>
+        </label>
+      {% endfor %}
+    </div>
+    {% if level.approvers.errors %}<p class="field-error">{{ level.approvers.errors|striptags }}</p>{% endif %}
+  </div>
+  <div class="mt-4 flex flex-wrap gap-6">
+    <label class="flex items-center gap-2">
+      {{ level.allow_rejection }}<span class="text-sm">{{ level.allow_rejection.label }}</span>
+    </label>
+    <label class="flex items-center gap-2">
+      {{ level.DELETE }}<span class="text-sm">Remove this level</span>
+    </label>
+  </div>
+  <p class="field-help mt-3">
+    Any one designated user can approve this level. Users cannot approve their own requests; administrators may override with a reason.
+  </p>
+</fieldset>

@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="eyebrow">Review & accountability</p>
+      <h1 class="page-title">Approvals</h1>
+      <p class="muted mt-2">Review your assigned requests and track changes you submitted.</p>
+    </div>
+    {% if request.user.is_superuser %}
+      <a class="btn btn-secondary" href="{% url 'approval_hierarchy_list' %}">Manage hierarchies</a>
+    {% endif %}
+  </div>
+  <form class="form-section flex flex-wrap items-end gap-4" method="get">
+    <div class="flex-1">
+      <label class="detail-label" for="approval-search">Search requests</label>
+      <input id="approval-search"
+             class="field-input"
+             name="q"
+             value="{{ request.GET.q }}"
+             placeholder="Reference, request or employee">
+    </div>
+    <div>
+      <label class="detail-label" for="approval-status">Status</label>
+      <select id="approval-status" class="field-input" name="status">
+        <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All statuses</option>
+        {% for value,label in statuses %}
+          <option value="{{ value }}"
+                  {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <label class="flex items-center gap-2 pb-3">
+      <input class="field-check"
+             type="checkbox"
+             name="mine"
+             value="1"
+             {% if request.GET.mine %}checked{% endif %}>
+      <span class="text-sm">My submissions</span>
+    </label>
+    <button class="btn btn-primary self-end">Apply filters</button>
+  </form>
+  <section class="card">
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Request</th>
+            <th>Submitted by</th>
+            <th>Hierarchy</th>
+            <th>Status</th>
+            <th>Submitted</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in page_obj %}
+            <tr>
+              <td>
+                <a class="text-link" href="{% url 'approval_request_detail' item.pk %}">{{ item.reference }}</a>
+                <p class="mt-1 text-sm">{{ item.description }}</p>
+              </td>
+              <td>
+                {{ item.requester_name }}
+                {% if item.requester_epf %}<p class="muted text-xs">EPF {{ item.requester_epf }}</p>{% endif %}
+              </td>
+              <td>
+                {{ item.hierarchy_name }}
+                <p class="muted text-xs">Version {{ item.hierarchy_version }}</p>
+              </td>
+              <td>
+                <span class="badge">{{ item.get_status_display }}</span>
+              </td>
+              <td>{{ item.created_at|date:'d M Y H:i' }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="py-10 text-center muted">No requests match these filters.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include 'components/pagination.html' %}
+  </section>
+{% endblock %}

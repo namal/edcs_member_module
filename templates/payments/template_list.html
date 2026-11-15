@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7 flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <p class="eyebrow mb-2">Payment plans</p>
+      <h1 class="page-title">Payment plan templates</h1>
+      <p class="muted mt-2">Reusable monthly amounts. Member plans keep their own independent copies.</p>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      {% if perms.members.view_paymentplan %}
+        <a class="btn btn-secondary" href="{% url 'payment_plan_list' %}">Member payment plans</a>
+      {% endif %}
+      {% if perms.members.add_paymentplantemplate %}
+        <a class="btn btn-primary"
+           href="{% url 'payment_plan_template_create' %}">Create template</a>
+      {% endif %}
+    </div>
+  </div>
+  <section class="card">
+    <form method="get" class="flex flex-wrap gap-3 p-5">
+      <input class="field-input flex-1"
+             name="q"
+             value="{{ request.GET.q }}"
+             aria-label="Search templates"
+             placeholder="Search templates…">
+      <button class="btn btn-secondary">Search</button>
+    </form>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Template</th>
+            <th>Payment types / monthly amounts (LKR)</th>
+            <th>Total monthly amount</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for template in page_obj %}
+            <tr>
+              <td>
+                <span class="font-semibold">{{ template.name }}</span>
+                <p class="mt-1 text-xs text-slate-600">{{ template.description }}</p>
+              </td>
+              <td>
+                {% for item in template.amounts.all %}
+                  <p>
+                    {{ item.payment_type.name }}
+                    {% if not item.payment_type.is_active %}(inactive){% endif %}
+                    · {{ item.amount|floatformat:2 }}
+                  </p>
+                {% endfor %}
+              </td>
+              <td>{{ template.monthly_total|floatformat:2 }}</td>
+              <td>
+                {% if template.is_active %}
+                  Active
+                {% else %}
+                  Inactive
+                {% endif %}
+              </td>
+              <td>
+                <div class="flex gap-3">
+                  {% if template.is_active and perms.members.add_paymentplan %}
+                    <a class="text-link"
+                       href="{% url 'payment_plan_create' %}?template={{ template.pk }}">Assign to member</a>
+                  {% endif %}
+                  {% if perms.members.change_paymentplantemplate %}
+                    <a class="text-link"
+                       href="{% url 'payment_plan_template_edit' template.pk %}">Edit</a>
+                  {% endif %}
+                  {% if perms.members.delete_paymentplantemplate %}
+                    <a class="text-link"
+                       href="{% url 'payment_plan_template_delete' template.pk %}">Delete</a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5">No matching payment plan templates.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include 'components/pagination.html' %}
+  </section>
+{% endblock %}

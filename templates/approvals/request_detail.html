@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="eyebrow">{{ record.get_status_display }}</p>
+      <h1 class="page-title">{{ record.reference }}</h1>
+      <p class="muted mt-2">{{ record.description }}</p>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      {% if can_open_result %}<a class="btn btn-primary" href="{{ record.result_url }}">Continue in module</a>{% endif %}
+      <a class="btn btn-secondary" href="{% url 'approval_request_list' %}">All requests</a>
+    </div>
+  </div>
+  <section class="form-section">
+    <dl class="form-grid">
+      <div>
+        <dt class="detail-label">Submitted by</dt>
+        <dd>
+          {{ record.requester_name }}
+          {% if record.requester_epf %}· EPF {{ record.requester_epf }}{% endif %}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Hierarchy at submission</dt>
+        <dd>
+          {{ record.hierarchy_name }} · Version {{ record.hierarchy_version }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Submitted</dt>
+        <dd>
+          {{ record.created_at|date:'d M Y H:i' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Completed</dt>
+        <dd>
+          {{ record.completed_at|date:'d M Y H:i'|default:'Awaiting a decision' }}
+        </dd>
+      </div>
+    </dl>
+    {% if record.outcome %}<p class="alert mt-5">{{ record.outcome }}</p>{% endif %}
+    {% if record.status == 'pending' %}
+      <p class="field-help mt-5">
+        This change has not taken effect. It will be applied once, after final approval. The latest permissions and record details are checked again before applying.
+      </p>
+    {% endif %}
+  </section>
+  <section class="card mb-5">
+    <div class="card-heading">
+      <h2 class="section-title">Approval progress</h2>
+    </div>
+    <ol class="divide-y divide-slate-100">
+      {% for step in steps %}
+        <li class="flex flex-wrap items-start gap-4 px-6 py-5">
+          <span class="avatar {% if step.current %}bg-brand-600 text-white{% else %}bg-slate-100 text-slate-700{% endif %}">{{ step.position }}</span>
+          <div class="flex-1">
+            <p class="font-semibold">
+              {{ step.name }}
+              {% if step.current %}
+                <span class="badge">Awaiting decision</span>
+              {% elif step.overridden %}
+                <span class="badge">Completed by administrator</span>
+              {% elif step.completed %}
+                <span class="badge badge-green">Completed</span>
+              {% endif %}
+            </p>
+            <p class="muted mt-1 text-sm">
+              {% for officer in step.approvers %}
+                {{ officer.name }}
+                {% if officer.epf %}· EPF {{ officer.epf }}{% endif %}
+                {% if not forloop.last %};{% endif %}
+              {% endfor %}
+            </p>
+            <p class="field-help">
+              {% if step.allow_rejection %}
+                May approve or reject
+              {% else %}
+                May approve; rejection reserved for administrators
+              {% endif %}
+            </p>
+          </div>
+        </li>
+      {% endfor %}
+    </ol>
+  </section>
+  <section class="form-section">
+    <h2 class="section-title mb-5">Requested details</h2>
+    <dl class="form-grid">
+      {% for item in record.summary %}
+        <div>
+          <dt class="detail-label">{{ item.label }}</dt>
+          <dd class="break-words text-sm">
+            {{ item.value }}
+          </dd>
+        </div>
+      {% empty %}
+        <div>
+          <dd>
+            {{ record.description }}
+          </dd>
+        </div>
+      {% endfor %}
+    </dl>
+  </section>
+  {% if rights.approve or rights.reject or rights.override or rights.cancel %}
+    <section class="form-section">
+      <h2 class="section-title mb-5">Record a decision</h2>
+      <form method="post">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="alert message-error">{{ form.non_field_errors }}</div>{% endif %}
+        {% include 'components/field.html' with field=form.reason %}
+        <p class="field-help mt-2">A reason is required for rejection, cancellation and every administrator decision.</p>
+        <div class="mt-5 flex flex-wrap gap-3">
+          {% if rights.approve %}
+            <button class="btn btn-primary" name="decision" value="approve">Approve this level</button>
+          {% endif %}
+          {% if rights.reject %}<button class="btn btn-danger" name="decision" value="reject">Reject request</button>{% endif %}
+          {% if rights.override %}
+            <button class="btn btn-secondary" name="decision" value="override_approve">Approve all remaining levels</button>
+          {% endif %}
+          {% if rights.cancel %}
+            <button class="btn btn-secondary" name="decision" value="cancel">Cancel request</button>
+          {% endif %}
+        </div>
+      </form>
+    </section>
+  {% endif %}
+  <section class="card">
+    <div class="card-heading">
+      <h2 class="section-title">Approval audit trail</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Activity / level</th>
+            <th>Employee / EPF</th>
+            <th>Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for event in events %}
+            <tr>
+              <td>{{ event.created_at|date:'d M Y H:i' }}</td>
+              <td>
+                {{ event.get_action_display }}
+                {% if event.level_name %}<p class="muted text-xs">{{ event.level_name }}</p>{% endif %}
+                {% if event.is_override %}<span class="badge">Administrator authority</span>{% endif %}
+              </td>
+              <td>
+                {{ event.actor_name }}
+                {% if event.actor_epf %}<p class="text-xs">EPF {{ event.actor_epf }}</p>{% endif %}
+              </td>
+              <td class="whitespace-pre-wrap">{{ event.reason|default:'—' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

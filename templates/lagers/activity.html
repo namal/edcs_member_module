@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7 flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="eyebrow mb-2">Lager activity · {{ lager.code }}</p>
+      <h1 class="page-title">
+        {{ lager.name }}<span class="text-brand-600">.</span>
+      </h1>
+      <p class="muted mt-2">
+        {{ lager.district.name }} → {{ lager.zonal_office.name }} · {{ member_count }} member{{ member_count|pluralize }}
+        {% if selected_member %}selected{% endif %}
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <a class="btn btn-secondary" href="{% url 'lager_list' %}">Back to lagers</a>
+      {% if perms.members.change_lager %}
+        <a class="btn btn-secondary" href="{% url 'lager_edit' lager.pk %}">Edit lager</a>
+      {% endif %}
+      {% if perms.members.view_member %}
+        <a class="btn btn-secondary"
+           href="{% url 'member_list' %}?lager={{ lager.pk }}">Members</a>
+      {% endif %}
+      {% if form.is_valid and groups %}
+        <a class="btn btn-primary"
+           href="{% url 'lager_activity_export' lager.pk %}?{{ query_string }}">Export activity CSV</a>
+      {% endif %}
+    </div>
+  </div>
+  <section class="form-section">
+    <h2 class="section-title mb-4">Member activity in this lager</h2>
+    <p class="muted mb-5">
+      Includes saved records for members currently assigned to this lager, including inactive members and their children's accounts. Only modules you have View permission for appear here.
+    </p>
+    <form method="get">
+      {% if form.non_field_errors %}
+        <div class="alert message-error" role="alert">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div class="form-grid">
+        {% include 'components/field.html' with field=form.member %}
+        {% include 'components/field.html' with field=form.category %}
+        {% include 'components/field.html' with field=form.date_from %}
+        {% include 'components/field.html' with field=form.date_to %}
+      </div>
+      <p class="field-help mt-4">
+        Leave member blank for the whole lager. Leave From date blank for all history; To date defaults to today. Activity type filters the records below; account summaries cover all your available modules.
+      </p>
+      <div class="mt-5 flex flex-wrap gap-3">
+        <button class="btn btn-primary">Show activity</button>
+        <a class="btn btn-secondary" href="{% url 'lager_activity' lager.pk %}">Reset</a>
+      </div>
+    </form>
+  </section>
+  {% if selected_member %}
+    <p class="mb-5 font-medium">
+      {{ selected_member.member_no }} · {{ selected_member.full_name }}
+      {% if perms.members.view_member %}
+        · <a class="text-link" href="{% url 'member_detail' selected_member.pk %}">Member profile</a>
+      {% endif %}
+    </p>
+  {% endif %}
+  {% if summaries %}
+    <div class="mb-5">
+      <h2 class="section-title">Account summary as of {{ balance_date|date:'d M Y' }}</h2>
+      <p class="muted mt-2">
+        Balances include opening amounts and earlier transactions. Debit and credit totals cover the selected dates. Loan balances remain separate from deposits.
+      </p>
+    </div>
+    <div class="mb-7 grid gap-4 lg:grid-cols-3">
+      {% if summaries.member_deposits %}
+        <section class="card p-6" data-member-deposits>
+          <h3 class="section-title">Member deposits</h3>
+          <p class="detail-label mt-4">Closing balance</p>
+          <p class="detail-value text-brand-700">LKR {{ summaries.member_deposits.balance|floatformat:2 }}</p>
+          <dl class="mt-4 grid grid-cols-2 gap-3">
+            <div>
+              <dt class="detail-label">Debit</dt>
+              <dd>
+                {{ summaries.member_deposits.debit|floatformat:2 }}
+              </dd>
+            </div>
+            <div>
+              <dt class="detail-label">Credit</dt>
+              <dd>
+                {{ summaries.member_deposits.credit|floatformat:2 }}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      {% endif %}
+      {% if summaries.child_deposits %}
+        <section class="card p-6" data-child-deposits>
+          <h3 class="section-title">Children's deposits</h3>
+          <p class="detail-label mt-4">Closing balance</p>
+          <p class="detail-value text-brand-700">LKR {{ summaries.child_deposits.balance|floatformat:2 }}</p>
+          <dl class="mt-4 grid grid-cols-2 gap-3">
+            <div>
+              <dt class="detail-label">Debit</dt>
+              <dd>
+                {{ summaries.child_deposits.debit|floatformat:2 }}
+              </dd>
+            </div>
+            <div>
+              <dt class="detail-label">Credit</dt>
+              <dd>
+                {{ summaries.child_deposits.credit|floatformat:2 }}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      {% endif %}
+      {% if summaries.loans %}
+        <section class="card p-6" data-loan-balances>
+          <h3 class="section-title">Loans</h3>
+          <p class="detail-label mt-4">Principal outstanding</p>
+          <p class="detail-value">LKR {{ summaries.loans.principal_due|floatformat:2 }}</p>
+          <p class="detail-label mt-4">Assessed interest outstanding</p>
+          <p>LKR {{ summaries.loans.interest_due|floatformat:2 }}</p>
+        </section>
+      {% endif %}
+    </div>
+  {% endif %}
+  <section class="card">
+    <div class="card-heading">
+      <h2 class="section-title">Activity records</h2>
+      <span class="badge bg-brand-50 text-brand-700">{{ page_obj.paginator.count }} records</span>
+    </div>
+    {% if page_obj %}
+      <p class="field-help px-6 py-4">
+        Debit and credit show posted deposit movements. Record amount shows opening balances, monthly agreements, loan amounts or saved interest calculations. Interest calculations and withdrawal records are shown alongside their ledger entries; summaries count posted movements once.
+      </p>
+      <div class="overflow-x-auto">
+        <table class="data-table min-w-[1280px]">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Member</th>
+              <th>Activity</th>
+              <th>Child / account type</th>
+              <th>Reference</th>
+              <th>Debit (LKR)</th>
+              <th>Credit (LKR)</th>
+              <th>Record amount (LKR)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in page_obj %}
+              <tr>
+                <td class="whitespace-nowrap">{{ row.event_date|date:'d M Y' }}</td>
+                <td class="min-w-40">
+                  <a class="text-link whitespace-nowrap"
+                     href="{% url 'lager_activity' lager.pk %}?member={{ row.event_member_id }}">{{ row.event_member_no }}</a><span class="mt-1 block">{{ row.event_member_name }}</span>
+                </td>
+                <td class="min-w-48">
+                  <a class="text-link" href="{{ row.url }}">{{ row.event_label }}</a>
+                  {% if row.event_details %}<p class="mt-2 max-w-xs text-xs text-slate-600">{{ row.event_details }}</p>{% endif %}
+                </td>
+                <td class="min-w-40">
+                  {% if row.event_child %}<span class="block font-medium">{{ row.event_child }}</span>{% endif %}
+                  {{ row.event_account|default:'—' }}
+                </td>
+                <td>{{ row.event_reference|default:'—' }}</td>
+                <td class="whitespace-nowrap">{{ row.event_debit|floatformat:2|default:'—' }}</td>
+                <td class="whitespace-nowrap">{{ row.event_credit|floatformat:2|default:'—' }}</td>
+                <td class="whitespace-nowrap">{{ row.event_amount|floatformat:2|default:'—' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <h3 class="section-title">No activity to display</h3>
+        <p class="muted mt-2">
+          {% if not groups %}
+            View permissions for member or financial modules are needed to see their records.
+          {% elif form.errors %}
+            Correct the filters above to view activity.
+          {% else %}
+            This lager has no matching activity in your available modules. Try another member or date range.
+          {% endif %}
+        </p>
+      </div>
+    {% endif %}
+    {% include 'components/pagination.html' %}
+  </section>
+{% endblock %}

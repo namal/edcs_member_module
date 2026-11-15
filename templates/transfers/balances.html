@@ -1,0 +1,74 @@
+{% if balances %}
+  <section class="card mb-5">
+    <div class="card-heading">
+      <h2 class="section-title">{{ balance_heading }}</h2>
+    </div>
+    {% if balances.member_deposits %}
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <caption class="px-6 pt-5 text-left font-semibold">Member deposits</caption>
+          <thead>
+            <tr>
+              <th>Payment type</th>
+              <th>Balance (LKR)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in balances.member_deposits %}
+              <tr>
+                <td>{{ row.payment_type_name }}</td>
+                <td>{{ row.final_balance|floatformat:2 }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+    {% if balances.child_deposits %}
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <caption class="px-6 pt-5 text-left font-semibold">Children's deposit accounts</caption>
+          <thead>
+            <tr>
+              <th>Child / account</th>
+              <th>Type</th>
+              <th>Balance (LKR)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in balances.child_deposits %}
+              <tr>
+                <td>{{ row.child_name }} · {{ row.account_no }}</td>
+                <td>{{ row.payment_type_name }}</td>
+                <td>{{ row.balance|floatformat:2 }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+    {% if balances.loans %}
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <caption class="px-6 pt-5 text-left font-semibold">Loans · shown separately from deposits</caption>
+          <thead>
+            <tr>
+              <th>Loan</th>
+              <th>Principal outstanding (LKR)</th>
+              <th>Assessed interest outstanding (LKR)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in balances.loans %}
+              <tr>
+                <td>{{ row.reference }}</td>
+                <td>{{ row.principal_due|floatformat:2 }}</td>
+                <td>{{ row.interest_due|floatformat:2 }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+{% endif %}

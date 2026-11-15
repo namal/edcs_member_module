@@ -1,4 +1,5 @@
 from django.contrib import messages
+from .approval_services import form_checkpoint, checkpoint
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.db.models import Count, Q
@@ -83,8 +84,12 @@ def payment_plan_form(request, pk=None):
         instance=plan,
         member=member,
         user=request.user,
+        initial={"apply_template": request.GET.get("template", "")},
     )
     if request.method == "POST" and form.is_valid():
+        queued = form_checkpoint(request, form)
+        if queued is not None:
+            return queued
         try:
             saved = form.save()
         except IntegrityError:
@@ -160,6 +165,11 @@ def payment_plan_delete(request, pk):
         district_records(request.user, PaymentPlan).select_related("member"), pk=pk
     )
     if request.method == "POST":
+        queued = checkpoint(
+            request, PaymentPlan, "delete", f"Delete payment plan: {plan}", target=plan
+        )
+        if queued is not None:
+            return queued
         plan.delete()
         messages.success(
             request,

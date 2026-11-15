@@ -1,15 +1,137 @@
 from django.urls import path
 from . import (
+    approval_views,
     child_views,
     fix_deposit_views,
     interest_views,
+    lager_views,
     opening_balance_views,
     payment_views,
+    payment_template_views,
+    retirement_views,
+    transfer_views,
     transaction_views,
     views,
 )
 
 urlpatterns = [
+    path("approvals/", approval_views.request_list, name="approval_request_list"),
+    path(
+        "approvals/<int:pk>/",
+        approval_views.request_detail,
+        name="approval_request_detail",
+    ),
+    path(
+        "approval-hierarchies/",
+        approval_views.hierarchy_list,
+        name="approval_hierarchy_list",
+    ),
+    path(
+        "approval-hierarchies/new/",
+        approval_views.hierarchy_form,
+        name="approval_hierarchy_create",
+    ),
+    path(
+        "approval-hierarchies/<int:pk>/edit/",
+        approval_views.hierarchy_form,
+        name="approval_hierarchy_edit",
+    ),
+    path(
+        "approval-hierarchies/<int:pk>/history/",
+        approval_views.hierarchy_history,
+        name="approval_hierarchy_history",
+    ),
+    path(
+        "member-transfers/",
+        transfer_views.member_transfer_list,
+        name="member_transfer_list",
+    ),
+    path(
+        "member-transfers/new/",
+        transfer_views.member_transfer_create,
+        name="member_transfer_create",
+    ),
+    path(
+        "member-transfers/<int:pk>/",
+        transfer_views.member_transfer_detail,
+        name="member_transfer_detail",
+    ),
+    path(
+        "member-transfers/<int:pk>/edit/",
+        transfer_views.permanent_history_action,
+        name="member_transfer_edit",
+    ),
+    path(
+        "member-transfers/<int:pk>/delete/",
+        transfer_views.permanent_history_action,
+        name="member_transfer_delete",
+    ),
+    path(
+        "member-ledgers/", transfer_views.member_ledger_list, name="member_ledger_list"
+    ),
+    path(
+        "member-ledgers/new/",
+        transfer_views.member_ledger_create,
+        name="member_ledger_create",
+    ),
+    path(
+        "member-ledgers/<int:pk>/",
+        transfer_views.member_ledger_detail,
+        name="member_ledger_detail",
+    ),
+    path(
+        "member-ledgers/<int:pk>/export/",
+        transfer_views.member_ledger_detail,
+        {"export": True},
+        name="member_ledger_export",
+    ),
+    path(
+        "member-ledgers/<int:pk>/officer/",
+        transfer_views.member_ledger_officer,
+        name="member_ledger_edit",
+    ),
+    path(
+        "member-ledgers/<int:pk>/delete/",
+        transfer_views.permanent_history_action,
+        name="member_ledger_delete",
+    ),
+    path(
+        "payment-plan-templates/",
+        payment_template_views.payment_plan_template_list,
+        name="payment_plan_template_list",
+    ),
+    path(
+        "payment-plan-templates/new/",
+        payment_template_views.payment_plan_template_form,
+        name="payment_plan_template_create",
+    ),
+    path(
+        "payment-plan-templates/<int:pk>/edit/",
+        payment_template_views.payment_plan_template_form,
+        name="payment_plan_template_edit",
+    ),
+    path(
+        "payment-plan-templates/<int:pk>/delete/",
+        payment_template_views.payment_plan_template_delete,
+        name="payment_plan_template_delete",
+    ),
+    path(
+        "payment-plan-templates/options/",
+        payment_template_views.payment_plan_template_options,
+        name="payment_plan_template_options",
+    ),
+    path(
+        "members/<int:pk>/retire/", retirement_views.member_retire, name="member_retire"
+    ),
+    path(
+        "lagers/<int:pk>/activity/", lager_views.lager_activity, name="lager_activity"
+    ),
+    path(
+        "lagers/<int:pk>/activity/export/",
+        lager_views.lager_activity,
+        {"export": True},
+        name="lager_activity_export",
+    ),
     path(
         "deposit-interest/children/<int:pk>/",
         interest_views.deposit_interest_detail,

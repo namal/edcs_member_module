@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7 flex flex-wrap justify-between gap-4">
+    <div>
+      <p class="eyebrow mb-2">{{ ledger.get_status_display }} ledger</p>
+      <h1 class="page-title">{{ ledger.reference }}</h1>
+      <p class="muted mt-2">
+        {{ ledger.member.member_no }} · {{ ledger.registration_snapshot.full_name }} · {{ ledger.location_snapshot.zonal_office }}
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <a class="btn btn-secondary" href="{% url 'member_ledger_list' %}">All ledgers</a>
+      {% if ledger.status == 'active' and perms.members.change_memberledger %}
+        <a class="btn btn-secondary"
+           href="{% url 'member_ledger_edit' ledger.pk %}">Change officer</a>
+      {% endif %}
+      {% if ledger.status == 'active' and perms.members.add_membertransfer %}
+        <a class="btn btn-primary"
+           href="{% url 'member_transfer_create' %}?member={{ ledger.member_id }}">Transfer member</a>
+      {% endif %}
+      {% if can_view_current_member %}
+        <a class="btn btn-secondary"
+           href="{% url 'member_detail' ledger.member_id %}">Current member profile</a>
+      {% endif %}
+    </div>
+  </div>
+  <section class="form-section">
+    <dl class="form-grid">
+      <div>
+        <dt class="detail-label">Ledger office</dt>
+        <dd class="detail-value">
+          {{ ledger.location_snapshot.district }} → {{ ledger.location_snapshot.zonal_office }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Department / lager</dt>
+        <dd class="detail-value">
+          {{ ledger.location_snapshot.school|default:'Not recorded' }} · {{ ledger.location_snapshot.lager|default:'Not recorded' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Ledger Maintenance Officer</dt>
+        <dd class="detail-value">
+          {{ ledger.officer_name|default:'Assignment required' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">EPF at assignment</dt>
+        <dd class="detail-value">
+          {{ ledger.officer_epf|default:'Not entered' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Opened</dt>
+        <dd>
+          {{ ledger.opened_on|date:'d M Y' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Transferred / closed</dt>
+        <dd>
+          {{ ledger.closed_on|date:'d M Y'|default:'Active' }}
+        </dd>
+      </div>
+    </dl>
+    {% if ledger.status == 'transferred' %}
+      <p class="alert mt-5 border-accent-100 bg-accent-50 text-accent-700">
+        This original page is historical and read-only. The receiving ledger and transfer date are shown in the continuity trail below. Original transactions and officer details are retained.
+      </p>
+    {% endif %}
+    {% if ledger.legacy_assignment_pending %}
+      <p class="alert message-error mt-5">
+        This existing ledger needs an officer assignment. Enter the officer's EPF number and zonal office in Users & access, then assign responsibility before transferring the member.
+      </p>
+    {% endif %}
+    {% if perms.members.view_member %}
+      <details class="mt-5">
+        <summary class="text-link cursor-pointer">
+          {% if ledger.status == 'transferred' %}
+            Member information retained at transfer
+          {% else %}
+            Original registration information
+          {% endif %}
+        </summary>
+        <dl class="form-grid">
+          {% for field in registration_fields %}
+            <div>
+              <dt class="detail-label">{{ field.label }}</dt>
+              <dd class="break-words text-sm">
+                {{ field.value|default_if_none:'Not recorded' }}
+              </dd>
+            </div>
+          {% endfor %}
+        </dl>
+      </details>
+    {% endif %}
+  </section>
+  {% include 'transfers/chain.html' %}
+  {% include 'transfers/balances.html' with balances=opening_balances balance_heading='Carried balances when this ledger opened' %}
+  {% if ledger.status == 'transferred' %}
+    {% include 'transfers/balances.html' with balance_heading='Frozen closing balances at transfer' %}
+  {% else %}
+    {% include 'transfers/balances.html' with balance_heading='Current balances across the linked member accounts' %}
+  {% endif %}
+  <section class="form-section">
+    <h2 class="section-title mb-5">Ledger activity filters</h2>
+    <form method="get">
+      <div class="form-grid">
+        {% include 'components/field.html' with field=form.date_from %}
+        {% include 'components/field.html' with field=form.date_to %}
+        {% include 'components/field.html' with field=form.include_previous %}
+      </div>
+      <div class="mt-5 flex flex-wrap gap-3">
+        <button class="btn btn-primary">Show activity</button>
+        <a class="btn btn-secondary"
+           href="{% url 'member_ledger_export' ledger.pk %}?{{ query_string }}">Export ledger CSV</a>
+      </div>
+    </form>
+    <p class="field-help mt-4">
+      Each record retains its original ledger reference. Financial date and recorded time distinguish activity before and after transfer, including entries on the same day. Only modules you have View permission for are shown.
+    </p>
+  </section>
+  <section class="card mb-5">
+    <div class="card-heading">
+      <h2 class="section-title">Permanent activity record</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Recorded / financial date</th>
+            <th>Ledger</th>
+            <th>Activity / action</th>
+            <th>Account / child</th>
+            <th>Record details</th>
+            <th>Recorded by</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in page_obj %}
+            <tr>
+              <td>
+                {{ row.recorded_at|date:'d M Y H:i' }}<span class="mt-1 block text-xs">{{ row.effective_on|date:'d M Y' }}</span>
+              </td>
+              <td>{{ row.ledger.reference }}</td>
+              <td>
+                {{ row.snapshot.label }}<span class="mt-1 block text-xs">{{ row.get_action_display }}</span>
+              </td>
+              <td>
+                {{ row.snapshot.account }}
+                <p>{{ row.snapshot.child }}</p>
+                <p>{{ row.snapshot.reference }}</p>
+              </td>
+              <td>
+                <details>
+                  <summary class="text-link cursor-pointer">Record #{{ row.record.source_id }}</summary>
+                  <dl class="space-y-2 mt-3">
+                    {% for field in row.details %}
+                      <div>
+                        <dt class="font-semibold text-xs">{{ field.label }}</dt>
+                        <dd class="max-w-xs break-words text-xs">
+                          {{ field.value|default_if_none:'—' }}
+                        </dd>
+                      </div>
+                    {% endfor %}
+                  </dl>
+                </details>
+              </td>
+              <td>
+                {{ row.actor_name|default:'Imported / system' }}
+                {% if row.actor_epf %}<p class="text-xs">EPF {{ row.actor_epf }}</p>{% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6">No matching records in your available modules.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include 'components/pagination.html' %}
+  </section>
+  <section class="card">
+    <div class="card-heading">
+      <h2 class="section-title">Ledger officer responsibility history</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Previous officer / EPF</th>
+            <th>Assigned officer / EPF</th>
+            <th>Reason / changed by</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in officer_history %}
+            <tr>
+              <td>{{ row.changed_at|date:'d M Y H:i' }}</td>
+              <td>{{ row.previous_name|default:'Initial assignment' }} · {{ row.previous_epf|default:'—' }}</td>
+              <td>{{ row.officer_name }} · {{ row.officer_epf }}</td>
+              <td>
+                {{ row.reason }}
+                <p>{{ row.changed_by_name }}</p>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4">No officer assignment has been recorded for this legacy ledger.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

@@ -1,4 +1,5 @@
 from django.contrib import messages
+from .approval_services import form_checkpoint, checkpoint
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
@@ -119,6 +120,9 @@ def opening_balance_form(request, pk=None):
         user=request.user,
     )
     if request.method == "POST" and form.is_valid():
+        queued = form_checkpoint(request, form)
+        if queued is not None:
+            return queued
         try:
             saved = form.save()
         except ValidationError as error:
@@ -182,6 +186,15 @@ def opening_balance_delete(request, pk):
         district_records(request.user, OpeningBalance).select_related("member"), pk=pk
     )
     if request.method == "POST":
+        queued = checkpoint(
+            request,
+            OpeningBalance,
+            "delete",
+            f"Delete opening balances: {balance}",
+            target=balance,
+        )
+        if queued is not None:
+            return queued
         try:
             balance.delete()
         except ProtectedError as error:

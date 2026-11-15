@@ -9,7 +9,7 @@
       <p class="muted mt-2">A little clarity for everything that connects your members.</p>
     </div>
     <div class="flex items-center gap-2">
-      <span class="btn btn-secondary hidden text-xs sm:inline-flex">
+      <span class="btn btn-secondary hidden sm:inline-flex">
         <svg class="icon h-4 w-4">
           <use href="#i-calendar" />
         </svg>
@@ -250,7 +250,7 @@
             workspace.
           </p>
           {% if perms.members.add_officelocation %}
-            <a href="{% url 'office_create' %}" class="btn btn-primary mt-5 text-xs">
+            <a href="{% url 'office_create' %}" class="btn btn-primary mt-5">
               <svg class="icon h-4 w-4">
                 <use href="#i-plus" />
               </svg>

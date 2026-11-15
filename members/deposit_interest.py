@@ -295,6 +295,7 @@ def post_interest_year(pk, *, actor=None, today=None, expected_fingerprint=None)
             reference=f"INTEREST-{record.year_start.isoformat()}",
             description=f"Annual deposit interest: four quarterly minimum month-end balances, {record.annual_rate}% annual rate.",
         )
+        entry._annual_interest_posting = True
         entry.full_clean()
         entry.save()
         record.ledger_transaction = entry

@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#a21c45">
     <title>Welcome back · EDCS</title>
     <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
-    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=edcs-2">
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=edcs-8">
   </head>
   <body class="bg-white">
     {% include 'components/icons.html' %}
@@ -107,7 +107,7 @@
                    {% if form.errors %}aria-invalid="true" aria-describedby="login-error"{% endif %}
                    required>
           </div>
-          <button class="btn btn-primary w-full py-3">
+          <button class="btn btn-primary w-full">
             Sign in to your workspace
             <svg class="icon ml-2 h-4 w-4">
               <use href="#i-arrow" />

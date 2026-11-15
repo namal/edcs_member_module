@@ -1,0 +1,1432 @@
+WEBVTT
+
+00:00:00.400 --> 00:00:03.925
+Welcome to the E D C S complete user training.
+
+00:00:04.045 --> 00:00:10.365
+We will work through administration and every operational module using fictional training records.
+
+00:00:10.485 --> 00:00:13.800
+Follow the chapter list to revisit a topic.
+
+00:00:13.920 --> 00:00:18.715
+Your actual menu depends on your account permissions and assigned districts.
+
+00:00:19.765 --> 00:00:26.885
+Enter the username and password supplied by your administrator, then choose Sign in to your workspace.
+
+00:00:27.005 --> 00:00:29.025
+Passwords stay masked.
+
+00:00:29.145 --> 00:00:31.955
+An inactive account cannot sign in.
+
+00:00:32.075 --> 00:00:36.770
+If you need access or a password reset, contact your administrator.
+
+00:00:36.890 --> 00:00:39.765
+Do not share another officer’s account.
+
+00:00:40.815 --> 00:00:44.060
+An administrator lands in the control center.
+
+00:00:44.180 --> 00:00:47.465
+Ordinary users land in their workspace.
+
+00:00:47.585 --> 00:00:51.755
+Use the left navigation to move between permitted modules.
+
+00:00:51.875 --> 00:00:56.580
+The controls shown here are available because this is a training administrator.
+
+00:00:56.700 --> 00:01:00.405
+We will also demonstrate a restricted user later.
+
+00:01:01.455 --> 00:01:11.160
+Overview summarizes the members you are authorized to see, including recent registrations, admission trends, active members and location counts.
+
+00:01:11.280 --> 00:01:14.520
+Ordinary users see only their assigned districts.
+
+00:01:14.640 --> 00:01:20.005
+The overview is a summary; open a module to enter or review its detailed records.
+
+00:01:21.055 --> 00:01:24.680
+Open Administration, then Roles and permissions.
+
+00:01:24.800 --> 00:01:28.595
+Roles are reusable collections of module actions.
+
+00:01:28.715 --> 00:01:31.755
+View, Add, Edit and Delete are independent.
+
+00:01:31.875 --> 00:01:40.210
+Giving someone View does not let them change records, and staff status alone does not grant workspace administration.
+
+00:01:41.260 --> 00:01:43.450
+Give the role a clear name.
+
+00:01:43.570 --> 00:01:47.415
+In the Members row, select View and Add for this example.
+
+00:01:47.535 --> 00:01:50.105
+Leave Edit and Delete unselected.
+
+00:01:50.225 --> 00:01:53.345
+Review the other module rows before saving.
+
+00:01:53.465 --> 00:02:00.785
+Permissions from all roles and direct grants are combined, so removing one grant may not remove effective access.
+
+00:02:01.835 --> 00:02:03.285
+Save the role.
+
+00:02:03.405 --> 00:02:06.795
+It is now available when creating or editing a user.
+
+00:02:06.915 --> 00:02:13.985
+A role controls actions, while district assignments control which district records those actions can affect.
+
+00:02:14.105 --> 00:02:17.440
+A role never expands the user’s district list.
+
+00:02:18.490 --> 00:02:23.385
+Open Users and access to search accounts and review whether they are active.
+
+00:02:23.505 --> 00:02:27.420
+Choose an existing username to edit it or create a new user.
+
+00:02:27.540 --> 00:02:34.815
+Administrators can reset passwords, assign roles, select districts and set direct module permissions.
+
+00:02:35.865 --> 00:02:44.805
+Enter a unique username, the employee’s name and, when applicable, a unique E P F number and ledger officer zonal office.
+
+00:02:44.925 --> 00:02:47.855
+Set and confirm a strong initial password.
+
+00:02:47.975 --> 00:02:49.885
+Email is optional.
+
+00:02:50.005 --> 00:02:56.195
+If supplied, the welcome message contains the username and sign-in link, not the password.
+
+00:02:57.245 --> 00:03:01.975
+Assign the registration role and select Colombo for this example.
+
+00:03:02.095 --> 00:03:07.175
+An ordinary user with no districts cannot access district records.
+
+00:03:07.295 --> 00:03:11.800
+Selecting a district does not grant module actions by itself.
+
+00:03:11.920 --> 00:03:18.985
+A ledger officer must be active, have an E P F number and match the responsible zonal office and district.
+
+00:03:20.035 --> 00:03:23.540
+Review the direct-permission matrix as well as roles.
+
+00:03:23.660 --> 00:03:26.180
+Grant only the required actions.
+
+00:03:26.300 --> 00:03:30.005
+Save user and access applies the account changes.
+
+00:03:30.125 --> 00:03:38.255
+On existing accounts, leave password fields blank to keep the password, or enter both new password fields to reset it.
+
+00:03:39.305 --> 00:03:40.995
+The account is saved.
+
+00:03:41.115 --> 00:03:46.515
+Role, district and permission changes take effect on subsequent requests.
+
+00:03:46.635 --> 00:03:51.990
+Deactivate an account to stop access, but first reassign its active ledgers.
+
+00:03:52.110 --> 00:03:56.460
+Permanent responsibility and approval history can prevent deletion.
+
+00:03:56.580 --> 00:04:00.955
+The control center records account and role administration activity.
+
+00:04:02.005 --> 00:04:05.420
+This is the registration user we just created.
+
+00:04:05.540 --> 00:04:10.335
+The directory shows its assigned district, with registration available.
+
+00:04:10.455 --> 00:04:15.805
+Edit, deletion, finance and administration are not granted by this role.
+
+00:04:15.925 --> 00:04:22.765
+If a menu or action is missing, ask an administrator to check effective permissions and district access.
+
+00:04:23.815 --> 00:04:28.230
+Set up organizational masters before registering members.
+
+00:04:28.350 --> 00:04:29.975
+Start with Districts.
+
+00:04:30.095 --> 00:04:33.140
+The system includes Sri Lankan districts.
+
+00:04:33.260 --> 00:04:39.805
+Search the list and open a district to review its code, province information and linked records.
+
+00:04:39.925 --> 00:04:43.380
+Only administrators can create new districts.
+
+00:04:44.430 --> 00:04:48.720
+A district stores its full province name and a separate short name.
+
+00:04:48.840 --> 00:04:53.835
+Here Colombo belongs to Western, with W P as its abbreviation.
+
+00:04:53.955 --> 00:04:57.755
+The member form derives these values from the selected district.
+
+00:04:57.875 --> 00:05:01.775
+Do not replace the full province name with an abbreviation.
+
+00:05:02.825 --> 00:05:05.855
+Save approved corrections and verify the list.
+
+00:05:05.975 --> 00:05:12.475
+Master records with linked operational data are protected from unsafe deletion or parent changes.
+
+00:05:12.595 --> 00:05:17.670
+Where supported, mark a master inactive instead of deleting its history.
+
+00:05:17.790 --> 00:05:21.720
+Inactive choices are not normally offered for new assignments.
+
+00:05:22.770 --> 00:05:25.310
+Zonal offices belong to districts.
+
+00:05:25.430 --> 00:05:32.180
+Open Zonal offices to search or filter the list and follow links to their departments, lagers and members.
+
+00:05:32.300 --> 00:05:37.990
+Review the existing master before adding another office so the same office is not entered twice.
+
+00:05:39.040 --> 00:05:45.745
+Choose the district, enter the office name and code, and provide the office contact details if available.
+
+00:05:45.865 --> 00:05:49.635
+Keep Active selected when it should be available for new work.
+
+00:05:49.755 --> 00:05:54.990
+The member’s own office address and phone are entered separately during registration.
+
+00:05:56.040 --> 00:05:58.360
+Save and check the office in the list.
+
+00:05:58.480 --> 00:06:03.555
+An office used by related records cannot be moved to a conflicting district.
+
+00:06:03.675 --> 00:06:10.890
+Assign eligible ledger officers to the correct zone before using that zone for registration or transfers.
+
+00:06:11.940 --> 00:06:16.710
+Subdivisions are optional organizational units within a zonal office.
+
+00:06:16.830 --> 00:06:21.690
+Use the master list to maintain them when the business structure needs them.
+
+00:06:21.810 --> 00:06:27.575
+A member may leave subdivision blank, even when the department has an associated subdivision.
+
+00:06:28.625 --> 00:06:34.515
+Select the district and one of its zonal offices, then enter a clear subdivision name and code.
+
+00:06:34.635 --> 00:06:37.700
+The subdivision must belong to the selected zone.
+
+00:06:37.820 --> 00:06:43.825
+Save only after checking the relationship; a location mismatch is rejected by the server.
+
+00:06:44.875 --> 00:06:49.895
+The saved subdivision can now appear in compatible department and member forms.
+
+00:06:50.015 --> 00:06:54.310
+Keep linked history intact when making later master changes.
+
+00:06:54.430 --> 00:07:01.530
+Deactivating an old subdivision is different from moving existing members to a new organizational location.
+
+00:07:02.580 --> 00:07:07.880
+Departments connect a district and zonal office, with an optional subdivision.
+
+00:07:08.000 --> 00:07:11.675
+Search by name or code and use district filters.
+
+00:07:11.795 --> 00:07:19.020
+Department selection is required during member registration and helps fill the correct location information.
+
+00:07:20.070 --> 00:07:24.600
+Choose the district and zone, then select a matching subdivision if needed.
+
+00:07:24.720 --> 00:07:27.310
+Enter the department code and name.
+
+00:07:27.430 --> 00:07:30.165
+The province fields come from the district.
+
+00:07:30.285 --> 00:07:36.095
+The full department label helps distinguish departments with similar names in different locations.
+
+00:07:37.145 --> 00:07:41.560
+After saving, the department is available to eligible users.
+
+00:07:41.680 --> 00:07:49.230
+A registered member’s zone or department change must use Member Transfers so the original ledger is preserved.
+
+00:07:49.350 --> 00:07:54.650
+Do not edit a master or bypass a location guard simply to move registered members.
+
+00:07:55.700 --> 00:07:59.290
+A lager is a named member group under a zonal office.
+
+00:07:59.410 --> 00:08:03.555
+Filter by district and zone, or search by name or code.
+
+00:08:03.675 --> 00:08:09.505
+The list shows member counts and links to the lager’s members and consolidated activity.
+
+00:08:10.555 --> 00:08:16.020
+Select the district and zonal office, then enter a name and globally unique code.
+
+00:08:16.140 --> 00:08:21.170
+The same lager name may exist in different zones, but not twice in the same zone.
+
+00:08:21.290 --> 00:08:25.670
+Registration requires a lager from the department’s zonal office.
+
+00:08:26.720 --> 00:08:28.970
+Save and verify the result.
+
+00:08:29.090 --> 00:08:34.360
+A lager containing members cannot simply move to another zone or be deleted.
+
+00:08:34.480 --> 00:08:38.920
+Use the supported member location workflows and retain history.
+
+00:08:39.040 --> 00:08:43.050
+We will return to Lager activity in the reporting chapter.
+
+00:08:44.100 --> 00:08:47.710
+Open Member directory and choose Register member.
+
+00:08:47.830 --> 00:08:50.715
+Required fields are marked on the form.
+
+00:08:50.835 --> 00:08:54.415
+Begin with the department or location selectors.
+
+00:08:54.535 --> 00:09:02.370
+You may search a department by name or code; its saved relationships fill district, zone and province information.
+
+00:09:03.420 --> 00:09:07.310
+Select a compatible lager and the ledger maintenance officer.
+
+00:09:07.430 --> 00:09:13.200
+The officer must be active with an E P F number and the correct office and district access.
+
+00:09:13.320 --> 00:09:18.390
+New registration creates an original ledger with this responsibility.
+
+00:09:18.510 --> 00:09:22.075
+Changing zone clears incompatible choices.
+
+00:09:23.125 --> 00:09:28.250
+Enter the member number, full name and national identity number carefully.
+
+00:09:28.370 --> 00:09:33.715
+Member number, nonblank computer number and N I C must be unique.
+
+00:09:33.835 --> 00:09:36.760
+Choose the optional title and birth date.
+
+00:09:36.880 --> 00:09:42.865
+Short Name and expected retirement are generated; the retirement age defaults to sixty.
+
+00:09:43.915 --> 00:09:48.995
+Complete salary, admission date, mobile number and both addresses.
+
+00:09:49.115 --> 00:09:51.720
+Office and home phone are optional.
+
+00:09:51.840 --> 00:09:54.935
+Office contact details are entered manually.
+
+00:09:55.055 --> 00:10:00.480
+Salary cannot be negative, and admission or birth dates cannot be in the future.
+
+00:10:00.600 --> 00:10:02.875
+Keep Active for a current member.
+
+00:10:03.925 --> 00:10:07.870
+Review all required fields and submit the registration.
+
+00:10:07.990 --> 00:10:13.510
+The button may continue to payment-plan setup if your account has that separate Add permission.
+
+00:10:13.630 --> 00:10:18.690
+Registration permission alone does not grant financial module access.
+
+00:10:18.810 --> 00:10:22.100
+Correct any field errors before submitting again.
+
+00:10:23.150 --> 00:10:29.855
+The profile confirms the saved member, generated short name, location and contacts.
+
+00:10:29.975 --> 00:10:33.175
+Its original ledger reference is retained.
+
+00:10:33.295 --> 00:10:41.555
+Use the profile’s authorized links for plans, openings, financial entries, children, retirement or transfers.
+
+00:10:41.675 --> 00:10:45.070
+Each linked section still needs its own permission.
+
+00:10:46.120 --> 00:10:54.155
+Search by member number, name, short name, national identity number, computer number or mobile phone.
+
+00:10:54.275 --> 00:11:00.155
+Combine district, zonal office, department, lager and status filters when needed.
+
+00:11:00.275 --> 00:11:03.500
+Sorting and pagination help with larger lists.
+
+00:11:03.620 --> 00:11:06.975
+Only authorized district records are returned.
+
+00:11:08.025 --> 00:11:11.535
+Open Edit to correct permitted member details.
+
+00:11:11.655 --> 00:11:14.130
+Here we add an optional home phone.
+
+00:11:14.250 --> 00:11:16.870
+Generated fields remain read-only.
+
+00:11:16.990 --> 00:11:20.745
+Zone or department moves use Member Transfers.
+
+00:11:20.865 --> 00:11:27.835
+If a matching edit hierarchy is active, saving submits an approval request before changing business data.
+
+00:11:28.885 --> 00:11:34.185
+Check the profile’s identity, location and permitted financial summaries.
+
+00:11:34.305 --> 00:11:39.090
+Printing is intended for an authorized user who has already checked the record.
+
+00:11:39.210 --> 00:11:43.950
+Do not assume printed figures replace a dated financial statement.
+
+00:11:45.000 --> 00:11:53.340
+The browser print layout removes workspace navigation and prepares the profile for paper or the browser’s Save as P D F option.
+
+00:11:53.460 --> 00:11:57.960
+Choose the appropriate printer and protect printed member information.
+
+00:11:58.080 --> 00:12:01.675
+We are showing the print styling with fictional training data.
+
+00:12:02.725 --> 00:12:07.930
+Use Export C S V to download the matching authorized directory records.
+
+00:12:08.050 --> 00:12:14.000
+Applied filters determine the exported set, including records beyond the visible page.
+
+00:12:14.120 --> 00:12:17.915
+Open the file in your approved spreadsheet application.
+
+00:12:18.035 --> 00:12:23.255
+The system escapes potentially dangerous spreadsheet formula prefixes.
+
+00:12:24.305 --> 00:12:27.815
+An expected retirement date is planning information.
+
+00:12:27.935 --> 00:12:31.280
+It does not automatically change the member’s status.
+
+00:12:31.400 --> 00:12:36.985
+To record an actual retirement, open the profile and choose Process retirement.
+
+00:12:37.105 --> 00:12:41.905
+Early retirement can be recorded using its actual authorized date.
+
+00:12:42.955 --> 00:12:48.270
+Choose today or an earlier actual retirement date, after the member’s birth date.
+
+00:12:48.390 --> 00:12:52.565
+This records the pension date and changes status to Retired.
+
+00:12:52.685 --> 00:12:56.310
+The pension-date quarter affects member deposit interest.
+
+00:12:56.430 --> 00:13:01.830
+Posted-year protection can reject a change that would rewrite closed eligibility.
+
+00:13:02.880 --> 00:13:09.710
+The member is now retired, with financial accounts, payment plans and transaction history retained.
+
+00:13:09.830 --> 00:13:14.610
+The profile’s recorded pension date is distinct from expected retirement.
+
+00:13:14.730 --> 00:13:20.400
+A parent’s pension date does not remove interest from the child’s separate deposit accounts.
+
+00:13:21.450 --> 00:13:28.750
+Payment Types is the shared master for categories such as Special Deposit, Fix Deposit, Share and Pension.
+
+00:13:28.870 --> 00:13:32.000
+Scholarship and Scholar are separate types.
+
+00:13:32.120 --> 00:13:37.590
+Administrators manage these settings; ordinary users need View to read the master.
+
+00:13:38.640 --> 00:13:44.830
+Open a type to review its name, active status, display order and annual interest rate.
+
+00:13:44.950 --> 00:13:48.380
+Rates range from zero to one hundred percent.
+
+00:13:48.500 --> 00:13:51.045
+A zero rate may be intentional.
+
+00:13:51.165 --> 00:13:56.100
+Review finance policy before changing a rate used in calculations.
+
+00:13:57.150 --> 00:14:02.665
+Custom reference settings can describe a repeating interval or specific start and end dates.
+
+00:14:02.785 --> 00:14:05.625
+Here the draft shows forty-five days.
+
+00:14:05.745 --> 00:14:08.555
+These settings are reference information.
+
+00:14:08.675 --> 00:14:17.220
+The Quarterly Interest module still uses its quarterly minimum month-end calculation; it does not switch to a forty-five-day engine.
+
+00:14:18.270 --> 00:14:21.435
+We return to the quarterly reference and save.
+
+00:14:21.555 --> 00:14:26.020
+Active new payment types appear in relevant plan and opening forms.
+
+00:14:26.140 --> 00:14:29.505
+Inactive types retain historical amounts.
+
+00:14:29.625 --> 00:14:33.865
+Used types cannot be deleted just to remove old history.
+
+00:14:34.915 --> 00:14:38.990
+Plan templates provide reusable contribution amounts.
+
+00:14:39.110 --> 00:14:43.310
+They contain no member balances and are shared across districts.
+
+00:14:43.430 --> 00:14:47.960
+Template permissions are separate from member payment-plan permissions.
+
+00:14:48.080 --> 00:14:51.940
+An existing member plan keeps its own copied amounts.
+
+00:14:52.990 --> 00:14:58.680
+Enter a name and description, then positive monthly amounts for the relevant payment types.
+
+00:14:58.800 --> 00:15:01.700
+Leave unused types blank or zero.
+
+00:15:01.820 --> 00:15:06.090
+A usable template needs at least one positive contribution.
+
+00:15:06.210 --> 00:15:09.585
+Keep Active when operators should be able to apply it.
+
+00:15:10.635 --> 00:15:11.930
+Save the template.
+
+00:15:12.050 --> 00:15:18.630
+Applying it copies amounts into a member’s draft plan, where an authorized operator can adjust them.
+
+00:15:18.750 --> 00:15:23.830
+Changing or deleting the template later does not update already assigned plans.
+
+00:15:23.950 --> 00:15:29.355
+Do not expect a template revision to alter every member agreement automatically.
+
+00:15:30.405 --> 00:15:34.600
+The Payment Plan directory uses saved member identities.
+
+00:15:34.720 --> 00:15:39.310
+Search by member number or name and review pending versus ready agreements.
+
+00:15:39.430 --> 00:15:41.700
+Each member has one current plan.
+
+00:15:41.820 --> 00:15:46.790
+In this example we will set a plan for training member zero zero zero one.
+
+00:15:47.840 --> 00:15:50.820
+Select an active template to load its amounts.
+
+00:15:50.940 --> 00:15:52.725
+The form remains a draft.
+
+00:15:52.845 --> 00:15:59.110
+Review each payment type, customize the member’s agreed amounts when authorized, and check the total.
+
+00:15:59.230 --> 00:16:03.805
+Selecting another template explicitly replaces the draft amounts.
+
+00:16:04.855 --> 00:16:08.335
+Enter the agreement date and review the monthly total.
+
+00:16:08.455 --> 00:16:11.965
+This is an agreement about expected contributions.
+
+00:16:12.085 --> 00:16:16.010
+Saving a plan does not create an actual deposit or a debit.
+
+00:16:16.130 --> 00:16:20.985
+Received money must be entered through the appropriate transaction workflow.
+
+00:16:22.035 --> 00:16:25.600
+The saved plan shows its agreement and type amounts.
+
+00:16:25.720 --> 00:16:29.065
+Open Edit to change it later if you have permission.
+
+00:16:29.185 --> 00:16:35.215
+Saved opening balances may be shown only with the separate Opening Balances View permission.
+
+00:16:35.335 --> 00:16:39.050
+Deleting an eligible plan keeps the member registered.
+
+00:16:40.100 --> 00:16:44.630
+Opening Balances stores imported starting amounts by payment type.
+
+00:16:44.750 --> 00:16:49.285
+Choose a member number or name and check whether a record already exists.
+
+00:16:49.405 --> 00:16:54.490
+A member has one opening record, separate from the monthly contribution plan.
+
+00:16:55.540 --> 00:17:00.300
+Choose Balance as of and enter each payment type’s starting amount in rupees.
+
+00:17:00.420 --> 00:17:03.290
+Unused amounts may be blank or zero.
+
+00:17:03.410 --> 00:17:08.040
+Here Special Deposit starts at ten thousand and Share at two thousand.
+
+00:17:08.160 --> 00:17:11.285
+Check the total and source records before saving.
+
+00:17:12.335 --> 00:17:15.860
+The saved page separates opening amounts by type.
+
+00:17:15.980 --> 00:17:24.070
+Later annual interest carry-forward is shown through its saved results without replacing the original imported opening record.
+
+00:17:24.190 --> 00:17:29.965
+Transfers also use ledger snapshots rather than duplicate opening records.
+
+00:17:31.015 --> 00:17:35.160
+Existing openings can be edited only when domain rules allow it.
+
+00:17:35.280 --> 00:17:42.880
+Posted interest, Fix Deposit loan or withdrawal history, and historical ledgers can lock amounts or dates.
+
+00:17:43.000 --> 00:17:49.570
+Ask the responsible finance officer to investigate a locked value instead of bypassing the protection.
+
+00:17:50.620 --> 00:17:53.440
+Open Debit and Credit, then Add entry.
+
+00:17:53.560 --> 00:17:57.405
+Select the member, payment type and financial date.
+
+00:17:57.525 --> 00:18:05.390
+The saved balance preview includes applicable openings and earlier saved transactions, excluding the unsaved entry.
+
+00:18:05.510 --> 00:18:08.310
+Verify the account before entering money.
+
+00:18:09.360 --> 00:18:13.905
+For a deposit, enter a positive credit and leave debit blank or zero.
+
+00:18:14.025 --> 00:18:18.965
+For an ordinary withdrawal, enter a positive debit and leave credit zero.
+
+00:18:19.085 --> 00:18:21.975
+Both positive or both zero are invalid.
+
+00:18:22.095 --> 00:18:27.590
+Enter a useful reference and description, then check the saved-balance context.
+
+00:18:28.640 --> 00:18:36.025
+The statement shows starting or brought-forward balance, period debits and credits, running balances and final balance.
+
+00:18:36.145 --> 00:18:40.610
+Final balance equals starting balance plus credits minus debits.
+
+00:18:40.730 --> 00:18:46.815
+Earlier movements are brought forward when you narrow the period; the account does not reset to zero.
+
+00:18:47.865 --> 00:18:52.335
+Choose either Single date or From and To dates, then show the statement.
+
+00:18:52.455 --> 00:18:54.370
+Do not mix both modes.
+
+00:18:54.490 --> 00:19:00.780
+The displayed totals apply to the selected period and running balances remain consistent across pages.
+
+00:19:00.900 --> 00:19:04.245
+Accounts can be negative where product rules permit.
+
+00:19:05.295 --> 00:19:10.440
+Member balances aggregates authorized members and payment types for the selected date.
+
+00:19:10.560 --> 00:19:12.890
+Filters can narrow the report.
+
+00:19:13.010 --> 00:19:16.890
+Its totals cover matching records beyond a single page.
+
+00:19:17.010 --> 00:19:20.495
+Use View statement to inspect a member and type.
+
+00:19:20.615 --> 00:19:25.875
+Fix Deposit withdrawals use their controlled module rather than a generic debit.
+
+00:19:26.925 --> 00:19:30.625
+Child Deposit Types is a separate shared master.
+
+00:19:30.745 --> 00:19:36.220
+It stores the age at which the rate changes and annual rates below and from that age.
+
+00:19:36.340 --> 00:19:40.830
+Member payment types and child deposit types are different masters.
+
+00:19:41.880 --> 00:19:49.325
+This training type uses age eighteen, eight percent below the threshold and five percent from the threshold birthday.
+
+00:19:49.445 --> 00:19:54.055
+Administrators can configure these values within the allowed ranges.
+
+00:19:54.175 --> 00:19:59.835
+Review policy before saving because the rule affects current rate displays and new entries.
+
+00:20:00.885 --> 00:20:05.180
+Saved child entry rates are retained when the master changes.
+
+00:20:05.300 --> 00:20:09.445
+Posted annual calculation snapshots also stay fixed.
+
+00:20:09.565 --> 00:20:18.395
+The threshold-birthday quarter is excluded from quarterly interest; it is not prorated, even when the two configured rates happen to be equal.
+
+00:20:19.445 --> 00:20:23.380
+Open Children from the workspace or a member profile.
+
+00:20:23.500 --> 00:20:25.865
+A member may have several children.
+
+00:20:25.985 --> 00:20:34.810
+Children permissions are separate from Child Deposits permissions, so seeing a child does not automatically reveal that child’s savings.
+
+00:20:35.860 --> 00:20:42.260
+Confirm the parent member, enter the child’s name and date of birth, and keep Active if appropriate.
+
+00:20:42.380 --> 00:20:44.880
+Birth date cannot be in the future.
+
+00:20:45.000 --> 00:20:51.100
+After saving, the parent relationship remains fixed to protect account and family history.
+
+00:20:52.150 --> 00:20:55.965
+The child profile shows saved identity and age.
+
+00:20:56.085 --> 00:21:01.290
+Authorized users can open deposit accounts or follow existing account links.
+
+00:21:01.410 --> 00:21:06.835
+A child may have more than one deposit, including more than one account of the same type.
+
+00:21:06.955 --> 00:21:10.100
+Keep the account reference clear when posting.
+
+00:21:11.150 --> 00:21:18.230
+Child Deposits lists accounts with their own references, balances and configured age-based rates as of a date.
+
+00:21:18.350 --> 00:21:21.585
+Filter by parent member, child or type.
+
+00:21:21.705 --> 00:21:26.270
+These balances never merge with the parent’s separate member payment account.
+
+00:21:27.320 --> 00:21:31.275
+Choose the child deposit type, opening date and amount.
+
+00:21:31.395 --> 00:21:35.500
+The rate preview follows the child’s completed age on that date.
+
+00:21:35.620 --> 00:21:42.310
+The opening date cannot be before birth or in the future, and the opening amount cannot be negative.
+
+00:21:43.360 --> 00:21:46.310
+Save and note the generated deposit reference.
+
+00:21:46.430 --> 00:21:55.275
+Multiple accounts of one type can exist for the same child, so name and type alone are not enough to identify a posting destination.
+
+00:21:55.395 --> 00:22:01.625
+Opening amount and date become fixed once dated transactions or posted annual interest exist.
+
+00:22:02.675 --> 00:22:06.155
+Open the intended deposit and choose Add debit or credit.
+
+00:22:06.275 --> 00:22:09.510
+Enter the date and exactly one positive side.
+
+00:22:09.630 --> 00:22:12.855
+Here we credit seven hundred and fifty rupees.
+
+00:22:12.975 --> 00:22:17.835
+Verify the account reference, saved balance and configured rate before saving.
+
+00:22:17.955 --> 00:22:20.890
+An entry cannot predate account opening.
+
+00:22:21.940 --> 00:22:28.635
+The child statement shows opening or brought-forward amount, movements and running balance for this account only.
+
+00:22:28.755 --> 00:22:31.995
+Apply a single date or inclusive range as needed.
+
+00:22:32.115 --> 00:22:38.475
+Its final balance uses the opening amount plus saved credits minus debits through the chosen date.
+
+00:22:39.525 --> 00:22:43.110
+An entry stores the applicable configured rate when saved.
+
+00:22:43.230 --> 00:22:45.980
+Changing a note or amount keeps that rate.
+
+00:22:46.100 --> 00:22:51.160
+An allowed transaction-date change in an open year refreshes it under current rules.
+
+00:22:51.280 --> 00:22:55.990
+Closed years and historical ledgers may prevent editing or deletion.
+
+00:22:57.040 --> 00:23:01.175
+Open Quarterly Interest and choose the financial year and account group.
+
+00:23:01.295 --> 00:23:07.985
+You can include member accounts, child deposits or both, then narrow by the available filters.
+
+00:23:08.105 --> 00:23:10.780
+Viewing a preview does not credit interest.
+
+00:23:10.900 --> 00:23:14.425
+This example reviews the ended twenty twenty-five year.
+
+00:23:15.475 --> 00:23:20.080
+Each completed quarter uses the minimum of its three month-end balances.
+
+00:23:20.200 --> 00:23:26.705
+Quarterly interest is that minimum times the annual percentage divided by four hundred, rounded to cents.
+
+00:23:26.825 --> 00:23:31.845
+A nonpositive minimum earns zero, and an incomplete quarter remains pending.
+
+00:23:32.895 --> 00:23:37.005
+The member’s pension-date quarter is excluded from member interest.
+
+00:23:37.125 --> 00:23:42.475
+A child’s age-threshold birthday quarter is excluded only for that child account.
+
+00:23:42.595 --> 00:23:46.180
+Parent retirement does not exclude child savings.
+
+00:23:46.300 --> 00:23:51.235
+Confirm rates and dates before closing because posted history is protected.
+
+00:23:52.285 --> 00:23:56.825
+Review year-end posting only after the saved financial year has ended.
+
+00:23:56.945 --> 00:24:01.480
+Check quarter results, annual interest and next opening amount.
+
+00:24:01.600 --> 00:24:06.895
+The system rejects a stale review if underlying calculation inputs change.
+
+00:24:07.015 --> 00:24:11.935
+With an active matching hierarchy, the posting request waits for approval.
+
+00:24:12.985 --> 00:24:17.340
+Annual interest is credited once, dated at the financial year end.
+
+00:24:17.460 --> 00:24:20.465
+It is not capitalized every quarter.
+
+00:24:20.585 --> 00:24:27.045
+The result becomes part of next year’s brought-forward balance while the original opening and entries remain.
+
+00:24:27.165 --> 00:24:30.750
+Repeating a supported post does not create another credit.
+
+00:24:31.800 --> 00:24:38.600
+Child annual interest has its own review and posts to the child’s deposit, not the parent’s member ledger.
+
+00:24:38.720 --> 00:24:41.665
+Check the child and unique account reference.
+
+00:24:41.785 --> 00:24:50.930
+After posting, affected historical identity, opening and transaction inputs are protected from changes that rewrite the closed year.
+
+00:24:51.980 --> 00:24:58.620
+The system also provides an optional scheduled processor for saving calculations and posting ended years.
+
+00:24:58.740 --> 00:25:04.230
+Its installation and posting authority are administrator responsibilities.
+
+00:25:04.350 --> 00:25:12.975
+Users should review the configured operating policy and reported failures; do not assume every deployment has the scheduler installed.
+
+00:25:14.025 --> 00:25:19.765
+Fix Deposit Loans and Withdrawals uses a policy linked to a member payment type.
+
+00:25:19.885 --> 00:25:26.920
+The underlying deposit balance comes from openings, top-up credits and controlled released withdrawals.
+
+00:25:27.040 --> 00:25:30.710
+A monthly plan amount by itself is not collateral.
+
+00:25:31.760 --> 00:25:42.960
+The training policy uses a thirty-six-month withdrawal cycle, a maximum seventy-five percent withdrawal, ninety percent loan security and twelve months between loan issues.
+
+00:25:43.080 --> 00:25:47.190
+A positive loan interest rate is required before issuing a loan.
+
+00:25:47.310 --> 00:25:51.435
+These product limits are enforced, not just displayed.
+
+00:25:52.485 --> 00:26:00.655
+When creating a Fix Deposit account, select its member and policy and enter the actual start of its withdrawal cycle.
+
+00:26:00.775 --> 00:26:04.495
+The cycle may predate a recently imported opening balance.
+
+00:26:04.615 --> 00:26:08.250
+There can be only one account for a member and policy.
+
+00:26:08.370 --> 00:26:10.490
+Do not guess the cycle date.
+
+00:26:11.540 --> 00:26:16.435
+Save the account and confirm its member, policy and cycle start.
+
+00:26:16.555 --> 00:26:20.960
+The balance still comes from that member’s existing payment-type ledger.
+
+00:26:21.080 --> 00:26:24.490
+Creating an account does not create a new deposit.
+
+00:26:24.610 --> 00:26:29.885
+We will use the separate mature training account for the loan and withdrawal examples.
+
+00:26:30.935 --> 00:26:34.225
+Our preconfigured fictional account is mature.
+
+00:26:34.345 --> 00:26:44.235
+Its status shows deposit balance, outstanding principal and assessed interest, loan capacity, next loan date and withdrawal eligibility.
+
+00:26:44.355 --> 00:26:47.065
+Read the reasons when an action is blocked.
+
+00:26:47.185 --> 00:26:50.730
+Amounts are calculated for the selected business date.
+
+00:26:51.780 --> 00:26:58.290
+Choose Issue loan, check the date, current capacity and configured rate, and enter the principal.
+
+00:26:58.410 --> 00:27:01.135
+Here we issue twenty thousand rupees.
+
+00:27:01.255 --> 00:27:05.495
+Other outstanding loan principal uses the same collateral limit.
+
+00:27:05.615 --> 00:27:09.280
+Issuing this loan does not reduce the deposit balance.
+
+00:27:10.330 --> 00:27:16.605
+The loan page keeps its reference, issued principal, issue-date balance and rate snapshot.
+
+00:27:16.725 --> 00:27:19.640
+Principal due and assessed interest due are separate.
+
+00:27:19.760 --> 00:27:27.605
+A displayed annual rate is not an automatic daily accrual calculation; the bank assesses charges and records them separately.
+
+00:27:28.655 --> 00:27:33.460
+Choose an interest charge and enter the assessed amount with zero principal.
+
+00:27:33.580 --> 00:27:40.010
+Two hundred rupees is an illustrative training assessment, not a calculation of the displayed annual rate.
+
+00:27:40.130 --> 00:27:44.250
+Add a clear reference so the source of the assessment can be checked.
+
+00:27:45.300 --> 00:27:50.530
+Choose repayment and enter the principal and assessed-interest amounts being paid.
+
+00:27:50.650 --> 00:27:53.485
+Neither may exceed the remaining amount due.
+
+00:27:53.605 --> 00:27:57.850
+Here we repay twenty thousand principal and two hundred interest.
+
+00:27:57.970 --> 00:28:03.480
+The operation token helps prevent duplicate application of the same submitted repayment.
+
+00:28:04.530 --> 00:28:08.565
+A zero displayed balance does not automatically settle the loan.
+
+00:28:08.685 --> 00:28:14.380
+Confirm that all interest through settlement has been assessed and paid, then submit settlement.
+
+00:28:14.500 --> 00:28:18.995
+The system requires both principal and assessed interest to be zero.
+
+00:28:19.115 --> 00:28:22.955
+Configured edit approvals can apply to this processing step.
+
+00:28:24.005 --> 00:28:26.660
+The saved loan now records settlement.
+
+00:28:26.780 --> 00:28:34.580
+Until all Fix Deposit loans are formally settled, including interest confirmation, withdrawal remains blocked.
+
+00:28:34.700 --> 00:28:41.580
+Keep assessment and repayment evidence; do not use generic deposit entries to erase a loan obligation.
+
+00:28:42.630 --> 00:28:44.910
+Return to the deposit account.
+
+00:28:45.030 --> 00:28:52.570
+Withdrawal requires a mature cycle, no unsettled loans and a positive available amount within the percentage cap.
+
+00:28:52.690 --> 00:28:55.775
+Monthly top-ups share the account’s cycle.
+
+00:28:55.895 --> 00:28:59.300
+The balance and limits must be checked again at release.
+
+00:29:00.350 --> 00:29:03.360
+Enter the request date and permitted amount.
+
+00:29:03.480 --> 00:29:07.190
+This example requests twenty-five thousand rupees.
+
+00:29:07.310 --> 00:29:10.530
+Creating a request does not debit the deposit.
+
+00:29:10.650 --> 00:29:14.300
+Only one pending request can exist for the account.
+
+00:29:14.420 --> 00:29:17.460
+Save it for the authorized review process.
+
+00:29:18.510 --> 00:29:23.200
+The reviewer chooses release or rejection and confirms the review date.
+
+00:29:23.320 --> 00:29:28.735
+Release rechecks maturity, current balance, unsettled loans and the limit.
+
+00:29:28.855 --> 00:29:33.810
+Where a matching hierarchy exists, this review waits for final approval.
+
+00:29:33.930 --> 00:29:37.625
+Rejection leaves funds and the cycle unchanged.
+
+00:29:38.675 --> 00:29:44.595
+Successful release creates one controlled deposit debit and stores before-and-after values.
+
+00:29:44.715 --> 00:29:47.515
+The cycle restarts from the release date.
+
+00:29:47.635 --> 00:29:50.960
+A repeated review cannot release the request twice.
+
+00:29:51.080 --> 00:29:57.290
+Released withdrawal entries cannot be casually edited through the ordinary Debit and Credit screen.
+
+00:29:58.340 --> 00:30:06.085
+Member Ledgers shows original and receiving references, active or historical status and responsible officers.
+
+00:30:06.205 --> 00:30:08.675
+Use filters to find a page.
+
+00:30:08.795 --> 00:30:16.830
+Ledger View does not automatically grant every financial section; those still need their respective module View permissions.
+
+00:30:17.880 --> 00:30:26.235
+The ledger retains member and location snapshots, permitted balances, saved record events and responsibility history.
+
+00:30:26.355 --> 00:30:30.155
+Financial date and recorded time serve different purposes.
+
+00:30:30.275 --> 00:30:37.070
+These pages preserve office continuity; they do not create duplicate transactions from carried amounts.
+
+00:30:38.120 --> 00:30:44.875
+Choose Change officer on an active ledger, select an eligible officer from the same zone and record the reason.
+
+00:30:44.995 --> 00:30:49.960
+In this example Anita is active with a matching E P F, zone and district.
+
+00:30:50.080 --> 00:30:53.700
+Historical ledger pages cannot be reassigned.
+
+00:30:54.750 --> 00:31:01.865
+The handover keeps previous and new names and E P F snapshots, the acting user, reason and time.
+
+00:31:01.985 --> 00:31:07.175
+Later account-name corrections do not rewrite old responsibility history.
+
+00:31:07.295 --> 00:31:13.935
+Reassign active ledgers before deactivating or moving an officer or removing required district access.
+
+00:31:14.985 --> 00:31:22.655
+Use Member Transfers when a registered member changes zone or department, including supported changes within a zone.
+
+00:31:22.775 --> 00:31:27.585
+The operator needs the transfer action and both source and receiving districts.
+
+00:31:27.705 --> 00:31:31.865
+Direct profile changes cannot replace this workflow.
+
+00:31:32.915 --> 00:31:36.475
+Select the member and review the current ledger and officer.
+
+00:31:36.595 --> 00:31:41.490
+A missing original officer assignment must be resolved before transfer.
+
+00:31:41.610 --> 00:31:48.555
+The source reference protects against a stale form if someone transfers the member while your form is open.
+
+00:31:49.605 --> 00:31:56.880
+Select the receiving district, zonal office, department, lager, optional matching subdivision and officer.
+
+00:31:57.000 --> 00:31:59.750
+Enter a valid effective date and reason.
+
+00:31:59.870 --> 00:32:04.990
+Future dates and dates conflicting with later source activity are rejected.
+
+00:32:05.110 --> 00:32:08.255
+The receiving officer must be eligible for that office.
+
+00:32:09.305 --> 00:32:14.775
+This example has no active transfer hierarchy, so it completes immediately.
+
+00:32:14.895 --> 00:32:20.755
+With a configured transfer hierarchy, submission first creates an approval request.
+
+00:32:20.875 --> 00:32:30.005
+Successful completion closes and freezes the source page, creates the linked receiving active page and records responsibility atomically.
+
+00:32:31.055 --> 00:32:37.420
+Member, child, account, loan, plan and transaction identities remain intact.
+
+00:32:37.540 --> 00:32:40.825
+New postings belong to the receiving page.
+
+00:32:40.945 --> 00:32:51.930
+The source district retains its historical page without seeing later receiving transactions; receiving users can follow predecessors subject to their section permissions.
+
+00:32:52.980 --> 00:32:57.000
+Approval hierarchies are configured by administrators.
+
+00:32:57.120 --> 00:33:02.735
+They apply to Member Transfers and edits or processing of existing workspace records.
+
+00:33:02.855 --> 00:33:10.035
+Most ordinary creates and deletes, including new loan and repayment entries, follow normal processing.
+
+00:33:10.155 --> 00:33:14.510
+Do not assume a global edit hierarchy covers every action.
+
+00:33:15.560 --> 00:33:18.285
+Choose the module and supported action.
+
+00:33:18.405 --> 00:33:22.150
+This example covers editing member debit and credit entries.
+
+00:33:22.270 --> 00:33:28.495
+A module-specific hierarchy takes priority over the global edits-only hierarchy.
+
+00:33:28.615 --> 00:33:35.475
+Enter a meaningful configuration reason because the before-and-after settings and approver identities are audited.
+
+00:33:36.525 --> 00:33:41.405
+Give each level a distinct order and name, then select its active approvers.
+
+00:33:41.525 --> 00:33:45.085
+Any one designated user completes a level.
+
+00:33:45.205 --> 00:33:50.020
+Here Supervisor review comes first, then Finance final review.
+
+00:33:50.140 --> 00:33:53.905
+Choose whether assigned users may reject at each level.
+
+00:33:54.025 --> 00:33:56.805
+Up to twenty levels are supported.
+
+00:33:57.855 --> 00:34:01.215
+Review every level and save the hierarchy.
+
+00:34:01.335 --> 00:34:04.545
+Ordinary users cannot approve their own requests.
+
+00:34:04.665 --> 00:34:07.715
+Administrators can override with a reason.
+
+00:34:07.835 --> 00:34:16.875
+Later hierarchy edits do not rewrite the assignments already captured on pending requests; inactive approvers lose access immediately.
+
+00:34:17.925 --> 00:34:20.555
+The saved hierarchy appears in the list.
+
+00:34:20.675 --> 00:34:24.790
+Its history preserves configuration changes and reasons.
+
+00:34:24.910 --> 00:34:31.855
+Deactivating it affects new submissions, while pending requests retain their submitted policy snapshot.
+
+00:34:31.975 --> 00:34:37.050
+Use controlled administrator action to resolve affected pending cases.
+
+00:34:38.100 --> 00:34:45.635
+As the ordinary operator, edit the saved current-year contribution and request a credit of twenty-six hundred rupees.
+
+00:34:45.755 --> 00:34:49.160
+Account identity and original author remain fixed.
+
+00:34:49.280 --> 00:34:55.685
+Because the matching hierarchy is active, saving queues the request before changing the transaction.
+
+00:34:56.735 --> 00:35:02.625
+The request page shows the submitted change, requester, ordered levels and audit events.
+
+00:35:02.745 --> 00:35:06.520
+The transaction still has its earlier amount while pending.
+
+00:35:06.640 --> 00:35:11.680
+Requesters see their submissions; designated users see assigned requests.
+
+00:35:11.800 --> 00:35:15.600
+A requester can cancel a pending request with a reason.
+
+00:35:16.650 --> 00:35:22.265
+The first approver reviews the before-and-after information and decides the current level.
+
+00:35:22.385 --> 00:35:27.810
+Another ordinary user cannot skip ahead or approve the requester’s own submission.
+
+00:35:27.930 --> 00:35:31.795
+Rejection is available only when enabled for the level.
+
+00:35:31.915 --> 00:35:35.955
+Review the actual change rather than approving just its title.
+
+00:35:37.005 --> 00:35:41.195
+The first approval advances the request to Finance final review.
+
+00:35:41.315 --> 00:35:44.680
+It does not yet apply the transaction change.
+
+00:35:44.800 --> 00:35:49.535
+A completed level cannot be approved again to duplicate application.
+
+00:35:49.655 --> 00:35:53.225
+The audit records the acting officer and decision time.
+
+00:35:54.275 --> 00:35:56.840
+The final approver reviews and approves.
+
+00:35:56.960 --> 00:36:04.255
+Before applying, the system checks the original requester’s current access, target fingerprint and financial rules again.
+
+00:36:04.375 --> 00:36:12.220
+Revoked access, changed records or failed validation produce a failed outcome rather than a partial business change.
+
+00:36:13.270 --> 00:36:17.770
+The result is Approved and applied, with the full approval audit retained.
+
+00:36:17.890 --> 00:36:20.295
+The business change is applied once.
+
+00:36:20.415 --> 00:36:25.395
+This final result is different from merely completing an intermediate level.
+
+00:36:25.515 --> 00:36:31.260
+The original posting author is retained while the audit identifies the approving officers.
+
+00:36:32.310 --> 00:36:37.915
+A requester can withdraw a pending submission by choosing Cancel and recording the reason.
+
+00:36:38.035 --> 00:36:42.595
+Cancellation, like rejection, leaves business data unchanged.
+
+00:36:42.715 --> 00:36:49.955
+Use a new validated submission when the corrected change is ready; do not rewrite the permanent request history.
+
+00:36:51.005 --> 00:36:59.265
+An administrator may approve all remaining levels or decide at any level, including their own requests, but must give a reason.
+
+00:36:59.385 --> 00:37:04.810
+This is an exceptional accountable action, not an ordinary approver shortcut.
+
+00:37:04.930 --> 00:37:08.940
+The audit retains the override status, reason and outcome.
+
+00:37:09.990 --> 00:37:14.150
+Open Approvals to filter statuses and review the permanent audit.
+
+00:37:14.270 --> 00:37:20.655
+If final application fails, inspect current records and permissions and submit a new request.
+
+00:37:20.775 --> 00:37:25.200
+A deadline or reminder never automatically approves a change.
+
+00:37:25.320 --> 00:37:29.650
+Advanced administration does not bypass covered edit approval.
+
+00:37:30.700 --> 00:37:36.355
+Open a lager’s Activity link to see saved member and child activity in one place.
+
+00:37:36.475 --> 00:37:40.365
+Summaries use the established financial balance rules.
+
+00:37:40.485 --> 00:37:43.035
+Loan obligations remain separate.
+
+00:37:43.155 --> 00:37:50.535
+Interest snapshots and withdrawal requests do not add another amount on top of their actual posted ledger entries.
+
+00:37:51.585 --> 00:37:55.865
+Filter by member, activity type and date range.
+
+00:37:55.985 --> 00:38:03.930
+Activity-type filtering changes the records table, while summaries cover permitted modules for the selected members.
+
+00:38:04.050 --> 00:38:07.220
+The report follows each member’s current lager.
+
+00:38:07.340 --> 00:38:11.550
+Use permanent ledgers for historical office reporting.
+
+00:38:12.600 --> 00:38:18.845
+Export C S V includes all matching authorized activity, not just the displayed page.
+
+00:38:18.965 --> 00:38:24.040
+Lagers View is required, plus each financial section’s own View permission.
+
+00:38:24.160 --> 00:38:30.210
+A user with only Lager access must not receive hidden member or financial data through this report.
+
+00:38:31.260 --> 00:38:36.875
+Use Member balances and statements to investigate totals by member and payment type.
+
+00:38:36.995 --> 00:38:41.910
+Choose an explicit as-of date and preserve filters when following statement links.
+
+00:38:42.030 --> 00:38:50.465
+A monthly plan is not a deposit, carried snapshots are not extra transactions, and child savings stays independent.
+
+00:38:51.515 --> 00:38:56.465
+This deliberately invalid example puts positive money on both debit and credit.
+
+00:38:56.585 --> 00:38:58.240
+The form rejects it.
+
+00:38:58.360 --> 00:39:02.555
+Read the field or form message, correct the cause and review again.
+
+00:39:02.675 --> 00:39:08.200
+Do not repeatedly submit a failing form or invent values to get past validation.
+
+00:39:09.250 --> 00:39:12.025
+Delete first opens a confirmation.
+
+00:39:12.145 --> 00:39:18.035
+A confirmed deletion requires the correct action permission and a P O S T submission.
+
+00:39:18.155 --> 00:39:25.390
+Members, masters or financial records linked to permanent or protected history cannot be freely deleted.
+
+00:39:25.510 --> 00:39:29.065
+Inactivate eligible records when history must remain.
+
+00:39:29.185 --> 00:39:31.905
+We will cancel this demonstration.
+
+00:39:32.955 --> 00:39:37.615
+Advanced Django administration is reserved for active superusers.
+
+00:39:37.735 --> 00:39:42.255
+It exposes technical model administration and account controls.
+
+00:39:42.375 --> 00:39:47.040
+Ordinary staff cannot use it to bypass district restrictions.
+
+00:39:47.160 --> 00:39:55.025
+Financial histories are read-only where required, and covered edits cannot bypass the configured approval workflow.
+
+00:39:56.075 --> 00:40:05.220
+The advanced administration password-change page lets an administrator change their own password using the current password and a matching new pair.
+
+00:40:05.340 --> 00:40:08.645
+Use your organization’s password policy.
+
+00:40:08.765 --> 00:40:12.225
+Reset other users through the authorized account editor.
+
+00:40:12.345 --> 00:40:16.020
+No real password is being changed in this training.
+
+00:40:17.070 --> 00:40:24.295
+Sessions normally expire after fifteen minutes without genuine activity, unless configured otherwise.
+
+00:40:24.415 --> 00:40:29.115
+Activity in another tab counts, and the browser coordinates logout.
+
+00:40:29.235 --> 00:40:32.805
+Save work before leaving and use Sign out when finished.
+
+00:40:32.925 --> 00:40:37.275
+Closing one tab does not necessarily sign out the other tabs.
+
+00:40:38.325 --> 00:40:42.630
+You have now seen administration and every operational module.
+
+00:40:42.750 --> 00:40:46.460
+Revisit the chapter index for a specific task.
+
+00:40:46.580 --> 00:40:59.055
+Use your assigned account, verify member and account references, respect approval and history protections, and ask the responsible administrator or finance officer when an action is blocked.
+
+00:40:59.175 --> 00:41:01.620
+Thank you for completing the training.

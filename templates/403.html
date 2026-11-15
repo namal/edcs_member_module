@@ -1,19 +1,92 @@
 {% extends 'base.html' %}
 
+{% load static %}
+
+{% block title %}Access restricted{% endblock %}
+{% block page_heading %}Access restricted{% endblock %}
+
 {% block content %}
-  <section class="card mx-auto max-w-xl p-8 text-center">
-    <span class="empty-icon mx-auto">
-      <svg class="icon h-6 w-6">
-        <use href="#i-lock" />
-      </svg>
-    </span>
-    <p class="eyebrow mb-3">403 · Access restricted</p>
-    <h1 class="page-title">
-      This action needs permission<span class="text-brand-600">.</span>
-    </h1>
-    <p class="muted mt-4">
-      Your account cannot access this page or perform this action. Contact your administrator if you need additional access.
-    </p>
-    <a href="{% url 'dashboard' %}" class="btn btn-primary mt-6">Back to my workspace</a>
+  <section class="access-page" aria-labelledby="access-title">
+    <div class="access-card">
+      <div class="access-art-panel">
+        <div class="access-brand">
+          <img src="{% static 'images/edcs-logo.png' %}"
+               width="900"
+               height="336"
+               alt="EDCS — Education Co-operative Society">
+        </div>
+        <div class="access-visual" aria-hidden="true">
+          <span class="access-number">403</span>
+          <svg class="access-illustration" viewBox="0 0 400 330" fill="none">
+            <defs>
+            <linearGradient id="access-shield" x1="122" y1="80" x2="290" y2="270" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#a92854" />
+            <stop offset="1" stop-color="#59112e" />
+            </linearGradient>
+            <linearGradient id="access-gold" x1="160" y1="150" x2="240" y2="230" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#ffe899" />
+            <stop offset="1" stop-color="#ffcc00" />
+            </linearGradient>
+            </defs>
+            <circle cx="200" cy="168" r="118" stroke="#ffcc00" stroke-opacity=".14" />
+            <circle cx="200" cy="168" r="145" stroke="white" stroke-opacity=".08" stroke-dasharray="3 10" />
+            <path d="M38 210h44m236-84h44M77 77l19 19m211 150 19 19" stroke="#ffcc00" stroke-opacity=".55" stroke-width="2" />
+            <path d="m200 57 93 35v77c0 61-42 99-93 122-51-23-93-61-93-122V92l93-35Z" fill="#270b19" fill-opacity=".3" transform="translate(8 12)" />
+            <path d="m200 57 93 35v77c0 61-42 99-93 122-51-23-93-61-93-122V92l93-35Z" fill="url(#access-shield)" stroke="#ffcc00" stroke-width="2" />
+            <path d="m200 73 78 29v67c0 50-33 84-78 106-45-22-78-56-78-106v-67l78-29Z" stroke="white" stroke-opacity=".14" />
+            <path d="M173 158v-22a27 27 0 0 1 54 0v22" stroke="#ffe899" stroke-width="9" stroke-linecap="round" />
+            <rect x="155" y="153" width="90" height="73" rx="15" fill="url(#access-gold)" />
+            <circle cx="200" cy="182" r="8" fill="#59112e" />
+            <path d="M200 187v14" stroke="#59112e" stroke-width="6" stroke-linecap="round" />
+            <path d="m316 59 3 10 10 3-10 3-3 10-3-10-10-3 10-3 3-10Z" fill="#ffcc00" />
+            <circle cx="81" cy="249" r="5" fill="#ffcc00" />
+            <circle cx="342" cy="211" r="3" fill="white" fill-opacity=".6" />
+          </svg>
+        </div>
+        <p class="access-art-caption">
+          <span class="access-caption-line" aria-hidden="true"></span>
+          A little care. A stronger community.
+        </p>
+      </div>
+      <div class="access-content">
+        <p class="access-kicker">
+          <span aria-hidden="true"></span>403 · Permission required
+        </p>
+        <h1 id="access-title">
+          This page is
+          <br>
+          protected<span>.</span>
+        </h1>
+        <p class="access-description">
+          Your account doesn’t have permission to open this page or complete this action.
+          You can still use the areas available in your workspace.
+        </p>
+        <a href="{% url 'dashboard' %}" class="btn access-workspace-link">
+          <svg class="icon h-4 w-4 rotate-180" aria-hidden="true">
+            <use href="#i-arrow" />
+          </svg>
+          Back to my workspace
+        </a>
+        <div class="access-help">
+          <span class="access-help-icon" aria-hidden="true">
+            <svg class="icon h-5 w-5">
+              <use href="#i-info" />
+            </svg>
+          </span>
+          <div>
+            <h2>Need access to this page?</h2>
+            <p>
+              Contact your administrator to review your permissions. Mention <strong>error 403</strong> so they can help.
+            </p>
+          </div>
+        </div>
+        <p class="access-footer">
+          <svg class="icon h-3.5 w-3.5" aria-hidden="true">
+            <use href="#i-shield" />
+          </svg>
+          Keeping member information in trusted hands.
+        </p>
+      </div>
+    </div>
   </section>
 {% endblock %}

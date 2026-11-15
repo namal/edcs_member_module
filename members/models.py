@@ -7,6 +7,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator, RegexVa
 from django.db import models, transaction
 from django.db.models.deletion import ProtectedError
 from django.utils import timezone
+from .ledger_tracking import LedgerTrackedModel
 
 phone_validator = RegexValidator(
     r"^\+?[\d\s()\-]{7,22}$", "Enter a valid phone number (7–15 digits)."
@@ -94,12 +95,18 @@ class OfficeLocation(models.Model):
                 self.members.exists()
                 or self.subdivisions.exists()
                 or self.schools.exists()
+                or self.lagers.exists()
+                or self.member_ledgers.exists()
             ):
                 raise ValidationError(
                     {
                         "district": "This zonal office has linked records. Its district cannot be changed."
                     }
                 )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        return super().save(*args, **kwargs)
 
 
 class Subdivision(models.Model):
@@ -131,7 +138,9 @@ class Subdivision(models.Model):
                 .first()
             )
             if previous != self.zonal_office_id and (
-                self.members.exists() or self.schools.exists()
+                self.members.exists()
+                or self.schools.exists()
+                or self.ledger_pages.exists()
             ):
                 raise ValidationError(
                     {
@@ -198,7 +207,7 @@ class School(models.Model):
             )
             if (
                 previous
-                and self.members.exists()
+                and (self.members.exists() or self.ledger_pages.exists())
                 and any(previous[field] != getattr(self, field) for field in previous)
             ):
                 errors["district"] = (
@@ -209,23 +218,31 @@ class School(models.Model):
 
 
 class Lager(models.Model):
-    district = models.ForeignKey(
-        District, on_delete=models.PROTECT, related_name="lagers"
+    zonal_office = models.ForeignKey(
+        OfficeLocation, on_delete=models.PROTECT, related_name="lagers"
     )
     name = models.CharField(max_length=150)
     code = models.CharField(max_length=20, unique=True)
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        ordering = ["district__name", "name", "pk"]
+        ordering = ["zonal_office__district__name", "zonal_office__name", "name", "pk"]
         constraints = [
             models.UniqueConstraint(
-                fields=["district", "name"], name="unique_lager_in_district"
+                fields=["zonal_office", "name"], name="unique_lager_in_zone"
             )
         ]
 
     def __str__(self):
-        return f"{self.name} · {self.district.name}"
+        return f"{self.name} · {self.zonal_office}"
+
+    @property
+    def district(self):
+        return self.zonal_office.district if self.zonal_office_id else None
+
+    @property
+    def district_id(self):
+        return self.zonal_office.district_id if self.zonal_office_id else None
 
     def clean(self):
         super().clean()
@@ -233,18 +250,31 @@ class Lager(models.Model):
             previous = (
                 type(self)
                 .objects.filter(pk=self.pk)
-                .values_list("district_id", flat=True)
+                .values_list("zonal_office_id", flat=True)
                 .first()
             )
-            if previous != self.district_id and self.members.exists():
+            if previous != self.zonal_office_id and (
+                self.members.exists() or self.ledger_pages.exists()
+            ):
                 raise ValidationError(
                     {
-                        "district": "This lager has registered members. Its district cannot be changed."
+                        "zonal_office": "This lager has registered members. Its zonal office cannot be changed."
                     }
                 )
 
+    def save(self, *args, **kwargs):
+        self.clean()
+        return super().save(*args, **kwargs)
+
 
 class Member(models.Model):
+    class Title(models.TextChoices):
+        MR = "Mr.", "Mr."
+        MISS = "Miss", "Miss"
+        MRS = "Mrs.", "Mrs."
+        MS = "Ms.", "Ms."
+        REV = "Rev.", "Rev."
+
     class Gender(models.TextChoices):
         MALE = "male", "Male"
         FEMALE = "female", "Female"
@@ -254,6 +284,7 @@ class Member(models.Model):
     class Status(models.TextChoices):
         ACTIVE = "active", "Active"
         INACTIVE = "inactive", "Inactive"
+        RETIRED = "retired", "Retired"
 
     district = models.ForeignKey(
         District, on_delete=models.PROTECT, related_name="members"
@@ -285,7 +316,16 @@ class Member(models.Model):
     computer_no = models.CharField(
         "Computer number", max_length=30, unique=True, blank=True, null=True
     )
+    title = models.CharField(
+        "Title / Salutation", max_length=5, choices=Title.choices, blank=True
+    )
     full_name = models.CharField(max_length=200)
+    short_name = models.CharField(
+        "Short Name", max_length=600, blank=True, editable=False
+    )
+    date_of_birth = models.DateField("Date of birth", null=True, blank=True)
+    retirement_age = models.PositiveSmallIntegerField(default=60, editable=False)
+    expected_retirement_date = models.DateField(null=True, blank=True, editable=False)
     salary = models.DecimalField(
         "Monthly salary (LKR)",
         max_digits=12,
@@ -339,8 +379,35 @@ class Member(models.Model):
     def initials(self):
         return "".join(part[0] for part in self.full_name.split()[:2]).upper()
 
+    def update_generated_fields(self):
+        from .member_identity import retirement_date, short_name
+
+        self.short_name = short_name(self.full_name, self.title)
+        birth_field = self._meta.get_field("date_of_birth")
+        self.date_of_birth = birth_field.to_python(self.date_of_birth)
+        self.expected_retirement_date = retirement_date(
+            self.date_of_birth, self.retirement_age
+        )
+
+    def validate_retirement(self):
+        errors = {}
+        if self.date_of_birth and self.date_of_birth > timezone.localdate():
+            errors["date_of_birth"] = "Date of birth cannot be in the future."
+        pension_date = self._meta.get_field("pension_date").to_python(self.pension_date)
+        if self.status == self.Status.RETIRED and not pension_date:
+            errors["pension_date"] = "Record the retirement date for a retired member."
+        if self.date_of_birth and pension_date and pension_date <= self.date_of_birth:
+            errors["pension_date"] = "Retirement must be after the date of birth."
+        if errors:
+            raise ValidationError(errors)
+
     def clean(self):
         super().clean()
+        self.update_generated_fields()
+        self.validate_retirement()
+        from .transfer_services import guard_member_location
+
+        guard_member_location(self)
         from .deposit_interest import guard_member_pension
 
         guard_member_pension(self)
@@ -373,6 +440,8 @@ class Member(models.Model):
         if self.lager_id:
             if self.lager.district_id != self.district_id:
                 errors["lager"] = "Choose a lager in the selected district."
+            elif self.lager.zonal_office_id != self.office_location_id:
+                errors["lager"] = "Choose a lager in the selected zonal office."
             if not self.lager.is_active and (
                 not self.pk
                 or type(self).objects.get(pk=self.pk).lager_id != self.lager_id
@@ -419,12 +488,42 @@ class Member(models.Model):
 
     def save(self, *args, **kwargs):
         from .deposit_interest import guard_member_pension
+        from .transfer_services import guard_member_location, initialize_member_ledger
 
+        self.update_generated_fields()
+        self.validate_retirement()
+        if kwargs.get("update_fields") is not None:
+            fields = set(kwargs["update_fields"])
+            if fields.intersection({"full_name", "title"}):
+                fields.add("short_name")
+            if fields.intersection({"date_of_birth", "retirement_age"}):
+                fields.add("expected_retirement_date")
+            kwargs["update_fields"] = fields
         with transaction.atomic():
             if self.pk:
                 type(self).objects.select_for_update().filter(pk=self.pk).first()
+            created = self.pk is None
+            guard_member_location(self)
             guard_member_pension(self)
-            return super().save(*args, **kwargs)
+            if self.lager_id and (
+                self.lager.district_id != self.district_id
+                or self.lager.zonal_office_id != self.office_location_id
+            ):
+                raise ValidationError(
+                    {
+                        "lager": "Choose a lager in the member's district and zonal office."
+                    }
+                )
+            result = super().save(*args, **kwargs)
+            if created:
+                from .ledger_tracking import ledger_actor
+
+                initialize_member_ledger(
+                    self,
+                    officer=getattr(self, "_maintenance_officer", None),
+                    actor=ledger_actor.get(),
+                )
+            return result
 
 
 class PaymentType(models.Model):
@@ -617,7 +716,7 @@ class PaymentType(models.Model):
             raise ValidationError(errors)
 
 
-class PaymentTransaction(models.Model):
+class PaymentTransaction(LedgerTrackedModel):
     member = models.ForeignKey(
         Member, on_delete=models.PROTECT, related_name="payment_transactions"
     )
@@ -716,11 +815,64 @@ class PaymentTransaction(models.Model):
             return super().delete(*args, **kwargs)
 
 
-class PaymentPlan(models.Model):
+class PaymentPlanTemplate(models.Model):
+    name = models.CharField(max_length=150, unique=True)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name", "pk"]
+        verbose_name = "payment plan template"
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def monthly_total(self):
+        if not self.pk:
+            return Decimal("0.00")
+        return sum((item.amount for item in self.amounts.all()), Decimal("0.00"))
+
+
+class PaymentPlanTemplateAmount(models.Model):
+    template = models.ForeignKey(
+        PaymentPlanTemplate, on_delete=models.CASCADE, related_name="amounts"
+    )
+    payment_type = models.ForeignKey(
+        PaymentType, on_delete=models.PROTECT, related_name="template_amounts"
+    )
+    amount = models.DecimalField(
+        max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0"))]
+    )
+
+    class Meta:
+        ordering = ["payment_type__sort_order", "payment_type__name", "pk"]
+        default_permissions = ()
+        constraints = [
+            models.UniqueConstraint(
+                fields=["template", "payment_type"], name="unique_template_payment_type"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(amount__gte=0), name="template_amount_nonnegative"
+            ),
+        ]
+
+
+class PaymentPlan(LedgerTrackedModel):
     member = models.OneToOneField(
         Member, on_delete=models.PROTECT, related_name="payment_plan"
     )
     agreement_date = models.DateField(default=timezone.localdate)
+    source_template = models.ForeignKey(
+        PaymentPlanTemplate,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_plans",
+    )
+    source_template_name = models.CharField(max_length=150, blank=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -739,7 +891,7 @@ class PaymentPlan(models.Model):
         return sum((item.amount for item in self.amounts.all()), Decimal("0.00"))
 
 
-class PaymentPlanAmount(models.Model):
+class PaymentPlanAmount(LedgerTrackedModel):
     plan = models.ForeignKey(
         PaymentPlan, on_delete=models.CASCADE, related_name="amounts"
     )
@@ -770,7 +922,7 @@ class PaymentPlanAmount(models.Model):
         return f"{self.payment_type} · {self.amount}"
 
 
-class OpeningBalance(models.Model):
+class OpeningBalance(LedgerTrackedModel):
     member = models.OneToOneField(
         Member, on_delete=models.PROTECT, related_name="opening_balance"
     )
@@ -845,7 +997,7 @@ class OpeningBalance(models.Model):
         ]
 
 
-class OpeningBalanceAmount(models.Model):
+class OpeningBalanceAmount(LedgerTrackedModel):
     opening_balance = models.ForeignKey(
         OpeningBalance, on_delete=models.CASCADE, related_name="amounts"
     )
@@ -911,7 +1063,7 @@ class OpeningBalanceAmount(models.Model):
             return super().delete(*args, **kwargs)
 
 
-class DepositInterestYear(models.Model):
+class DepositInterestYear(LedgerTrackedModel):
     member = models.ForeignKey(
         Member, on_delete=models.PROTECT, related_name="interest_years"
     )
@@ -996,7 +1148,7 @@ class DepositInterestYear(models.Model):
         return super().delete(*args, **kwargs)
 
 
-class Child(models.Model):
+class Child(LedgerTrackedModel):
     member = models.ForeignKey(
         Member, on_delete=models.PROTECT, related_name="children"
     )
@@ -1128,7 +1280,7 @@ class ChildDepositType(models.Model):
         )
 
 
-class ChildDeposit(models.Model):
+class ChildDeposit(LedgerTrackedModel):
     child = models.ForeignKey(Child, on_delete=models.PROTECT, related_name="deposits")
     deposit_type = models.ForeignKey(
         ChildDepositType, on_delete=models.PROTECT, related_name="deposits"
@@ -1226,7 +1378,7 @@ class ChildDeposit(models.Model):
             return super().save(*args, **kwargs)
 
 
-class ChildDepositTransaction(models.Model):
+class ChildDepositTransaction(LedgerTrackedModel):
     deposit = models.ForeignKey(
         ChildDeposit, on_delete=models.PROTECT, related_name="transactions"
     )
@@ -1359,7 +1511,7 @@ class ChildDepositTransaction(models.Model):
             return super().delete(*args, **kwargs)
 
 
-class ChildDepositInterestYear(models.Model):
+class ChildDepositInterestYear(LedgerTrackedModel):
     deposit = models.ForeignKey(
         ChildDeposit, on_delete=models.PROTECT, related_name="interest_years"
     )
@@ -1579,7 +1731,7 @@ class FixDepositPolicy(models.Model):
         return super().delete(*args, **kwargs)
 
 
-class FixDepositAccount(models.Model):
+class FixDepositAccount(LedgerTrackedModel):
     member = models.ForeignKey(
         Member, on_delete=models.PROTECT, related_name="fix_deposit_accounts"
     )
@@ -1652,7 +1804,7 @@ class FixDepositAccount(models.Model):
             return super().save(*args, **kwargs)
 
 
-class FixDepositLoan(models.Model):
+class FixDepositLoan(LedgerTrackedModel):
     account = models.ForeignKey(
         FixDepositAccount, on_delete=models.PROTECT, related_name="loans"
     )
@@ -1710,7 +1862,7 @@ class FixDepositLoan(models.Model):
         return self.reference
 
 
-class FixLoanEntry(models.Model):
+class FixLoanEntry(LedgerTrackedModel):
     class Kind(models.TextChoices):
         REPAYMENT = "repayment", "Principal / interest repayment"
         INTEREST = "interest", "Interest charge assessed by bank"
@@ -1773,7 +1925,7 @@ class FixLoanEntry(models.Model):
         return f"{self.loan.reference} · {self.entry_date} · {self.get_kind_display()}"
 
 
-class FixDepositWithdrawal(models.Model):
+class FixDepositWithdrawal(LedgerTrackedModel):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending release"
         RELEASED = "released", "Released"
@@ -1863,3 +2015,21 @@ class FixDepositWithdrawal(models.Model):
 
     def __str__(self):
         return f"{self.account.member.member_no} · {self.amount} · {self.get_status_display()}"
+
+
+# Import these models after the account models so Django registers the ledger app schema.
+from .transfer_models import (
+    LedgerOfficerProfile,
+    MemberLedger,
+    MemberTransfer,
+    LedgerOfficerAssignment,
+    LedgerRecord,
+    LedgerEvent,
+)
+
+from .approval_models import (
+    ApprovalHierarchy,
+    ApprovalLevel,
+    ApprovalRequest,
+    ApprovalAuditEvent,
+)

@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1 class="page-title mb-5">Process retirement</h1>
+  <section class="form-section max-w-2xl">
+    <h2 class="section-title">{{ member.member_no }} · {{ member.full_name }}</h2>
+    <p class="muted my-4">
+      Standard retirement age: {{ member.retirement_age }}. Expected retirement date: {{ member.expected_retirement_date|date:'d M Y'|default:'Enter date of birth to calculate' }}.
+    </p>
+    <p class="muted mb-5">
+      Enter the actual retirement date, including early retirement. Processing marks this member as retired and retains all accounts and activity. The quarter containing this date earns no deposit interest; other completed quarters follow the existing interest rules.
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="alert message-error" role="alert">{{ form.non_field_errors }}</div>
+      {% endif %}
+      {% include 'components/field.html' with field=form.retirement_date %}
+      <div class="mt-5 flex flex-wrap gap-3">
+        <button class="btn btn-primary" data-submit-label="Processing…">Process retirement</button>
+        <a class="btn btn-secondary"
+           href="{% if perms.members.view_member %}{% url 'member_detail' member.pk %}{% else %}{% url 'member_edit' member.pk %}{% endif %}">Cancel</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

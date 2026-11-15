@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>EDCS — Complete User Training</title
+  ><style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: #111b29;
+      color: #f5f7fb;
+      font:
+        16px system-ui,
+        sans-serif;
+    }
+    header {
+      background: #6b2138;
+      padding: 24px 4vw;
+    }
+    header p {
+      color: #f0d68d;
+      margin: 6px 0;
+    }
+    h1 {
+      font-size: 28px;
+      margin: 0;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 24px;
+      margin: 28px 4vw;
+    }
+    video {
+      width: 100%;
+      border: 1px solid #43566d;
+      border-radius: 10px;
+      background: #000;
+    }
+    .notice {
+      color: #bdc9d7;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .tools {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    a {
+      color: #f0d68d;
+    }
+    aside {
+      max-height: 78vh;
+      overflow: auto;
+      background: #1d2a3d;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #55677b;
+      background: #111b29;
+      color: white;
+      margin-bottom: 10px;
+    }
+    .chapter {
+      width: 100%;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      text-align: left;
+      padding: 12px;
+      margin: 4px 0;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: white;
+      cursor: pointer;
+      font: inherit;
+    }
+    .chapter[hidden] {
+      display: none;
+    }
+    .chapter:hover,
+    .chapter.active {
+      background: #6b2138;
+    }
+    .chapter span {
+      color: #edcd83;
+      font-weight: 700;
+    }
+    .chapter small {
+      display: block;
+      color: #bdc9d7;
+      margin-top: 4px;
+    }
+    @media (max-width: 1000px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      aside {
+        max-height: 45vh;
+      }
+    }
+    select,
+    button.speed {
+      background: #24374e;
+      color: #fff;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #55677b;
+    }
+  </style>
+  <header>
+    <p>EDCS / USER LEARNING CENTER</p>
+    <h1>Complete User Training</h1>
+    <p>English narration · Every module, including administration</p>
+  </header>
+  <main class="layout">
+    <section>
+      <video id="video" controls preload="metadata" poster="EDCS_Training_Poster.jpg">
+        <source src="EDCS_Complete_User_Training.mp4" type="video/mp4" />
+      </video>
+      <p class="notice">
+        Fictional training records. The walkthrough shows actual application screens,
+        saved examples, and approval handoffs. Your available actions depend on your
+        role and districts.
+      </p>
+      <div class="tools">
+        <label
+          >Playback speed
+          <select id="speed">
+            <option value="0.75">0.75×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.25">1.25×</option>
+            <option value="1.5">1.5×</option>
+          </select></label
+        ><a href="EDCS_Complete_User_Training.mp4" download>Download video</a
+        ><a href="EDCS_Complete_User_Training.srt" download>Captions</a
+        ><a href="EDCS_Training_Transcript.md">Transcript</a>
+      </div>
+      <p class="notice">
+        Use the chapter list to jump to a task. Captions are included in the picture.
+        The MP4 also contains chapter markers for compatible players. Financial examples
+        illustrate system behavior; use your approved organizational rates and rules.
+      </p>
+    </section>
+    <aside>
+      <input
+        id="search"
+        type="search"
+        placeholder="Find a module or task"
+        aria-label="Find a chapter"
+      /><button class="chapter" data-time="0.0" data-index="1">
+        <span>01</span>
+        <div>
+          Welcome, sign-in and workspace navigation<small>00:00:00</small>
+        </div></button
+      ><button class="chapter" data-time="80.65500000000002" data-index="2">
+        <span>02</span>
+        <div>
+          Administration: reusable roles and permissions<small>00:01:20</small>
+        </div></button
+      ><button class="chapter" data-time="138.09000000000003" data-index="3">
+        <span>03</span>
+        <div>
+          Administration: users, districts and officer identities<small>00:02:18</small>
+        </div></button
+      ><button class="chapter" data-time="263.415" data-index="4">
+        <span>04</span>
+        <div>Master data: districts and provinces<small>00:04:23</small></div></button
+      ><button class="chapter" data-time="322.3700000000001" data-index="5">
+        <span>05</span>
+        <div>Master data: zonal offices<small>00:05:22</small></div></button
+      ><button class="chapter" data-time="371.54000000000013" data-index="6">
+        <span>06</span>
+        <div>Master data: subdivisions<small>00:06:11</small></div></button
+      ><button class="chapter" data-time="422.18000000000023" data-index="7">
+        <span>07</span>
+        <div>Master data: departments<small>00:07:02</small></div></button
+      ><button class="chapter" data-time="475.30000000000024" data-index="8">
+        <span>08</span>
+        <div>Master data: lagers<small>00:07:55</small></div></button
+      ><button class="chapter" data-time="523.7000000000002" data-index="9">
+        <span>09</span>
+        <div>
+          Member registration from start to finish<small>00:08:43</small>
+        </div></button
+      ><button class="chapter" data-time="645.7200000000001" data-index="10">
+        <span>10</span>
+        <div>
+          Member directory, profile editing, export and printing<small>00:10:45</small>
+        </div></button
+      ><button class="chapter" data-time="743.9050000000002" data-index="11">
+        <span>11</span>
+        <div>Process an actual retirement<small>00:12:23</small></div></button
+      ><button class="chapter" data-time="801.0500000000003" data-index="12">
+        <span>12</span>
+        <div>
+          Payment Types and interest reference settings<small>00:13:21</small>
+        </div></button
+      ><button class="chapter" data-time="874.5150000000004" data-index="13">
+        <span>13</span>
+        <div>Reusable payment-plan templates<small>00:14:34</small></div></button
+      ><button class="chapter" data-time="930.0050000000006" data-index="14">
+        <span>14</span>
+        <div>
+          Create and maintain a member payment plan<small>00:15:30</small>
+        </div></button
+      ><button class="chapter" data-time="999.7000000000006" data-index="15">
+        <span>15</span>
+        <div>Enter and review opening balances<small>00:16:39</small></div></button
+      ><button class="chapter" data-time="1070.2200000000005" data-index="16">
+        <span>16</span>
+        <div>
+          Member debit and credit entries and statements<small>00:17:50</small>
+        </div></button
+      ><button class="chapter" data-time="1166.5250000000005" data-index="17">
+        <span>17</span>
+        <div>
+          Child Deposit Types and age-based rates<small>00:19:26</small>
+        </div></button
+      ><button class="chapter" data-time="1219.0450000000005" data-index="18">
+        <span>18</span>
+        <div>Register and maintain children<small>00:20:19</small></div></button
+      ><button class="chapter" data-time="1270.7500000000002" data-index="19">
+        <span>19</span>
+        <div>Open a child deposit account<small>00:21:10</small></div></button
+      ><button class="chapter" data-time="1322.275" data-index="20">
+        <span>20</span>
+        <div>
+          Child debit and credit and account statements<small>00:22:02</small>
+        </div></button
+      ><button class="chapter" data-time="1376.64" data-index="21">
+        <span>21</span>
+        <div>
+          Quarterly Interest and annual carry-forward<small>00:22:56</small>
+        </div></button
+      ><button class="chapter" data-time="1513.6250000000002" data-index="22">
+        <span>22</span>
+        <div>Fix Deposit rules and account setup<small>00:25:13</small></div></button
+      ><button class="chapter" data-time="1611.3800000000006" data-index="23">
+        <span>23</span>
+        <div>
+          Issue, service and settle a Fix Deposit loan<small>00:26:51</small>
+        </div></button
+      ><button class="chapter" data-time="1722.2300000000007" data-index="24">
+        <span>24</span>
+        <div>
+          Request, review and release a withdrawal<small>00:28:42</small>
+        </div></button
+      ><button class="chapter" data-time="1797.9400000000005" data-index="25">
+        <span>25</span>
+        <div>
+          Member Ledgers and officer responsibility<small>00:29:57</small>
+        </div></button
+      ><button class="chapter" data-time="1874.585000000001" data-index="26">
+        <span>26</span>
+        <div>
+          Transfer a member and preserve the ledger chain<small>00:31:14</small>
+        </div></button
+      ><button class="chapter" data-time="1972.580000000001" data-index="27">
+        <span>27</span>
+        <div>
+          Administration: configure approval hierarchies<small>00:32:52</small>
+        </div></button
+      ><button class="chapter" data-time="2077.700000000001" data-index="28">
+        <span>28</span>
+        <div>
+          Submit, approve, cancel and override requests<small>00:34:37</small>
+        </div></button
+      ><button class="chapter" data-time="2250.300000000002" data-index="29">
+        <span>29</span>
+        <div>
+          Operational reporting and Lager activity<small>00:37:30</small>
+        </div></button
+      ><button class="chapter" data-time="2331.115000000002" data-index="30">
+        <span>30</span>
+        <div>
+          Validation, deletion, advanced administration and logout<small
+            >00:38:51</small
+          >
+        </div>
+      </button>
+    </aside>
+  </main>
+  <script>
+    const v = document.querySelector('#video'),
+      buttons = [...document.querySelectorAll('.chapter')];
+    buttons.forEach((b) =>
+      b.addEventListener('click', () => {
+        v.currentTime = Number(b.dataset.time);
+        v.play();
+      }),
+    );
+    document
+      .querySelector('#search')
+      .addEventListener('input', (e) =>
+        buttons.forEach(
+          (b) =>
+            (b.hidden = !b.textContent
+              .toLowerCase()
+              .includes(e.target.value.toLowerCase())),
+        ),
+      );
+    document
+      .querySelector('#speed')
+      .addEventListener('change', (e) => (v.playbackRate = Number(e.target.value)));
+    v.addEventListener('timeupdate', () => {
+      let current = buttons
+        .filter((b) => Number(b.dataset.time) <= v.currentTime)
+        .at(-1);
+      buttons.forEach((b) => b.classList.toggle('active', b === current));
+    });
+  </script>
+</html>

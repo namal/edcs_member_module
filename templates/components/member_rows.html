@@ -2,7 +2,7 @@
   <tr>
     <td>
       <a href="{% url 'member_detail' member.pk %}"
-         class="group flex items-center gap-3"><span class="avatar {% cycle '' 'bg-brand-50 text-brand-700' 'bg-brand-50 text-brand-700' 'bg-accent-50 text-accent-700' %}">{{ member.initials }}</span><span><span class="table-link group-hover:text-brand-600">{{ member.full_name }}</span><span class="mt-0.5 block text-[11px] text-slate-600">{{ member.member_no }}</span></span></a>
+         class="group flex items-center gap-3"><span class="avatar {% cycle '' 'bg-brand-50 text-brand-700' 'bg-brand-50 text-brand-700' 'bg-accent-50 text-accent-700' %}">{{ member.initials }}</span><span><span class="table-link group-hover:text-brand-600">{{ member.full_name }}</span><span class="mt-0.5 block text-[11px] text-slate-600">{{ member.member_no }} · {{ member.short_name }}</span></span></a>
     </td>
     <td class="whitespace-nowrap text-slate-500">{{ member.district.name }}</td>
     <td class="text-slate-500">{{ member.office_location.name }}</td>

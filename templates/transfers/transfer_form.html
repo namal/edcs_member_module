@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1 class="page-title mb-5">Transfer member</h1>
+  <section class="form-section">
+    <h2 class="section-title mb-5">1. Select the existing member</h2>
+    <form method="get" class="flex flex-wrap items-end gap-4">
+      <div class="min-w-0 flex-1">{% include 'components/field.html' with field=form.member %}</div>
+      <button class="btn btn-secondary">Review current ledger</button>
+    </form>
+  </section>
+  {% if selected_member %}
+    <section class="form-section">
+      <h2 class="section-title mb-4">Current ledger · {{ current_ledger.reference }}</h2>
+      <p class="detail-value">{{ selected_member.member_no }} · {{ selected_member.full_name }}</p>
+      <p class="muted mt-3">
+        {{ current_ledger.location_snapshot.district }} → {{ current_ledger.location_snapshot.zonal_office }} → {{ current_ledger.location_snapshot.lager }}
+      </p>
+      <p class="muted mt-2">
+        Maintenance officer: {{ current_ledger.officer_name|default:'Assignment required' }} · EPF {{ current_ledger.officer_epf|default:'Not entered' }}
+      </p>
+      {% if current_ledger.legacy_assignment_pending %}
+        <p class="alert message-error mt-4">
+          Assign the original ledger's maintenance officer before transferring this member.
+        </p>
+        {% if perms.members.change_memberledger %}
+          <a class="text-link"
+             href="{% url 'member_ledger_edit' current_ledger.pk %}">Assign original officer</a>
+        {% elif perms.members.add_memberledger %}
+          <a class="text-link"
+             href="{% url 'member_ledger_create' %}?member={{ selected_member.pk }}">Assign original officer</a>
+        {% endif %}
+      {% endif %}
+    </section>
+    <form method="post"
+          data-location-form
+          data-office-field="zonal_office"
+          data-location-url="{% url 'location_options' %}">
+      {% csrf_token %}
+      <input type="hidden" name="member" value="{{ selected_member.pk }}">
+      {{ form.source_ledger }}
+      {% if form.errors %}
+        <div class="alert message-error" role="alert">
+          Review the highlighted transfer details. {{ form.non_field_errors }}{{ form.source_ledger.errors }}{{ form.member.errors }}
+        </div>
+      {% endif %}
+      <section class="form-section">
+        <h2 class="section-title mb-5">2. Receiving ledger and maintenance officer</h2>
+        <div class="form-grid">
+          {% include 'components/field.html' with field=form.district %}
+          {% include 'components/field.html' with field=form.zonal_office %}
+          {% include 'components/field.html' with field=form.lager %}
+          {% include 'components/field.html' with field=form.subdivision %}
+          {% include 'components/field.html' with field=form.school wide=True %}
+          {% include 'components/field.html' with field=form.maintenance_officer wide=True %}
+          {% include 'components/field.html' with field=form.effective_date %}
+          {% include 'components/field.html' with field=form.reason wide=True %}
+        </div>
+        <p id="office-feedback"
+           class="field-help"
+           role="status"
+           aria-live="polite"></p>
+      </section>
+      <section class="form-section">
+        <h2 class="section-title mb-3">3. Complete the transfer</h2>
+        <p class="muted">
+          A new ledger will be created and linked to {{ current_ledger.reference }}. The original ledger, officer details, transactions and financial records will remain available as history. Carried balances are recorded once as a ledger snapshot; transactions are not duplicated.
+        </p>
+        <p class="field-help mt-4">
+          Today is the default. Earlier effective dates must be on or after the ledger's latest activity. Source and receiving districts must both be within your assigned access.
+        </p>
+        <div class="mt-5 flex gap-3">
+          <button class="btn btn-primary"
+                  data-submit-label="Transferring…"
+                  {% if current_ledger.legacy_assignment_pending %}disabled{% endif %}>Complete transfer</button>
+          {% if perms.members.view_membertransfer %}
+            <a class="btn btn-secondary" href="{% url 'member_transfer_list' %}">Cancel</a>
+          {% endif %}
+        </div>
+      </section>
+    </form>
+    {{ initial_locations|json_script:'initial-locations' }}{{ district_provinces|json_script:'district-provinces' }}{{ district_province_short_names|json_script:'district-province-short-names' }}{{ member_schools|json_script:'member-schools' }}
+  {% endif %}
+{% endblock %}

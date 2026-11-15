@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1 class="page-title mb-5">{{ title }}</h1>
+  <form method="post" data-payment-plan-form>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="alert message-error" role="alert">{{ form.non_field_errors }}</div>
+    {% endif %}
+    <section class="form-section">
+      <div class="form-grid">
+        {% include 'components/field.html' with field=form.name %}
+        {% include 'components/field.html' with field=form.description wide=True %}
+        {% include 'components/field.html' with field=form.is_active %}
+      </div>
+      <h2 class="section-title my-5">Monthly contribution amounts</h2>
+      <p class="muted mb-5">
+        Choose payment types by entering their monthly amounts. A blank or zero amount leaves a type out. Editing this template does not change any assigned member plan.
+      </p>
+      <div class="form-grid">
+        {% for field in form.amount_fields %}
+          {% include 'components/field.html' with field=field %}
+        {% empty %}
+          <p>Add an active payment type first.</p>
+        {% endfor %}
+      </div>
+      <p class="detail-value mt-5">
+        Total monthly deposit: LKR <output id="monthly-plan-total">{{ form.instance.monthly_total|floatformat:2 }}</output>
+      </p>
+    </section>
+    <div class="flex gap-3">
+      <button class="btn btn-primary" data-submit-label="Saving…">Save template</button>
+      {% if perms.members.view_paymentplantemplate %}
+        <a class="btn btn-secondary"
+           href="{% url 'payment_plan_template_list' %}">Cancel</a>
+      {% endif %}
+    </div>
+  </form>
+{% endblock %}

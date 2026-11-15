@@ -69,6 +69,7 @@
               <th>Zonal office</th>
               <th>District</th>
               <th>Office phone</th>
+              <th>Lagers</th>
               <th>Subdivisions</th>
               <th>Members</th>
               <th>Status</th>
@@ -96,6 +97,19 @@
                   </td>
                   <td class="text-slate-500">{{ office.district.name }}</td>
                   <td class="whitespace-nowrap text-xs text-slate-600">{{ office.phone|default:'—' }}</td>
+                  <td>
+                    {% if perms.members.view_lager %}
+                      <a href="{% url 'lager_list' %}?zonal_office={{ office.pk }}"
+                         class="text-link">{{ office.lager_count }}</a>
+                    {% else %}
+                      <span class="font-medium text-slate-600">{{ office.lager_count }}</span>
+                    {% endif %}
+                    {% if perms.members.add_lager %}
+                      <a href="{% url 'lager_create' %}?zonal_office={{ office.pk }}"
+                         class="text-link"
+                         aria-label="Add lager to {{ office.name }}">+</a>
+                    {% endif %}
+                  </td>
                   <td>
                     {% if perms.members.view_subdivision %}
                       <a href="{% url 'subdivision_list' %}?zonal_office={{ office.pk }}"

@@ -1,4 +1,5 @@
 from datetime import timedelta
+from .approval_services import checkpoint, form_checkpoint
 from decimal import Decimal
 from urllib.parse import urlencode
 
@@ -86,6 +87,15 @@ def _report(request, action):
             )
         )
         if request.method == "POST":
+            queued = form_checkpoint(
+                request,
+                form,
+                model=DepositInterestYear,
+                action=action,
+                description=f"Save quarterly interest calculations: {start.year}",
+            )
+            if queued is not None:
+                return queued
             try:
                 with transaction.atomic():
                     member_map = members.in_bulk()
@@ -209,6 +219,18 @@ def deposit_interest_detail(request, pk, child_account=False):
 def deposit_interest_edit(request, pk, child_account=False):
     record = _record(request, pk, "change", child_account)
     if request.method == "POST":
+        queued = checkpoint(
+            request,
+            DepositInterestYear,
+            "change",
+            f"Post annual interest: {record}",
+            target=record,
+            extra_summary=[
+                {"label": "Annual interest (LKR)", "value": str(record.annual_interest)}
+            ],
+        )
+        if queued is not None:
+            return queued
         try:
             if not request.POST.get("calculation_hash"):
                 raise ValidationError("Review the year-end calculation before posting.")
@@ -275,6 +297,15 @@ def deposit_interest_edit(request, pk, child_account=False):
 def deposit_interest_delete(request, pk, child_account=False):
     record = _record(request, pk, "delete", child_account)
     if request.method == "POST":
+        queued = checkpoint(
+            request,
+            DepositInterestYear,
+            "delete",
+            f"Delete interest calculation: {record}",
+            target=record,
+        )
+        if queued is not None:
+            return queued
         try:
             record.delete()
         except ProtectedError as error:

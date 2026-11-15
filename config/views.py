@@ -1,8 +1,15 @@
 from django.contrib.auth.views import LoginView
 from django.http import HttpResponse
+from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
+
+
+def page_not_found(request, exception=None):
+    response = render(request, "404.html", status=404)
+    response._workspace_not_found = True
+    return response
 
 
 @never_cache

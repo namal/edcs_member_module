@@ -20,14 +20,25 @@ from .models import (
     OfficeLocation,
     OpeningBalance,
     PaymentPlan,
+    PaymentPlanTemplate,
     PaymentTransaction,
     PaymentType,
     School,
     Subdivision,
+    MemberLedger,
+    MemberTransfer,
 )
 
 MODULES = (
     (Member, "Members", "members", "member", "users"),
+    (
+        MemberTransfer,
+        "Member Transfers",
+        "member_transfers",
+        "member_transfer",
+        "arrow",
+    ),
+    (MemberLedger, "Member Ledgers", "member_ledgers", "member_ledger", "wallet"),
     (Child, "Children", "children", "child", "users"),
     (ChildDeposit, "Child Deposits", "child_deposits", "child_deposit", "wallet"),
     (
@@ -43,6 +54,13 @@ MODULES = (
     (School, "Departments", "schools", "school", "building"),
     (Lager, "Lagers", "lagers", "lager", "building"),
     (PaymentPlan, "Payment Plan", "payment_plans", "payment_plan", "wallet"),
+    (
+        PaymentPlanTemplate,
+        "Payment Plan Templates",
+        "payment_plan_templates",
+        "payment_plan_template",
+        "wallet",
+    ),
     (
         DepositInterestYear,
         "Quarterly Interest",
@@ -81,6 +99,10 @@ MODULES = (
     ),
 )
 ACTIONS = ("view", "add", "change", "delete")
+MODULE_ACTIONS = {
+    MemberTransfer: ("view", "add"),
+    MemberLedger: ("view", "add", "change"),
+}
 
 DISTRICT_LOOKUPS = {
     Child: "member__district_id",
@@ -94,7 +116,7 @@ DISTRICT_LOOKUPS = {
     District: "pk",
     Member: "district_id",
     OfficeLocation: "district_id",
-    Lager: "district_id",
+    Lager: "zonal_office__district_id",
     School: "district_id",
     Subdivision: "zonal_office__district_id",
     PaymentPlan: "member__district_id",
@@ -113,6 +135,21 @@ def accessible_districts(user):
 
 
 def scope_queryset(user, queryset):
+    if queryset.model in (MemberLedger, MemberTransfer):
+        if user and user.is_authenticated and user.is_active and user.is_superuser:
+            return queryset
+        districts = accessible_districts(user).values("pk")
+        from django.db.models import Q
+
+        if queryset.model is MemberLedger:
+            return queryset.filter(
+                Q(district_id__in=districts) | Q(member__district_id__in=districts)
+            )
+        return queryset.filter(
+            Q(from_ledger__district_id__in=districts)
+            | Q(to_ledger__district_id__in=districts)
+            | Q(member__district_id__in=districts)
+        )
     lookup = DISTRICT_LOOKUPS.get(queryset.model)
     if lookup is None:
         return queryset
@@ -131,6 +168,8 @@ def district_records(user, model):
 
 
 def has_module_permission(user, model, action):
+    if action not in MODULE_ACTIONS.get(model, ACTIONS):
+        return False
     if model is District and action == "add" and not user.is_superuser:
         return False
     if (
@@ -155,6 +194,9 @@ def require_location_access(user):
     # Registration needs lookup data, without granting access to master-data pages.
     allowed = (
         (Member, ("view", "add", "change")),
+        (MemberTransfer, ("view", "add")),
+        (MemberLedger, ("view", "add", "change")),
+        (Lager, ("view", "add", "change")),
         (OfficeLocation, ("view", "add", "change")),
         (School, ("view", "add", "change")),
         (Subdivision, ("view", "add", "change")),

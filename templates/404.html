@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block title %}Page not found{% endblock %}
+{% block page_heading %}Page not found{% endblock %}
+
+{% block content %}
+  <section class="access-page" aria-labelledby="not-found-title">
+    <div class="access-card">
+      <div class="access-art-panel">
+        <div class="access-brand">
+          <img src="{% static 'images/edcs-logo.png' %}"
+               width="900"
+               height="336"
+               alt="EDCS — Education Co-operative Society">
+        </div>
+        <div class="access-visual" aria-hidden="true">
+          <span class="access-number">404</span>
+          <svg class="access-illustration" viewBox="0 0 400 330" fill="none">
+            <defs>
+            <linearGradient id="map-maroon" x1="100" y1="90" x2="270" y2="265" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#a92854" />
+            <stop offset="1" stop-color="#59112e" />
+            </linearGradient>
+            <linearGradient id="search-gold" x1="204" y1="121" x2="295" y2="220" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#ffe899" />
+            <stop offset="1" stop-color="#ffcc00" />
+            </linearGradient>
+            </defs>
+            <circle cx="200" cy="168" r="118" stroke="#ffcc00" stroke-opacity=".14" />
+            <circle cx="200" cy="168" r="145" stroke="white" stroke-opacity=".08" stroke-dasharray="3 10" />
+            <path d="M38 210h44m236-84h44M77 77l19 19" stroke="#ffcc00" stroke-opacity=".55" stroke-width="2" />
+            <path d="m91 116 64-26 68 26 66-26v157l-66 26-68-26-64 26V116Z" fill="#270b19" fill-opacity=".3" transform="translate(8 12)" />
+            <path d="m91 106 64-26 68 26 66-26v157l-66 26-68-26-64 26V106Z" fill="url(#map-maroon)" stroke="#ffcc00" stroke-width="2" stroke-linejoin="round" />
+            <path d="M155 80v157m68-131v157" stroke="white" stroke-opacity=".2" />
+            <path d="m110 213 25-42 37 20 27-40" stroke="#ffe899" stroke-opacity=".8" stroke-width="3" stroke-dasharray="5 7" stroke-linecap="round" />
+            <circle cx="110" cy="213" r="5" fill="#ffcc00" />
+            <path d="m273 219 34 34" stroke="#59112e" stroke-width="22" stroke-linecap="round" />
+            <path d="m273 219 34 34" stroke="url(#search-gold)" stroke-width="14" stroke-linecap="round" />
+            <circle cx="244" cy="183" r="49" fill="#59112e" stroke="url(#search-gold)" stroke-width="9" />
+            <circle cx="244" cy="183" r="37" stroke="white" stroke-opacity=".15" />
+            <path d="M232 156a29 29 0 0 1 31 10" stroke="#ffe899" stroke-opacity=".65" stroke-width="3" stroke-linecap="round" />
+            <path d="m235 178 18 18m0-18-18 18" stroke="#ffe899" stroke-width="4" stroke-linecap="round" />
+            <path d="m316 59 3 10 10 3-10 3-3 10-3-10-10-3 10-3 3-10Z" fill="#ffcc00" />
+            <circle cx="81" cy="249" r="5" fill="#ffcc00" />
+            <circle cx="342" cy="211" r="3" fill="white" fill-opacity=".6" />
+          </svg>
+        </div>
+        <p class="access-art-caption">
+          <span class="access-caption-line" aria-hidden="true"></span>
+          A familiar place to find your way back.
+        </p>
+      </div>
+      <div class="access-content">
+        <p class="access-kicker">
+          <span aria-hidden="true"></span>404 · Page not found
+        </p>
+        <h1 id="not-found-title">
+          This page is
+          <br>
+          off the map<span>.</span>
+        </h1>
+        <p class="access-description">
+          The page you’re looking for may have moved, been removed, or the address may be incorrect.
+          Let’s get you back to familiar ground.
+        </p>
+        {% if request.user.is_authenticated %}
+          <a href="{% url 'dashboard' %}" class="btn access-workspace-link">
+            <svg class="icon h-4 w-4 rotate-180" aria-hidden="true">
+              <use href="#i-arrow" />
+            </svg>
+            Back to my workspace
+          </a>
+        {% else %}
+          <a href="{% url 'login' %}" class="btn access-workspace-link">
+            <svg class="icon h-4 w-4 rotate-180" aria-hidden="true">
+              <use href="#i-arrow" />
+            </svg>
+            Back to sign in
+          </a>
+        {% endif %}
+        <div class="access-help">
+          <span class="access-help-icon" aria-hidden="true">
+            <svg class="icon h-5 w-5">
+              <use href="#i-info" />
+            </svg>
+          </span>
+          <div>
+            <h2>Followed a link to get here?</h2>
+            <p>
+              Check the address or contact your administrator with the link and mention <strong>error 404</strong>.
+            </p>
+          </div>
+        </div>
+        <p class="access-footer">
+          <svg class="icon h-3.5 w-3.5" aria-hidden="true">
+            <use href="#i-shield" />
+          </svg>
+          Your workspace is still right where you left it.
+        </p>
+      </div>
+    </div>
+  </section>
+{% endblock %}

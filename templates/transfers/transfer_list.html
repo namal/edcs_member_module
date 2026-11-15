@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7 flex flex-wrap justify-between gap-4">
+    <div>
+      <p class="eyebrow mb-2">Member continuity</p>
+      <h1 class="page-title">Member Transfers</h1>
+      <p class="muted mt-2">One member registration. A complete, permanent ledger trail.</p>
+    </div>
+    <div class="flex gap-3">
+      {% if perms.members.view_memberledger %}
+        <a class="btn btn-secondary" href="{% url 'member_ledger_list' %}">Member ledgers</a>
+      {% endif %}
+      {% if perms.members.add_membertransfer %}
+        <a class="btn btn-primary" href="{% url 'member_transfer_create' %}">Transfer member</a>
+      {% endif %}
+    </div>
+  </div>
+  <section class="card">
+    <form method="get" class="flex gap-3 p-5">
+      <input class="field-input flex-1"
+             name="q"
+             value="{{ request.GET.q }}"
+             placeholder="Search member or transfer reference…"
+             aria-label="Search transfers">
+      <button class="btn btn-secondary">Search</button>
+    </form>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Transfer</th>
+            <th>Member</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Effective date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in page_obj %}
+            <tr>
+              <td>
+                <a class="text-link" href="{% url 'member_transfer_detail' row.pk %}">{{ row.reference }}</a>
+              </td>
+              <td>{{ row.member.member_no }} · {{ row.member.full_name }}</td>
+              <td>
+                {{ row.from_ledger.zonal_office }}<span class="mt-1 block text-xs">{{ row.from_ledger.reference }}</span>
+              </td>
+              <td>
+                {{ row.to_ledger.zonal_office }}<span class="mt-1 block text-xs">{{ row.to_ledger.reference }}</span>
+              </td>
+              <td>{{ row.effective_date|date:'d M Y' }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5">No transfers in your assigned districts.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include 'components/pagination.html' %}
+  </section>
+{% endblock %}

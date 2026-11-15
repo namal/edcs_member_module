@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models.deletion import ProtectedError
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -65,6 +66,7 @@ def user_list(request):
     users = (
         get_user_model()
         .objects.prefetch_related("groups", "assigned_districts")
+        .select_related("ledger_profile__zonal_office")
         .order_by("username")
     )
     query = request.GET.get("q", "").strip()
@@ -74,6 +76,7 @@ def user_list(request):
             | Q(first_name__icontains=query)
             | Q(last_name__icontains=query)
             | Q(email__icontains=query)
+            | Q(ledger_profile__epf_number__icontains=query)
         )
     if request.GET.get("status") in ("active", "inactive"):
         users = users.filter(is_active=request.GET["status"] == "active")
@@ -132,9 +135,16 @@ def user_delete(request, pk):
     if user.pk == request.user.pk or user.is_superuser:
         raise PermissionDenied
     if request.method == "POST":
-        with transaction.atomic():
-            audit(request, user, DELETION, "Deleted user account.")
-            user.delete()
+        try:
+            with transaction.atomic():
+                audit(request, user, DELETION, "Deleted user account.")
+                user.delete()
+        except ProtectedError:
+            messages.error(
+                request,
+                "This user is retained in ledger responsibility or approval history. Deactivate the account after reassigning active ledgers and resolving pending approvals instead.",
+            )
+            return redirect("access_users")
         messages.success(request, "The user account has been deleted.")
         return redirect("access_users")
     return render(

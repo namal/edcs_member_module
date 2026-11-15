@@ -86,6 +86,7 @@
             {% for lager in lagers %}
               <option value="{{ lager.pk }}"
                       data-district="{{ lager.district_id }}"
+                      data-zone="{{ lager.zonal_office_id }}"
                       {% if request.GET.lager == lager.pk|stringformat:'s' %}selected{% endif %}>
                 {{ lager.code }} · {{ lager }}
               </option>

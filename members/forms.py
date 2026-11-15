@@ -1,6 +1,8 @@
 from django import forms
+from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.db.models.functions import Lower
+from django.utils import timezone
 
 from .models import District, Lager, Member, OfficeLocation, School, Subdivision
 from .permissions import scope_queryset
@@ -103,6 +105,16 @@ class StyledModelForm(forms.ModelForm):
 
 
 class MemberForm(StyledModelForm):
+    maintenance_officer = forms.ModelChoiceField(
+        queryset=get_user_model().objects.none(),
+        required=False,
+        label="Ledger Maintenance Officer",
+    )
+    short_name = forms.CharField(label="Short Name", required=False, disabled=True)
+    retirement_age = forms.IntegerField(required=False, disabled=True, initial=60)
+    expected_retirement_date = forms.DateField(
+        required=False, disabled=True, widget=forms.DateInput(attrs={"type": "date"})
+    )
     province = forms.CharField(
         label="Province full name", required=False, disabled=True
     )
@@ -122,7 +134,9 @@ class MemberForm(StyledModelForm):
             "school",
             "member_no",
             "computer_no",
+            "title",
             "full_name",
+            "date_of_birth",
             "salary",
             "office_address",
             "private_address",
@@ -138,11 +152,45 @@ class MemberForm(StyledModelForm):
         widgets = {
             "admit_date": forms.DateInput(attrs={"type": "date"}),
             "pension_date": forms.DateInput(attrs={"type": "date"}),
+            "date_of_birth": forms.DateInput(attrs={"type": "date"}),
             "salary": forms.NumberInput(attrs={"step": "0.01", "min": "0"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.initial.update(
+            short_name=self.instance.short_name,
+            retirement_age=self.instance.retirement_age,
+            expected_retirement_date=self.instance.expected_retirement_date,
+        )
+        if self.is_bound:
+            from .member_identity import short_name, retirement_date
+
+            self.initial["short_name"] = short_name(
+                self.data.get(self.add_prefix("full_name"), ""),
+                self.data.get(self.add_prefix("title"), ""),
+            )
+            try:
+                birth = forms.DateField(required=False).clean(
+                    self.data.get(self.add_prefix("date_of_birth"))
+                )
+            except forms.ValidationError:
+                birth = None
+            self.initial["expected_retirement_date"] = (
+                retirement_date(birth)
+                if birth and birth <= timezone.localdate()
+                else None
+            )
+        self.fields["short_name"].help_text = (
+            "Generated automatically from the title and full name."
+        )
+        self.fields["expected_retirement_date"].help_text = (
+            "Calculated from date of birth at the standard retirement age of 60."
+        )
+        self.fields["pension_date"].label = "Recorded retirement / pension date"
+        self.fields["pension_date"].help_text = (
+            "Record an actual or scheduled pension date, including early retirement. This date controls the pension-quarter interest exclusion."
+        )
         schools = school_choices(self.instance.school_id, user=self.user)
         school_id = selected_id(self, "school")
         school = schools.filter(pk=school_id).first() if school_id else None
@@ -165,11 +213,41 @@ class MemberForm(StyledModelForm):
                     self.initial["subdivision"] = school.subdivision_id
         location_fields(self, "office_location")
         district_id = selected_id(self, "district")
-        lagers = Lager.objects.select_related("district").filter(
-            Q(is_active=True, district__is_active=True) | Q(pk=self.instance.lager_id)
+        office_id = selected_id(self, "office_location")
+        if self.instance.pk:
+            self.fields.pop("maintenance_officer")
+        else:
+            from .transfer_services import eligible_officers
+
+            self.fields["maintenance_officer"].required = True
+            self.fields["maintenance_officer"].queryset = (
+                eligible_officers(office_id)
+                if office_id
+                and self.fields["office_location"]
+                .queryset.filter(pk=office_id)
+                .exists()
+                else self.fields["maintenance_officer"].queryset.none()
+            )
+            self.fields["maintenance_officer"].label_from_instance = (
+                lambda user: f"{user.get_full_name() or user.username} · EPF {user.ledger_profile.epf_number}"
+            )
+            self.fields["maintenance_officer"].help_text = (
+                "Choose the officer responsible for the original ledger. Configure the officer's EPF, zonal office and district access in Users & access."
+            )
+        lagers = Lager.objects.select_related("zonal_office__district").filter(
+            Q(
+                is_active=True,
+                zonal_office__is_active=True,
+                zonal_office__district__is_active=True,
+            )
+            | Q(pk=self.instance.lager_id)
         )
         self.fields["lager"].queryset = (
-            lagers.filter(district_id=district_id) if district_id else lagers.none()
+            lagers.filter(
+                zonal_office_id=office_id, zonal_office__district_id=district_id
+            )
+            if district_id and office_id
+            else lagers.none()
         )
         self.fields["lager"].empty_label = "Select a lager"
         if district_id:
@@ -206,6 +284,13 @@ class MemberForm(StyledModelForm):
 
     def clean_nic_no(self):
         return self.cleaned_data["nic_no"].strip().upper()
+
+    def save(self, commit=True):
+        if not self.instance.pk:
+            self.instance._maintenance_officer = self.cleaned_data.get(
+                "maintenance_officer"
+            )
+        return super().save(commit=commit)
 
 
 class DistrictForm(StyledModelForm):
@@ -274,15 +359,28 @@ class SubdivisionForm(StyledModelForm):
 
 
 class LagerForm(StyledModelForm):
+    district = forms.ModelChoiceField(queryset=District.objects.none())
+
     class Meta:
         model = Lager
-        fields = ["district", "name", "code", "is_active"]
+        fields = ["district", "zonal_office", "name", "code", "is_active"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["district"].queryset = active_choices(
             District, self.instance.district_id
         )
+        if not self.is_bound and self.instance.zonal_office_id:
+            self.initial["district"] = self.instance.district_id
+        district_id = selected_id(self, "district")
+        offices = OfficeLocation.objects.select_related("district").filter(
+            Q(is_active=True, district__is_active=True)
+            | Q(pk=self.instance.zonal_office_id)
+        )
+        self.fields["zonal_office"].queryset = (
+            offices.filter(district_id=district_id) if district_id else offices.none()
+        )
+        self.fields["zonal_office"].empty_label = "Select a zonal office"
         self.scope_fields()
 
     def clean_code(self):

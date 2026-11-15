@@ -43,7 +43,7 @@ class PaymentPlanTests(TestCase):
             code="PLAN-D",
         )
         lager = Lager.objects.create(
-            district=district, name="Plan Lager", code="PLAN-L"
+            zonal_office=office, name="Plan Lager", code="PLAN-L"
         )
         cls.member = Member.objects.create(
             district=district,
@@ -128,7 +128,10 @@ class PaymentPlanTests(TestCase):
         self.assertFalse(PaymentPlan.objects.exists())
 
     def test_registration_continues_with_saved_member_identity(self):
+        from .test_support import officer_for
+
         payload = {
+            "maintenance_officer": officer_for(self.member.office_location).pk,
             "district": self.member.district_id,
             "office_location": self.member.office_location_id,
             "school": self.member.school_id,

@@ -18,7 +18,9 @@
   <p class="mb-5 text-sm font-semibold text-brand-700">
     1. Member selected <span class="mx-2 text-slate-400">→</span> 2. Monthly agreement
   </p>
-  <form method="post" data-payment-plan-form>
+  <form method="post"
+        data-payment-plan-form
+        data-template-url="{% url 'payment_plan_template_options' %}">
     {% csrf_token %}
     <input type="hidden" name="member" value="{{ member.pk }}">
     {% if form.errors %}
@@ -50,6 +52,17 @@
         </section>
         <section class="form-section">
           <h2 class="section-title mb-5">Monthly payment agreement</h2>
+          {% include 'components/field.html' with field=form.apply_template %}
+          <p class="field-help my-4">
+            Selecting a template replaces these draft amounts with a copy. Customize any payment type or amount before saving. Leave a type at zero to exclude it. Other members and the original template remain independent.
+          </p>
+          <p class="field-help mb-4"
+             data-template-feedback
+             role="status"
+             aria-live="polite"></p>
+          {% if plan.source_template_name %}
+            <p class="muted mb-4">Originally copied from {{ plan.source_template_name }}. Saved member amounts are shown below.</p>
+          {% endif %}
           {% include 'components/field.html' with field=form.agreement_date %}
           <div class="form-grid mt-5">
             {% for field in form.amount_fields %}
@@ -63,6 +76,7 @@
           <a class="btn btn-secondary"
              href="{% if perms.members.view_paymentplan %}{% url 'payment_plan_list' %}{% else %}{% url 'dashboard' %}{% endif %}">Cancel</a>
           <button class="btn btn-primary"
+                  data-save-plan
                   data-submit-label="Saving agreement…"
                   {% if not form.payment_types %}disabled{% endif %}>Save payment plan</button>
         </div>

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7">
+    <p class="eyebrow mb-2">Permanent transfer record</p>
+    <h1 class="page-title">{{ transfer.reference }}</h1>
+    <p class="muted mt-2">{{ transfer.member.member_no }} · {{ transfer.member.full_name }}</p>
+  </div>
+  <section class="form-section">
+    <dl class="form-grid">
+      <div>
+        <dt class="detail-label">Previous zonal office / ledger</dt>
+        <dd class="detail-value">
+          {{ transfer.from_ledger.location_snapshot.zonal_office }} · {{ transfer.from_ledger.reference }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Receiving zonal office / ledger</dt>
+        <dd class="detail-value">
+          {{ transfer.to_ledger.location_snapshot.zonal_office }} · {{ transfer.to_ledger.reference }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Effective date</dt>
+        <dd class="detail-value">
+          {{ transfer.effective_date|date:'d M Y' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Transferred by</dt>
+        <dd class="detail-value">
+          {{ transfer.performed_by_name }} · EPF {{ transfer.performed_by_epf|default:'Not entered' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Reason</dt>
+        <dd>
+          {{ transfer.reason }}
+        </dd>
+      </div>
+    </dl>
+    <p class="field-help mt-5">
+      The original ledger and responsibility details are retained. This transfer record cannot be changed or deleted.
+    </p>
+  </section>
+  {% include 'transfers/chain.html' %}
+  <a class="btn btn-secondary" href="{% url 'member_transfer_list' %}">All transfers</a>
+{% endblock %}

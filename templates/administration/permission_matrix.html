@@ -7,12 +7,8 @@
       </p>
     </div>
     <div class="flex gap-2">
-      <button type="button"
-              class="btn btn-secondary text-xs"
-              data-permissions="all">Select all</button>
-      <button type="button"
-              class="btn btn-secondary text-xs"
-              data-permissions="none">Clear all</button>
+      <button type="button" class="btn btn-secondary" data-permissions="all">Select all</button>
+      <button type="button" class="btn btn-secondary" data-permissions="none">Clear all</button>
     </div>
   </div>
   {% if form.module_permissions.errors %}
@@ -36,14 +32,19 @@
             <th scope="row" class="text-sm font-semibold normal-case tracking-normal">{{ row.label }}</th>
             {% for cell in row.cells %}
               <td>
-                <label class="permission-cell">
-                  <span class="sr-only">{{ cell.label }}</span>
-                  <input class="field-check"
-                         type="checkbox"
-                         name="module_permissions"
-                         value="{{ cell.id }}"
-                         {% if cell.checked %}checked{% endif %}>
-                </label>
+                {% if cell.id %}
+                  <label class="permission-cell">
+                    <span class="sr-only">{{ cell.label }}</span>
+                    <input class="field-check"
+                           type="checkbox"
+                           name="module_permissions"
+                           value="{{ cell.id }}"
+                           {% if cell.checked %}checked{% endif %}>
+                  </label>
+                {% else %}
+                  <span class="text-slate-400"
+                        aria-label="Not available for permanent history">—</span>
+                {% endif %}
               </td>
             {% endfor %}
           </tr>

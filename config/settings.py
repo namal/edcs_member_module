@@ -28,8 +28,10 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "members.ledger_tracking.LedgerActorMiddleware",
     "config.middleware.PrivateSessionMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "config.middleware.WorkspaceNotFoundMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 ROOT_URLCONF = "config.urls"

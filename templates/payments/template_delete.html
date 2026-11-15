@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1 class="page-title mb-5">Delete payment plan template</h1>
+  <section class="form-section max-w-2xl">
+    <h2 class="section-title">{{ template.name }}</h2>
+    <p class="muted my-5">Member plans that used this template retain their own amounts and source template name.</p>
+    <form method="post">
+      {% csrf_token %}
+      <button class="btn btn-primary" data-submit-label="Deleting…">Delete template</button>
+      {% if perms.members.view_paymentplantemplate %}
+        <a class="btn btn-secondary"
+           href="{% url 'payment_plan_template_list' %}">Cancel</a>
+      {% endif %}
+    </form>
+  </section>
+{% endblock %}

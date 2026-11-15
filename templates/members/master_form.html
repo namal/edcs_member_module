@@ -28,7 +28,7 @@
     <form method="post"
           class="card"
           {% if section == 'payment_types' %}data-interest-period-form{% endif %}
-          {% if section == 'schools' or section == 'subdivisions' %}data-location-form data-office-field="zonal_office" data-location-url="{% url 'location_options' %}"{% endif %}>
+          {% if section == 'schools' or section == 'subdivisions' or section == 'lagers' %}data-location-form data-office-field="zonal_office" data-location-url="{% url 'location_options' %}"{% endif %}>
       {% csrf_token %}
       <div class="card-heading">
         <h2 class="section-title">{{ singular }} details</h2>
@@ -109,7 +109,7 @@
       {% elif section == 'subdivisions' %}
         Choose a district and zonal office for each subdivision. Subdivision selection is optional when registering a member.
       {% elif section == 'lagers' %}
-        Each lager belongs to one district and can have many registered members. Its code is unique. A lager with registered members stays in its district.
+        Select a district, then its zonal office. Each lager belongs to one zonal office and can have many registered members. Its code is unique. A lager with registered members stays in its zonal office.
       {% elif section == 'payment_types' %}
         Set the annual interest rate here. Quarterly Interest calculates the minimum month-end balance for each quarter and posts the annual total after year-end. Other frequency settings remain bank reference settings. Lower display order numbers appear first.
       {% elif section == 'child_deposit_types' %}
@@ -119,7 +119,7 @@
       {% elif section == 'schools' %}
         Each department belongs to a district and zonal office, with an optional subdivision. Its selection label includes the full location.
       {% else %}
-        Every zonal office belongs to a district and can have many subdivisions. Records with linked members, subdivisions or departments stay connected to their district.
+        Every zonal office belongs to a district and can have many lagers and subdivisions. Records with linked members, lagers, subdivisions or departments stay connected to their district.
       {% endif %}
     </p>
     <p class="mt-4 text-xs leading-6 text-brand-700">

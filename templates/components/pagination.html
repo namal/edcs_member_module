@@ -10,12 +10,12 @@
     <nav class="flex items-center gap-2" aria-label="Pagination">
       {% if page_obj.has_previous %}
         <a href="?{{ query_string }}&amp;page={{ page_obj.previous_page_number }}"
-           class="btn btn-secondary px-3 py-1.5 text-xs">Previous</a>
+           class="btn btn-secondary">Previous</a>
       {% endif %}
       <span class="px-2 text-xs text-slate-500">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
       {% if page_obj.has_next %}
         <a href="?{{ query_string }}&amp;page={{ page_obj.next_page_number }}"
-           class="btn btn-secondary px-3 py-1.5 text-xs">Next</a>
+           class="btn btn-secondary">Next</a>
       {% endif %}
     </nav>
   {% endif %}

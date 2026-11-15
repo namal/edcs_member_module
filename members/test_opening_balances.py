@@ -45,7 +45,7 @@ class OpeningBalanceTests(TestCase):
                 code=f"BAL-D{index}",
             )
             lager = Lager.objects.create(
-                district=district, name=f"Balance Lager {index}", code=f"BAL-L{index}"
+                zonal_office=office, name=f"Balance Lager {index}", code=f"BAL-L{index}"
             )
             cls.members.append(
                 Member.objects.create(

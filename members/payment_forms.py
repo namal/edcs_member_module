@@ -5,7 +5,13 @@ from django.db import transaction
 from django.db.models import Q
 
 from .forms import StyledModelForm
-from .models import PaymentPlan, PaymentPlanAmount, PaymentType
+from .models import (
+    PaymentPlan,
+    PaymentPlanAmount,
+    PaymentType,
+    PaymentPlanTemplate,
+    PaymentPlanTemplateAmount,
+)
 from .permissions import accessible_districts
 
 
@@ -89,26 +95,13 @@ class PaymentTypeForm(StyledModelForm):
         return name
 
 
-class PaymentPlanForm(StyledModelForm):
-    class Meta:
-        model = PaymentPlan
-        fields = ["agreement_date"]
-        widgets = {"agreement_date": forms.DateInput(attrs={"type": "date"})}
-
-    def __init__(self, *args, member, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.instance.member = member
-        existing = (
-            {item.payment_type_id: item.amount for item in self.instance.amounts.all()}
-            if self.instance.pk
-            else {}
-        )
+class ContributionFields:
+    def add_contribution_fields(self, existing):
         self.payment_types = list(
             PaymentType.objects.filter(Q(is_active=True) | Q(pk__in=existing))
         )
         for payment_type in self.payment_types:
-            name = f"amount_{payment_type.pk}"
-            self.fields[name] = forms.DecimalField(
+            self.fields[f"amount_{payment_type.pk}"] = forms.DecimalField(
                 label=payment_type.name
                 + (" (inactive)" if not payment_type.is_active else ""),
                 required=False,
@@ -133,8 +126,126 @@ class PaymentPlanForm(StyledModelForm):
     def amount_fields(self):
         return [self[f"amount_{item.pk}"] for item in self.payment_types]
 
+
+class PaymentPlanTemplateForm(ContributionFields, StyledModelForm):
+    class Meta:
+        model = PaymentPlanTemplate
+        fields = ["name", "description", "is_active"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        existing = (
+            {item.payment_type_id: item.amount for item in self.instance.amounts.all()}
+            if self.instance.pk
+            else {}
+        )
+        self.add_contribution_fields(existing)
+
+    def clean_name(self):
+        value = self.cleaned_data["name"].strip()
+        if (
+            PaymentPlanTemplate.objects.filter(name__iexact=value)
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            raise forms.ValidationError("A template with this name already exists.")
+        return value
+
     def clean(self):
         data = super().clean()
+        if not any(
+            data.get(f"amount_{item.pk}", Decimal("0")) for item in self.payment_types
+        ):
+            raise forms.ValidationError(
+                "Enter a positive monthly amount for at least one payment type."
+            )
+        return data
+
+    @transaction.atomic
+    def save(self):
+        template = super().save()
+        for payment_type in self.payment_types:
+            amount = self.cleaned_data[f"amount_{payment_type.pk}"] or Decimal("0")
+            if amount:
+                PaymentPlanTemplateAmount.objects.update_or_create(
+                    template=template,
+                    payment_type=payment_type,
+                    defaults={"amount": amount},
+                )
+            else:
+                template.amounts.filter(payment_type=payment_type).delete()
+        return template
+
+
+class PaymentPlanForm(ContributionFields, StyledModelForm):
+    apply_template = forms.ModelChoiceField(
+        queryset=PaymentPlanTemplate.objects.none(),
+        required=False,
+        label="Payment plan template",
+        empty_label="Custom plan / keep current amounts",
+    )
+
+    class Meta:
+        model = PaymentPlan
+        fields = ["agreement_date"]
+        widgets = {"agreement_date": forms.DateInput(attrs={"type": "date"})}
+
+    def __init__(self, *args, member, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.instance.member = member
+        existing = (
+            {item.payment_type_id: item.amount for item in self.instance.amounts.all()}
+            if self.instance.pk
+            else {}
+        )
+        templates = PaymentPlanTemplate.objects.filter(is_active=True)
+        self.fields["apply_template"].queryset = templates
+        selected = (
+            self.data.get(self.add_prefix("apply_template"))
+            if self.is_bound
+            else self.initial.get("apply_template")
+        )
+        template = (
+            templates.prefetch_related("amounts__payment_type")
+            .filter(pk=selected)
+            .first()
+            if str(selected or "").isdigit()
+            else None
+        )
+        copied = (
+            {
+                item.payment_type_id: item.amount
+                for item in template.amounts.all()
+                if item.payment_type.is_active
+            }
+            if template
+            else {}
+        )
+        if template:
+            if self.is_bound:
+                self.data = self.data.copy()
+                for item in PaymentType.objects.filter(is_active=True):
+                    self.data.setdefault(
+                        self.add_prefix(f"amount_{item.pk}"),
+                        copied.get(item.pk, Decimal("0.00")),
+                    )
+            else:
+                existing = {**{key: Decimal("0.00") for key in existing}, **copied}
+        self.add_contribution_fields(existing)
+
+    def clean(self):
+        data = super().clean()
+        template = data.get("apply_template")
+        if (
+            template
+            and not template.amounts.filter(
+                payment_type__is_active=True, amount__gt=0
+            ).exists()
+        ):
+            self.add_error(
+                "apply_template",
+                "This template has no active payment type amounts to copy.",
+            )
         if (
             self.user is not None
             and not accessible_districts(self.user)
@@ -160,7 +271,12 @@ class PaymentPlanForm(StyledModelForm):
 
     @transaction.atomic
     def save(self):
-        plan = super().save()
+        plan = super().save(commit=False)
+        template = self.cleaned_data.get("apply_template")
+        if template:
+            plan.source_template = template
+            plan.source_template_name = template.name
+        plan.save()
         for payment_type in self.payment_types:
             PaymentPlanAmount.objects.update_or_create(
                 plan=plan,

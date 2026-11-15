@@ -5,6 +5,10 @@
       <div>
         <a href="{% url 'access_user_edit' account.pk %}" class="table-link">{{ account.get_full_name|default:account.username }}</a>
         <p class="mt-1 text-xs text-slate-500">@{{ account.username }}</p>
+        <p class="mt-1 text-xs text-slate-500">
+          EPF {{ account.ledger_profile.epf_number|default:'Not entered' }}
+          {% if account.ledger_profile.zonal_office_id %}· {{ account.ledger_profile.zonal_office.name }}{% endif %}
+        </p>
       </div>
     </div>
   </td>

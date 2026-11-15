@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="eyebrow">Administration</p>
+      <h1 class="page-title">Approval hierarchies</h1>
+      <p class="muted mt-2">
+        Manage approvals for member transfers and edits across all modules. Other create and delete actions follow the normal process.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <a class="btn btn-secondary" href="{% url 'approval_request_list' %}">Review requests</a><a class="btn btn-primary" href="{% url 'approval_hierarchy_create' %}">Create hierarchy</a>
+    </div>
+  </div>
+  <section class="card">
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Hierarchy / module</th>
+            <th>Applies to</th>
+            <th>Approval levels</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in page_obj %}
+            <tr>
+              <td>
+                <p class="font-semibold">{{ item.name }}</p>
+                <p class="muted text-xs">{{ item.module_label }} · Version {{ item.version }}</p>
+              </td>
+              <td>{{ item.scope_label }}</td>
+              <td>
+                {% for level in item.levels.all %}
+                  <p>
+                    {{ level.position }}. {{ level.name }} <span class="muted text-xs">({{ level.approvers.count }} users)</span>
+                  </p>
+                {% endfor %}
+              </td>
+              <td>
+                {% if item.is_active %}
+                  <span class="badge badge-green">Active</span>
+                {% else %}
+                  <span class="badge">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="flex flex-wrap gap-2">
+                  <a class="btn btn-secondary"
+                     href="{% url 'approval_hierarchy_edit' item.pk %}">Edit</a><a class="btn btn-secondary"
+   href="{% url 'approval_hierarchy_history' item.pk %}">History</a>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="py-10 text-center muted">
+                No approval hierarchies yet. Create one to require review before a module's changes take effect.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include 'components/pagination.html' %}
+  </section>
+{% endblock %}

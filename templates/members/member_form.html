@@ -55,6 +55,7 @@
   {% endif %}
   <form method="post"
         id="member-form"
+        data-member-identity
         data-location-form
         data-office-field="office_location"
         data-location-url="{% url 'location_options' %}"
@@ -80,10 +81,13 @@
             {% include 'components/field.html' with field=form.district %}
             {% include 'components/field.html' with field=form.province %}
             {% include 'components/field.html' with field=form.province_short_name %}
-            {% include 'components/field.html' with field=form.lager %}
             {% include 'components/field.html' with field=form.office_location %}
+            {% include 'components/field.html' with field=form.lager %}
             {% include 'components/field.html' with field=form.subdivision %}
             {% include 'components/field.html' with field=form.school wide=True %}
+            {% if form.maintenance_officer %}
+              {% include 'components/field.html' with field=form.maintenance_officer wide=True %}
+            {% endif %}
           </div>
           <p id="office-feedback"
              class="field-help"
@@ -105,7 +109,12 @@
           <div class="form-grid">
             {% include 'components/field.html' with field=form.member_no %}
             {% include 'components/field.html' with field=form.computer_no %}
+            {% include 'components/field.html' with field=form.title %}
             {% include 'components/field.html' with field=form.full_name wide=True %}
+            {% include 'components/field.html' with field=form.short_name wide=True %}
+            {% include 'components/field.html' with field=form.date_of_birth %}
+            {% include 'components/field.html' with field=form.retirement_age %}
+            {% include 'components/field.html' with field=form.expected_retirement_date %}
             {% include 'components/field.html' with field=form.nic_no %}
             {% include 'components/field.html' with field=form.gender %}
             {% include 'components/field.html' with field=form.admit_date %}
@@ -172,7 +181,7 @@
           </span>
           <h3 class="text-sm font-semibold text-brand-700">Small details. Big difference.</h3>
           <p class="mt-3 text-xs leading-6 text-brand-700">
-            Department and lager are required. Type directly in the Department dropdown to find a department by name or code. District and zonal office narrow the list. Selecting a department fills its location automatically. Then choose a lager from that district. Subdivision remains optional.
+            Department and lager are required. Type directly in the Department dropdown to find a department by name or code. District and zonal office narrow the list. Selecting a department fills its location automatically. Then choose a lager from that zonal office. Subdivision remains optional.
           </p>
           <hr class="my-4 border-brand-100">
           <p class="text-xs leading-6 text-brand-700">

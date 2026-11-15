@@ -12,8 +12,8 @@
       {% block title %}{{ title }}{% endblock %}
     · EDCS</title>
     <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
-    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=edcs-2">
-    <script src="{% static 'js/app.js' %}?v=12" defer></script>
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=edcs-8">
+    <script src="{% static 'js/app.js' %}?v=17" defer></script>
     {% include 'components/session_security.html' %}
   </head>
   <body>
@@ -76,6 +76,16 @@
             </a>
           {% endif %}
         {% endwith %}
+        {% for module in ledger_modules %}
+          {% if module.visible and module.section != 'member_transfers' %}
+            <a class="nav-link {% if section == module.section %}active{% endif %}"
+               href="{% url module.url %}">
+              <svg class="icon">
+                <use href="#i-{{ module.icon }}" />
+              </svg>
+            {{ module.label }}</a>
+          {% endif %}
+        {% endfor %}
         {% if payment_module.visible %}
           <a class="nav-link {% if section == 'payment_plans' %}active{% endif %}"
              href="{% url payment_module.url %}"
@@ -138,6 +148,18 @@
             </a>
           {% endif %}
         {% endfor %}
+        {% for module in ledger_modules %}
+          {% if module.visible and module.section == 'member_transfers' %}
+            <a class="nav-link {% if section == module.section %}active{% endif %}"
+               href="{% url module.url %}"
+               {% if section == module.section %}aria-current="page"{% endif %}>
+              <svg class="icon">
+                <use href="#i-{{ module.icon }}" />
+              </svg>
+              {{ module.label }}
+            </a>
+          {% endif %}
+        {% endfor %}
         {% if has_master_access %}
           <p class="nav-caption mt-7">Master data</p>
           {% for module in master_modules %}
@@ -153,29 +175,50 @@
             {% endif %}
           {% endfor %}
         {% endif %}
-        {% if request.user.is_superuser %}
+        {% if request.user.is_authenticated %}
           <p class="nav-caption mt-7">Administration</p>
-          <a class="nav-link {% if section == 'administration' %}active{% endif %}"
-             href="{% url 'administration' %}"
-             {% if section == 'administration' %}aria-current="page"{% endif %}>
+          {% if request.user.is_superuser %}
+            <a class="nav-link {% if section == 'administration' %}active{% endif %}"
+               href="{% url 'administration' %}"
+               {% if section == 'administration' %}aria-current="page"{% endif %}>
+              <svg class="icon">
+                <use href="#i-grid" />
+              </svg>
+            Control center<span class="ml-auto h-1.5 w-1.5 rounded-full bg-accent-500"></span></a>
+            <a class="nav-link {% if section == 'users' %}active{% endif %}"
+               href="{% url 'access_users' %}"
+               {% if section == 'users' %}aria-current="page"{% endif %}>
+              <svg class="icon">
+                <use href="#i-users" />
+              </svg>
+            Users & access</a>
+            <a class="nav-link {% if section == 'roles' %}active{% endif %}"
+               href="{% url 'access_roles' %}"
+               {% if section == 'roles' %}aria-current="page"{% endif %}>
+              <svg class="icon">
+                <use href="#i-shield" />
+              </svg>
+            Roles & permissions</a>
+          {% endif %}
+
+          {% if request.user.is_superuser %}
+            <a class="nav-link {% if section == 'approval_hierarchies' %}active{% endif %}"
+               href="{% url 'approval_hierarchy_list' %}"
+               {% if section == 'approval_hierarchies' %}aria-current="page"{% endif %}>
+              <svg class="icon">
+                <use href="#i-lock" />
+              </svg>
+            Approval hierarchies</a>
+          {% endif %}
+
+          <a class="nav-link {% if section == 'approvals' %}active{% endif %}"
+             href="{% url 'approval_request_list' %}"
+             {% if section == 'approvals' %}aria-current="page"{% endif %}>
             <svg class="icon">
-              <use href="#i-grid" />
+              <use href="#i-check" />
             </svg>
-          Control center<span class="ml-auto h-1.5 w-1.5 rounded-full bg-accent-500"></span></a>
-          <a class="nav-link {% if section == 'users' %}active{% endif %}"
-             href="{% url 'access_users' %}"
-             {% if section == 'users' %}aria-current="page"{% endif %}>
-            <svg class="icon">
-              <use href="#i-users" />
-            </svg>
-          Users & access</a>
-          <a class="nav-link {% if section == 'roles' %}active{% endif %}"
-             href="{% url 'access_roles' %}"
-             {% if section == 'roles' %}aria-current="page"{% endif %}>
-            <svg class="icon">
-              <use href="#i-shield" />
-            </svg>
-          Roles & permissions</a>
+          Approvals</a>
+
         {% endif %}
       </nav>
       <div class="mt-auto px-5 pt-8">
@@ -189,27 +232,37 @@
           </p>
         </div>
       </div>
-      <div class="mx-5 mt-5 flex items-center gap-2.5 border-t border-white/15 py-5">
-        <div class="avatar bg-white/15 text-white">{{ request.user.username|first|upper }}</div>
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-xs font-semibold text-white">{{ request.user.get_full_name|default:request.user.username }}</p>
-          <p class="mt-1 text-[10px] text-white/70">
-            {% if request.user.is_superuser %}
-              System administrator
-            {% else %}
-              Workspace user
-            {% endif %}
-          </p>
+      {% if request.user.is_authenticated %}
+        <div class="mx-5 mt-5 flex items-center gap-2.5 border-t border-white/15 py-5">
+          <div class="avatar bg-white/15 text-white">{{ request.user.username|first|upper }}</div>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-xs font-semibold text-white">{{ request.user.get_full_name|default:request.user.username }}</p>
+            <p class="mt-1 text-[10px] text-white/70">
+              {% if request.user.is_superuser %}
+                System administrator
+              {% else %}
+                Workspace user
+              {% endif %}
+            </p>
+          </div>
+          <form action="{% url 'logout' %}" method="post">
+            {% csrf_token %}
+            <button class="sidebar-signout" aria-label="Sign out" title="Sign out">
+              <svg class="icon h-4 w-4">
+                <use href="#i-logout" />
+              </svg>
+            </button>
+          </form>
         </div>
-        <form action="{% url 'logout' %}" method="post">
-          {% csrf_token %}
-          <button class="sidebar-signout" aria-label="Sign out" title="Sign out">
-            <svg class="icon h-4 w-4">
-              <use href="#i-logout" />
+      {% else %}
+        <div class="mx-5 mt-5 border-t border-white/15 py-5">
+          <a class="nav-link" href="{% url 'login' %}">
+            <svg class="icon" aria-hidden="true">
+              <use href="#i-user" />
             </svg>
-          </button>
-        </form>
-      </div>
+          Sign in to your workspace</a>
+        </div>
+      {% endif %}
     </aside>
     <div id="workspace" class="lg:ml-[242px]">
       <header class="flex min-h-[76px] items-center justify-between gap-4 border-b border-slate-200/70 bg-white px-5 sm:px-8 xl:px-10">
@@ -227,17 +280,19 @@
           <svg class="icon hidden h-3 w-3 text-slate-300 sm:block">
             <use href="#i-chevron" />
           </svg>
-          <span class="text-xs font-semibold text-slate-700">{{ title }}</span>
+          <span class="text-xs font-semibold text-slate-700">
+            {% block page_heading %}{{ title }}{% endblock %}
+          </span>
         </div>
         <div class="flex items-center gap-3">
           <span class="hidden rounded-full border border-brand-100 bg-brand-50 px-3 py-1.5 text-[10px] font-semibold text-brand-700 sm:inline-flex">
             {% if request.user.is_superuser %}
               Administrator
             {% else %}
-              {{ request.user.username }} · Workspace access
+              {{ request.user.username|default:'Guest' }} · Workspace access
             {% endif %}
           </span>
-          <div class="avatar h-9 w-9 border border-brand-100">{{ request.user.username|first|upper }}</div>
+          <div class="avatar h-9 w-9 border border-brand-100">{{ request.user.username|first|upper|default:'G' }}</div>
         </div>
       </header>
       <main id="main-content"
@@ -263,7 +318,7 @@
             </button>
           </div>
         {% endfor %}
-        {% if not request.user.is_superuser and not has_district_access %}
+        {% if request.user.is_authenticated and not request.user.is_superuser and not has_district_access %}
           <p class="alert border-accent-100 bg-accent-50 text-accent-700"
              role="status">
             No districts are assigned to your account. Ask an administrator to assign districts before working with district records.
@@ -275,7 +330,7 @@
             <svg class="icon h-3 w-3">
               <use href="#i-lock" />
             </svg>
-          Connected people. Protected information.</span>
+          Fully Owned by Namal Spencer EDCS.</span>
         </footer>
       </main>
     </div>

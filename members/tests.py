@@ -60,13 +60,31 @@ class MemberWorkflowTests(TestCase):
         }
         data.update(overrides)
         district_id = data["district"]
+        school = (
+            School.objects.filter(pk=data["school"]).first()
+            if str(data.get("school", "")).isdigit()
+            else None
+        )
+        office = (
+            school.zonal_office
+            if school
+            else OfficeLocation.objects.filter(
+                pk=data["office_location"], district_id=district_id
+            ).first()
+        )
+        office = (
+            office or OfficeLocation.objects.filter(district_id=district_id).first()
+        )
+        from .test_support import officer_for
+
+        data.setdefault("maintenance_officer", officer_for(office).pk)
         if "lager" not in data:
-            lager = Lager.objects.filter(district_id=district_id).first()
+            lager = Lager.objects.filter(zonal_office=office).first()
             if lager is None:
                 lager = Lager.objects.create(
-                    district_id=district_id,
+                    zonal_office=office,
                     name="Default Lager",
-                    code=f"DEFAULT-L-{district_id}",
+                    code=f"DEFAULT-L-{office.pk}",
                 )
             data["lager"] = lager.pk
         if "school" not in data:
@@ -244,7 +262,7 @@ class MemberWorkflowTests(TestCase):
         self.assertEqual(self.client.get(url).status_code, 200)
         self.assertTrue(Member.objects.filter(pk=member.pk).exists())
         self.assertRedirects(self.client.post(url), reverse("member_list"))
-        self.assertFalse(Member.objects.filter(pk=member.pk).exists())
+        self.assertTrue(Member.objects.filter(pk=member.pk).exists())
 
     def test_linked_masters_are_protected_from_deletion(self):
         self.create_member()
@@ -410,7 +428,10 @@ class MemberWorkflowTests(TestCase):
         school = self.make_school(
             district=self.other_district, zonal_office=self.other_office
         )
-        self.assertIn("lager", MemberForm(self.payload(school=school.pk)).errors)
+        lager = self.make_lager()
+        self.assertIn(
+            "lager", MemberForm(self.payload(school=school.pk, lager=lager.pk)).errors
+        )
         school = self.make_school(
             code="SCH-002",
             subdivision=Subdivision.objects.create(
@@ -669,11 +690,17 @@ class MemberWorkflowTests(TestCase):
     def make_lager(self, **overrides):
         data = {"district": self.district, "name": "Central Lager", "code": "LAG-001"}
         data.update(overrides)
+        district = data.pop("district")
+        data.setdefault(
+            "zonal_office",
+            self.office if district == self.district else self.other_office,
+        )
         return Lager.objects.create(**data)
 
     def test_lager_master_crud_requires_district_and_normalizes_code(self):
         payload = {
             "district": self.district.pk,
+            "zonal_office": self.office.pk,
             "name": "Central Lager",
             "code": "lag-001",
             "is_active": True,
@@ -706,6 +733,7 @@ class MemberWorkflowTests(TestCase):
             LagerForm(
                 {
                     "district": self.other_district.pk,
+                    "zonal_office": self.other_office.pk,
                     "name": "Other",
                     "code": "lag-001",
                     "is_active": True,
@@ -715,6 +743,7 @@ class MemberWorkflowTests(TestCase):
         form = LagerForm(
             {
                 "district": self.district.pk,
+                "zonal_office": self.office.pk,
                 "name": "Central Lager",
                 "code": "OTHER",
                 "is_active": True,
@@ -725,6 +754,7 @@ class MemberWorkflowTests(TestCase):
             LagerForm(
                 {
                     "district": self.other_district.pk,
+                    "zonal_office": self.other_office.pk,
                     "name": "Central Lager",
                     "code": "OTHER",
                     "is_active": True,
@@ -804,13 +834,14 @@ class MemberWorkflowTests(TestCase):
         form = LagerForm(
             {
                 "district": self.other_district.pk,
+                "zonal_office": self.other_office.pk,
                 "name": lager.name,
                 "code": lager.code,
                 "is_active": True,
             },
             instance=lager,
         )
-        self.assertIn("district", form.errors)
+        self.assertIn("zonal_office", form.errors)
         self.client.post(reverse("lager_delete", args=[lager.pk]))
         self.assertTrue(Lager.objects.filter(pk=lager.pk).exists())
         self.assertEqual(Member.objects.get(pk=member.pk).lager_id, lager.pk)
@@ -887,6 +918,154 @@ class MemberWorkflowTests(TestCase):
         )
         self.assertEqual(
             str(response.context["form"]["district"].value()), str(self.district.pk)
+        )
+
+    def test_lager_requires_zone_and_rejects_zone_from_other_district(self):
+        data = {
+            "district": self.district.pk,
+            "name": "Zone Lager",
+            "code": "ZL",
+            "is_active": True,
+        }
+        self.assertIn("zonal_office", LagerForm(data).errors)
+        self.assertIn(
+            "zonal_office",
+            LagerForm({**data, "zonal_office": self.other_office.pk}).errors,
+        )
+        form = LagerForm({**data, "zonal_office": self.office.pk})
+        self.assertTrue(form.is_valid(), form.errors)
+        lager = form.save()
+        self.assertEqual(lager.zonal_office_id, self.office.pk)
+        self.assertEqual(lager.district_id, self.district.pk)
+
+    def test_same_lager_name_allowed_in_different_zones_of_same_district(self):
+        lager = self.make_lager()
+        zone = OfficeLocation.objects.create(
+            district=self.district, name="Second Zone", code="ZONE2"
+        )
+        form = LagerForm(
+            {
+                "district": self.district.pk,
+                "zonal_office": zone.pk,
+                "name": lager.name,
+                "code": "OTHER-ZONE",
+                "is_active": True,
+            }
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        other = form.save()
+        self.assertEqual(other.district_id, lager.district_id)
+        self.assertNotEqual(other.zonal_office_id, lager.zonal_office_id)
+        duplicate = LagerForm(
+            {
+                "district": self.district.pk,
+                "zonal_office": zone.pk,
+                "name": lager.name,
+                "code": "DUPLICATE",
+            }
+        )
+        self.assertFalse(duplicate.is_valid())
+
+    def test_member_rejects_lager_from_another_zone_in_same_district(self):
+        zone = OfficeLocation.objects.create(
+            district=self.district, name="Second Zone", code="ZONE2"
+        )
+        lager = self.make_lager(zonal_office=zone)
+        self.assertIn("lager", MemberForm(self.payload(lager=lager.pk)).errors)
+        member = self.create_member()
+        member.lager = lager
+        with self.assertRaises(ValidationError):
+            member.full_clean()
+        with self.assertRaises(ValidationError):
+            member.save()
+        member.refresh_from_db()
+        self.assertEqual(member.lager.zonal_office_id, self.office.pk)
+
+    def test_zone_protected_from_move_and_deletion_with_only_lagers(self):
+        from django.db.models.deletion import ProtectedError
+
+        self.make_lager()
+        self.office.district = self.other_district
+        with self.assertRaises(ValidationError):
+            self.office.save()
+        self.office.refresh_from_db()
+        with self.assertRaises(ProtectedError):
+            self.office.delete()
+        self.assertEqual(self.office.district_id, self.district.pk)
+
+    def test_lager_zone_move_protected_even_with_direct_save(self):
+        lager = self.make_lager()
+        self.create_member(lager=lager.pk)
+        zone = OfficeLocation.objects.create(
+            district=self.district, name="Second Zone", code="ZONE2"
+        )
+        lager.zonal_office = zone
+        with self.assertRaises(ValidationError):
+            lager.save()
+        lager.refresh_from_db()
+        self.assertEqual(lager.zonal_office_id, self.office.pk)
+
+    def test_lager_zone_filters_counts_and_location_options(self):
+        lager = self.make_lager()
+        self.create_member(lager=lager.pk)
+        zone = OfficeLocation.objects.create(
+            district=self.district, name="Second Zone", code="ZONE2"
+        )
+        other = self.make_lager(
+            zonal_office=zone, name="Other Zone Lager", code="ZONE-L"
+        )
+        response = self.client.get(
+            reverse("lager_list"),
+            {"district": self.district.pk, "zonal_office": zone.pk},
+        )
+        self.assertEqual([row.pk for row in response.context["page_obj"]], [other.pk])
+        self.assertContains(response, zone.name)
+        directory = self.client.get(
+            reverse("member_list"), {"district": self.district.pk, "office": zone.pk}
+        )
+        self.assertEqual(list(directory.context["lagers"]), [other])
+        self.assertEqual(directory.context["filtered_count"], 0)
+        offices = self.client.get(reverse("office_list")).context["page_obj"]
+        self.assertEqual(
+            {row.pk: row.lager_count for row in offices},
+            {self.office.pk: 1, self.other_office.pk: 0, zone.pk: 1},
+        )
+        rows = self.client.get(
+            reverse("location_options"), {"district": self.district.pk}
+        ).json()["lagers"]
+        self.assertEqual(
+            {row["id"]: row["zonal_office_id"] for row in rows},
+            {lager.pk: self.office.pk, other.pk: zone.pk},
+        )
+
+    def test_lager_create_initial_from_zonal_office_link(self):
+        response = self.client.get(
+            reverse("lager_create"), {"zonal_office": self.office.pk}
+        )
+        form = response.context["form"]
+        self.assertEqual(str(form["district"].value()), str(self.district.pk))
+        self.assertEqual(str(form["zonal_office"].value()), str(self.office.pk))
+        self.assertContains(response, "data-location-form")
+
+    def test_lager_zone_choices_preserve_inactive_current_zone_only(self):
+        lager = self.make_lager()
+        self.office.is_active = False
+        self.office.save()
+        data = {
+            "district": self.district.pk,
+            "zonal_office": self.office.pk,
+            "name": lager.name,
+            "code": lager.code,
+            "is_active": True,
+        }
+        self.assertIn("zonal_office", LagerForm(data).errors)
+        form = LagerForm(data, instance=lager)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(
+            self.client.get(
+                reverse("location_options"), {"district": self.district.pk}
+            ).json()["lagers"],
+            [],
         )
 
     def test_district_preserves_full_province_name_and_normalizes_short_name(self):

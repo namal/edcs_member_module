@@ -9,6 +9,9 @@
         {{ plan.member.full_name }}<span class="text-brand-600">.</span>
       </h1>
       <p class="muted mt-2">Member {{ plan.member.member_no }} · Agreement dated {{ plan.agreement_date|date:'d M Y' }}</p>
+      {% if plan.source_template_name %}
+        <p class="muted mt-2">Copied from {{ plan.source_template_name }} · Amounts belong to this member's plan.</p>
+      {% endif %}
     </div>
     <div class="flex gap-2">
       {% if perms.members.change_paymentplan %}

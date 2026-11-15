@@ -22,10 +22,18 @@ from .models import (
     OpeningBalanceAmount,
     PaymentPlan,
     PaymentPlanAmount,
+    PaymentPlanTemplate,
+    PaymentPlanTemplateAmount,
     PaymentTransaction,
     PaymentType,
     School,
     Subdivision,
+    LedgerOfficerProfile,
+    MemberLedger,
+    MemberTransfer,
+    LedgerOfficerAssignment,
+    LedgerRecord,
+    LedgerEvent,
 )
 from .notifications import notify_user_created
 
@@ -217,6 +225,13 @@ class DistrictAccessInline(admin.TabularInline):
     verbose_name_plural = "assigned districts"
 
 
+class LedgerOfficerProfileInline(admin.StackedInline):
+    model = LedgerOfficerProfile
+    extra = 0
+    max_num = 1
+    fields = ["epf_number", "zonal_office"]
+
+
 @admin.register(get_user_model())
 class WorkspaceUserAdmin(UserAdmin):
     add_fieldsets = UserAdmin.add_fieldsets + (
@@ -224,7 +239,11 @@ class WorkspaceUserAdmin(UserAdmin):
     )
 
     def get_inlines(self, request, obj=None):
-        return [DistrictAccessInline] if obj is not None else []
+        return (
+            [DistrictAccessInline, LedgerOfficerProfileInline]
+            if obj is not None
+            else []
+        )
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
@@ -259,8 +278,13 @@ class MemberAdmin(admin.ModelAdmin):
         "admit_date",
     ]
     list_filter = ["district", "lager", "status", "gender"]
-    search_fields = ["member_no", "full_name", "nic_no", "computer_no"]
-    list_select_related = ["district", "lager__district", "office_location"]
+    search_fields = ["member_no", "full_name", "short_name", "nic_no", "computer_no"]
+    readonly_fields = ["short_name", "retirement_age", "expected_retirement_date"]
+    list_select_related = [
+        "district",
+        "lager__zonal_office__district",
+        "office_location",
+    ]
     date_hierarchy = "admit_date"
 
 
@@ -289,10 +313,17 @@ class SchoolAdmin(admin.ModelAdmin):
 
 @admin.register(Lager)
 class LagerAdmin(admin.ModelAdmin):
-    list_display = ["name", "code", "district", "member_count", "is_active"]
-    list_filter = ["district", "is_active"]
+    list_display = [
+        "name",
+        "code",
+        "zonal_office",
+        "district",
+        "member_count",
+        "is_active",
+    ]
+    list_filter = ["zonal_office__district", "zonal_office", "is_active"]
     search_fields = ["name", "code"]
-    list_select_related = ["district"]
+    list_select_related = ["zonal_office__district"]
 
     def get_queryset(self, request):
         return (
@@ -351,8 +382,21 @@ class PaymentPlanAmountInline(admin.TabularInline):
     extra = 0
 
 
+class PaymentPlanTemplateAmountInline(admin.TabularInline):
+    model = PaymentPlanTemplateAmount
+    extra = 0
+
+
+@admin.register(PaymentPlanTemplate)
+class PaymentPlanTemplateAdmin(admin.ModelAdmin):
+    list_display = ["name", "is_active", "monthly_total"]
+    inlines = [PaymentPlanTemplateAmountInline]
+    search_fields = ["name"]
+
+
 @admin.register(PaymentPlan)
 class PaymentPlanAdmin(admin.ModelAdmin):
+    readonly_fields = ["source_template", "source_template_name"]
     list_display = ["member", "agreement_date", "monthly_total"]
     list_select_related = ["member"]
     search_fields = ["member__member_no", "member__full_name"]
@@ -401,3 +445,82 @@ class OpeningBalanceAdmin(admin.ModelAdmin):
         ):
             return False
         return super().has_delete_permission(request, obj)
+
+
+class PermanentLedgerAdmin(admin.ModelAdmin):
+    def get_readonly_fields(self, request, obj=None):
+        return [field.name for field in self.model._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(MemberLedger)
+class MemberLedgerAdmin(PermanentLedgerAdmin):
+    list_display = [
+        "reference",
+        "member",
+        "zonal_office",
+        "status",
+        "officer_name",
+        "officer_epf",
+        "opened_on",
+        "closed_on",
+    ]
+    list_filter = ["status", "district", "zonal_office", "legacy_assignment_pending"]
+    search_fields = [
+        "reference",
+        "member__member_no",
+        "member__full_name",
+        "officer_epf",
+    ]
+    list_select_related = ["member", "zonal_office"]
+
+
+@admin.register(MemberTransfer)
+class MemberTransferAdmin(PermanentLedgerAdmin):
+    list_display = [
+        "reference",
+        "member",
+        "from_ledger",
+        "to_ledger",
+        "effective_date",
+        "performed_by_name",
+    ]
+    list_select_related = ["member", "from_ledger", "to_ledger"]
+
+
+admin.site.register(LedgerOfficerAssignment, PermanentLedgerAdmin)
+admin.site.register(LedgerRecord, PermanentLedgerAdmin)
+admin.site.register(LedgerEvent, PermanentLedgerAdmin)
+
+from .approval_models import (
+    ApprovalHierarchy,
+    ApprovalLevel,
+    ApprovalRequest,
+    ApprovalAuditEvent,
+)
+
+
+@admin.register(ApprovalRequest)
+class ApprovalRequestAdmin(PermanentLedgerAdmin):
+    list_display = [
+        "reference",
+        "description",
+        "requester_name",
+        "status",
+        "created_at",
+    ]
+    list_filter = ["status", "module"]
+    search_fields = ["reference", "requester_name", "description"]
+
+
+admin.site.register(ApprovalHierarchy, PermanentLedgerAdmin)
+admin.site.register(ApprovalLevel, PermanentLedgerAdmin)
+admin.site.register(ApprovalAuditEvent, PermanentLedgerAdmin)

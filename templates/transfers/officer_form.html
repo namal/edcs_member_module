@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1 class="page-title mb-5">Change ledger officer</h1>
+  <section class="form-section max-w-2xl">
+    <h2 class="section-title">{{ ledger.reference }} · {{ ledger.member.member_no }}</h2>
+    <p class="muted my-4">
+      {{ ledger.zonal_office }}. Current officer: {{ ledger.officer_name|default:'Assignment required' }} · EPF {{ ledger.officer_epf|default:'Not entered' }}.
+    </p>
+    <p class="field-help mb-5">
+      Select an active officer from this zonal office. The previous officer and EPF details remain in the responsibility history.
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="alert message-error" role="alert">{{ form.non_field_errors }}</div>
+      {% endif %}
+      {% include 'components/field.html' with field=form.maintenance_officer %}
+      <div class="mt-5">{% include 'components/field.html' with field=form.reason %}</div>
+      <button class="btn btn-primary mt-5" data-submit-label="Saving…">Save responsibility change</button>
+    </form>
+  </section>
+{% endblock %}

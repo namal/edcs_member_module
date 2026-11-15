@@ -1,0 +1,215 @@
+{
+  "duration": 2462.2700000000027,
+  "chapters": [
+    {
+      "number": 1,
+      "title": "Welcome, sign-in and workspace navigation",
+      "modules": ["authentication", "dashboard"],
+      "start": 0.0,
+      "end": 80.65500000000002
+    },
+    {
+      "number": 2,
+      "title": "Administration: reusable roles and permissions",
+      "modules": ["administration", "roles"],
+      "start": 80.65500000000002,
+      "end": 138.09000000000003
+    },
+    {
+      "number": 3,
+      "title": "Administration: users, districts and officer identities",
+      "modules": ["administration", "users", "district_access"],
+      "start": 138.09000000000003,
+      "end": 263.415
+    },
+    {
+      "number": 4,
+      "title": "Master data: districts and provinces",
+      "modules": ["districts"],
+      "start": 263.415,
+      "end": 322.3700000000001
+    },
+    {
+      "number": 5,
+      "title": "Master data: zonal offices",
+      "modules": ["offices"],
+      "start": 322.3700000000001,
+      "end": 371.54000000000013
+    },
+    {
+      "number": 6,
+      "title": "Master data: subdivisions",
+      "modules": ["subdivisions"],
+      "start": 371.54000000000013,
+      "end": 422.18000000000023
+    },
+    {
+      "number": 7,
+      "title": "Master data: departments",
+      "modules": ["schools"],
+      "start": 422.18000000000023,
+      "end": 475.30000000000024
+    },
+    {
+      "number": 8,
+      "title": "Master data: lagers",
+      "modules": ["lagers"],
+      "start": 475.30000000000024,
+      "end": 523.7000000000002
+    },
+    {
+      "number": 9,
+      "title": "Member registration from start to finish",
+      "modules": ["member"],
+      "start": 523.7000000000002,
+      "end": 645.7200000000001
+    },
+    {
+      "number": 10,
+      "title": "Member directory, profile editing, export and printing",
+      "modules": ["member", "reporting"],
+      "start": 645.7200000000001,
+      "end": 743.9050000000002
+    },
+    {
+      "number": 11,
+      "title": "Process an actual retirement",
+      "modules": ["member", "retirement"],
+      "start": 743.9050000000002,
+      "end": 801.0500000000003
+    },
+    {
+      "number": 12,
+      "title": "Payment Types and interest reference settings",
+      "modules": ["payment_type"],
+      "start": 801.0500000000003,
+      "end": 874.5150000000004
+    },
+    {
+      "number": 13,
+      "title": "Reusable payment-plan templates",
+      "modules": ["payment_plan_template"],
+      "start": 874.5150000000004,
+      "end": 930.0050000000006
+    },
+    {
+      "number": 14,
+      "title": "Create and maintain a member payment plan",
+      "modules": ["payment_plan"],
+      "start": 930.0050000000006,
+      "end": 999.7000000000006
+    },
+    {
+      "number": 15,
+      "title": "Enter and review opening balances",
+      "modules": ["opening_balance"],
+      "start": 999.7000000000006,
+      "end": 1070.2200000000005
+    },
+    {
+      "number": 16,
+      "title": "Member debit and credit entries and statements",
+      "modules": ["payment_transaction"],
+      "start": 1070.2200000000005,
+      "end": 1166.5250000000005
+    },
+    {
+      "number": 17,
+      "title": "Child Deposit Types and age-based rates",
+      "modules": ["child_deposit_type"],
+      "start": 1166.5250000000005,
+      "end": 1219.0450000000005
+    },
+    {
+      "number": 18,
+      "title": "Register and maintain children",
+      "modules": ["child"],
+      "start": 1219.0450000000005,
+      "end": 1270.7500000000002
+    },
+    {
+      "number": 19,
+      "title": "Open a child deposit account",
+      "modules": ["childdeposit", "child_deposit"],
+      "start": 1270.7500000000002,
+      "end": 1322.275
+    },
+    {
+      "number": 20,
+      "title": "Child debit and credit and account statements",
+      "modules": ["child_deposit"],
+      "start": 1322.275,
+      "end": 1376.64
+    },
+    {
+      "number": 21,
+      "title": "Quarterly Interest and annual carry-forward",
+      "modules": ["deposit_interest"],
+      "start": 1376.64,
+      "end": 1513.6250000000002
+    },
+    {
+      "number": 22,
+      "title": "Fix Deposit rules and account setup",
+      "modules": ["fix_deposit_policy", "fix_deposit_account"],
+      "start": 1513.6250000000002,
+      "end": 1611.3800000000006
+    },
+    {
+      "number": 23,
+      "title": "Issue, service and settle a Fix Deposit loan",
+      "modules": ["fix_deposit_account", "loans"],
+      "start": 1611.3800000000006,
+      "end": 1722.2300000000007
+    },
+    {
+      "number": 24,
+      "title": "Request, review and release a withdrawal",
+      "modules": ["fix_deposit_account", "withdrawals"],
+      "start": 1722.2300000000007,
+      "end": 1797.9400000000005
+    },
+    {
+      "number": 25,
+      "title": "Member Ledgers and officer responsibility",
+      "modules": ["member_ledger"],
+      "start": 1797.9400000000005,
+      "end": 1874.585000000001
+    },
+    {
+      "number": 26,
+      "title": "Transfer a member and preserve the ledger chain",
+      "modules": ["member_transfer"],
+      "start": 1874.585000000001,
+      "end": 1972.580000000001
+    },
+    {
+      "number": 27,
+      "title": "Administration: configure approval hierarchies",
+      "modules": ["approval_hierarchy"],
+      "start": 1972.580000000001,
+      "end": 2077.700000000001
+    },
+    {
+      "number": 28,
+      "title": "Submit, approve, cancel and override requests",
+      "modules": ["approvals", "administration"],
+      "start": 2077.700000000001,
+      "end": 2250.300000000002
+    },
+    {
+      "number": 29,
+      "title": "Operational reporting and Lager activity",
+      "modules": ["reporting", "lagers", "payment_transaction"],
+      "start": 2250.300000000002,
+      "end": 2331.115000000002
+    },
+    {
+      "number": 30,
+      "title": "Validation, deletion, advanced administration and logout",
+      "modules": ["validation", "administration", "authentication"],
+      "start": 2331.115000000002,
+      "end": 2462.2700000000027
+    }
+  ]
+}

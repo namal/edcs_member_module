@@ -11,6 +11,8 @@ def workspace_access(request):
         if module["section"]
         not in (
             "members",
+            "member_transfers",
+            "member_ledgers",
             "payment_plans",
             "opening_balances",
             "payment_transactions",
@@ -22,6 +24,11 @@ def workspace_access(request):
     ]
     return {
         "workspace_modules": modules,
+        "ledger_modules": [
+            module
+            for module in modules
+            if module["section"] in ("member_transfers", "member_ledgers")
+        ],
         "has_district_access": accessible_districts(request.user).exists(),
         "master_modules": masters,
         "has_master_access": any(module["visible"] for module in masters),

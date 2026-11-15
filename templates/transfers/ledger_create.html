@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1 class="page-title mb-5">Assign original ledger officer</h1>
+  <section class="form-section">
+    <p class="muted mb-5">
+      Existing members already have original ledger pages. Assign the responsible officer without replacing their registration or financial history.
+    </p>
+    <form method="get" class="flex flex-wrap gap-4">
+      <select name="member"
+              class="field-input flex-1"
+              aria-label="Member requiring officer assignment"
+              data-searchable-select>
+        <option value="">Select member</option>
+        {% for member in members %}
+          <option value="{{ member.pk }}"
+                  {% if selected_member.pk == member.pk %}selected{% endif %}>{{ member }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-secondary">Select member</button>
+    </form>
+  </section>
+  {% if ledger %}
+    <section class="form-section">
+      <h2 class="section-title mb-5">{{ ledger.reference }} · {{ ledger.zonal_office }}</h2>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="member" value="{{ selected_member.pk }}">
+        {% if form.non_field_errors %}
+          <div class="alert message-error" role="alert">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <div class="form-grid">
+          {% include 'components/field.html' with field=form.maintenance_officer %}
+          {% include 'components/field.html' with field=form.reason %}
+        </div>
+        <button class="btn btn-primary mt-5" data-submit-label="Saving…">Assign original ledger officer</button>
+      </form>
+    </section>
+  {% endif %}
+{% endblock %}

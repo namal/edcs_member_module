@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 
 from django import forms
 from django.contrib import messages
+from .approval_services import form_checkpoint, checkpoint
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models.deletion import ProtectedError
@@ -85,6 +86,11 @@ def payment_transaction_list(request):
             ),
         )
     context.update(paginated(request, entries.order_by("transaction_date", "pk")))
+    from .ledger_tracking import attach_ledger_references
+
+    context["page_obj"].object_list = attach_ledger_references(
+        context["page_obj"].object_list, PaymentTransaction, request.user
+    )
     return render(request, "transactions/ledger.html", context)
 
 
@@ -162,6 +168,9 @@ def payment_transaction_form(request, pk=None):
         },
     )
     if request.method == "POST" and form.is_valid():
+        queued = form_checkpoint(request, form)
+        if queued is not None:
+            return queued
         saved = form.save(commit=False)
         if entry is None:
             saved.created_by = request.user
@@ -235,6 +244,15 @@ def payment_transaction_delete(request, pk):
         pk=pk,
     )
     if request.method == "POST":
+        queued = checkpoint(
+            request,
+            PaymentTransaction,
+            "delete",
+            f"Delete debit / credit entry: {entry}",
+            target=entry,
+        )
+        if queued is not None:
+            return queued
         destination = ledger_url(entry)
         try:
             entry.delete()

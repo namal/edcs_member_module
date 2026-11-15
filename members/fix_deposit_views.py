@@ -1,4 +1,5 @@
 from django import forms
+from .approval_services import form_checkpoint
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -95,6 +96,9 @@ def fix_deposit_form(request, pk=None):
         initial=initial,
     )
     if request.method == "POST" and form.is_valid():
+        queued = form_checkpoint(request, form)
+        if queued is not None:
+            return queued
         try:
             with transaction.atomic():
                 saved = form.save()
@@ -205,6 +209,12 @@ def fix_loan_detail(request, pk):
         ),
         pk=pk,
     )
+    from .ledger_tracking import attach_ledger_references
+    from .models import FixLoanEntry
+
+    loan_entries = attach_ledger_references(
+        loan.entries.all(), FixLoanEntry, request.user
+    )
     return render(
         request,
         "fix_deposits/loan_detail.html",
@@ -212,6 +222,7 @@ def fix_loan_detail(request, pk):
             "section": "fix_deposits",
             "title": loan.reference,
             "loan": loan,
+            "loan_entries": loan_entries,
             **loan_balances(loan, timezone.localdate()),
         },
     )
@@ -223,6 +234,42 @@ def perform_action(
     form = form_class(request.POST if request.method == "POST" else None)
     form.fields["day"].widget.attrs["min"] = account.cycle_started_on.isoformat()
     if request.method == "POST" and form.is_valid():
+        action_name = "add" if kind in ("loan", "withdrawal") else "change"
+        status = account_status(account, form.cleaned_data["day"])
+        context_summary = [
+            {"label": "Member", "value": str(account.member)},
+            {"label": "Deposit type", "value": account.policy.payment_type.name},
+            {"label": "Deposit balance (LKR)", "value": str(status["deposit_balance"])},
+        ]
+        if kind == "loan":
+            context_summary += [
+                {
+                    "label": "Annual loan interest rate (%)",
+                    "value": str(account.policy.loan_interest_rate),
+                },
+                {
+                    "label": "Maximum additional loan (LKR)",
+                    "value": str(status["loan_limit"]),
+                },
+            ]
+        if kind == "withdrawal" or withdrawal:
+            context_summary += [
+                {
+                    "label": "Withdrawal limit (LKR)",
+                    "value": str(status["withdrawal_limit"]),
+                }
+            ]
+        queued = form_checkpoint(
+            request,
+            form,
+            model=FixDepositAccount,
+            action=action_name,
+            target=withdrawal or loan or account,
+            description=f"{title}: {account}",
+            extra_summary=context_summary,
+        )
+        if queued is not None:
+            return queued
         try:
             result = action(form.cleaned_data)
         except ValidationError as error:

@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django import forms
 from django.contrib import messages
+from .approval_services import form_checkpoint, checkpoint
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import Q, Sum
@@ -108,6 +109,9 @@ def child_form(request, pk=None):
         initial=initial_relation(request, Member, "member", pk),
     )
     if request.method == "POST" and form.is_valid():
+        queued = form_checkpoint(request, form)
+        if queued is not None:
+            return queued
         saved = form.save()
         messages.success(request, "Child details saved.")
         return after_form(request, Child, saved, "child")
@@ -256,6 +260,9 @@ def child_deposit_form(request, pk=None):
         initial=initial_relation(request, Child, "child", pk),
     )
     if request.method == "POST" and form.is_valid():
+        queued = form_checkpoint(request, form)
+        if queued is not None:
+            return queued
         saved = form.save()
         messages.success(request, "Child deposit saved.")
         return after_form(request, ChildDeposit, saved, "child_deposit")
@@ -315,6 +322,11 @@ def child_deposit_detail(request, pk):
         context.update(statement)
         context["statement_ready"] = True
     context.update(paginated(request, entries.order_by("transaction_date", "pk")))
+    from .ledger_tracking import attach_ledger_references
+
+    context["page_obj"].object_list = attach_ledger_references(
+        context["page_obj"].object_list, ChildDepositTransaction, request.user
+    )
     return render(request, "children/deposit_detail.html", context)
 
 
@@ -350,6 +362,15 @@ def child_entry_form(request, deposit_pk=None, pk=None):
         user=request.user,
     )
     if request.method == "POST" and form.is_valid():
+        queued = form_checkpoint(
+            request,
+            form,
+            model=ChildDeposit,
+            action="change" if entry else "add",
+            target=entry or deposit,
+        )
+        if queued is not None:
+            return queued
         saved = form.save(commit=False)
         if entry is None or saved.transaction_date != original_date:
             saved.interest_rate = deposit.rate_on(saved.transaction_date)
@@ -398,6 +419,15 @@ def child_entry_delete(request, pk):
         pk=pk,
     )
     if request.method == "POST":
+        queued = checkpoint(
+            request,
+            ChildDeposit,
+            "delete",
+            f"Delete child debit / credit: {entry}",
+            target=entry,
+        )
+        if queued is not None:
+            return queued
         deposit_pk = entry.deposit_id
         try:
             entry.delete()

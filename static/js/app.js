@@ -47,6 +47,111 @@
       : '';
   };
   const readJSON = (id) => JSON.parse(document.getElementById(id)?.textContent || '{}');
+  document.querySelectorAll('[data-member-identity]').forEach((form) => {
+    const fullName = form.querySelector('#id_full_name');
+    const title = form.querySelector('#id_title');
+    const shortName = form.querySelector('#id_short_name');
+    const birth = form.querySelector('#id_date_of_birth');
+    const expected = form.querySelector('#id_expected_retirement_date');
+    const age = Number(form.querySelector('#id_retirement_age')?.value || 60);
+    const updateName = () => {
+      const parts = fullName.value.trim().split(/\s+/u).filter(Boolean);
+      const name = parts.length
+        ? [
+            ...parts
+              .slice(0, -1)
+              .map((part) => `${Array.from(part)[0].toUpperCase()}.`),
+            parts.at(-1),
+          ].join(' ')
+        : '';
+      shortName.value = name ? [title.value, name].filter(Boolean).join(' ') : '';
+    };
+    const updateRetirement = () => {
+      expected.value = '';
+      if (!birth.value || !birth.validity.valid) return;
+      const [birthYear, month, day] = birth.value.split('-').map(Number);
+      const year = birthYear + age;
+      if (year > 9999) return;
+      const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+      const lastDay = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][
+        month - 1
+      ];
+      expected.value = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(Math.min(day, lastDay)).padStart(2, '0')}`;
+    };
+    if (form.dataset.today) birth.max = form.dataset.today;
+    fullName.addEventListener('input', updateName);
+    title.addEventListener('change', updateName);
+    birth.addEventListener('input', updateRetirement);
+    birth.addEventListener('change', updateRetirement);
+    updateName();
+    updateRetirement();
+  });
+
+  document.querySelectorAll('[data-template-url]').forEach((form) => {
+    const select = form.querySelector('#id_apply_template');
+    const feedback = form.querySelector('[data-template-feedback]');
+    const amounts = [...form.querySelectorAll('[data-monthly-amount]')];
+    const submit = form.querySelector('[data-save-plan]');
+    let pending;
+    let loading = false;
+    select.addEventListener('change', async () => {
+      pending?.abort();
+      const controller = new AbortController();
+      pending = controller;
+      select.setCustomValidity('');
+      if (!select.value) {
+        loading = false;
+        submit.disabled = !amounts.length;
+        amounts.forEach((input) => (input.disabled = false));
+        feedback.textContent = 'Current draft amounts kept as a custom plan.';
+        return;
+      }
+      loading = true;
+      submit.disabled = true;
+      amounts.forEach((input) => (input.disabled = true));
+      feedback.textContent = 'Loading template amounts…';
+      try {
+        const response = await fetch(
+          `${form.dataset.templateUrl}?template=${encodeURIComponent(select.value)}`,
+          { signal: controller.signal, headers: { Accept: 'application/json' } },
+        );
+        if (
+          !response.ok ||
+          !response.headers.get('content-type')?.includes('application/json')
+        )
+          throw new Error('Unable to load template');
+        const data = await response.json();
+        if (pending !== controller) return;
+        const copied = new Map(
+          data.amounts.map((item) => [String(item.payment_type_id), item.amount]),
+        );
+        amounts.forEach((input) => {
+          input.value = copied.get(input.name.replace('amount_', '')) || '0.00';
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        feedback.textContent = `Copied ${data.name}. You can customize these amounts for this member.`;
+      } catch (error) {
+        if (pending !== controller || error.name === 'AbortError') return;
+        feedback.textContent =
+          'Template could not be loaded. Select it again, or choose Custom plan to keep the current amounts.';
+        select.setCustomValidity(
+          'Select the template again to load its amounts, or choose Custom plan.',
+        );
+      } finally {
+        if (pending === controller) {
+          loading = false;
+          amounts.forEach((input) => (input.disabled = false));
+          submit.disabled = !amounts.length;
+        }
+      }
+    });
+    form.addEventListener('submit', (event) => {
+      if (loading) {
+        event.preventDefault();
+        feedback.textContent = 'Wait for the template amounts to finish loading.';
+      }
+    });
+  });
   const searchableSelect = (select, searchTerms, labels = {}) => {
     const wrapper = document.createElement('div');
     wrapper.className = 'school-combo';
@@ -529,6 +634,7 @@
     const subdivision = form.querySelector('#id_subdivision');
     const school = form.querySelector('#id_school');
     const lager = form.querySelector('#id_lager');
+    const officer = form.querySelector('#id_maintenance_officer');
     const feedback = form.querySelector('#office-feedback');
     const provinces = readJSON('district-provinces');
     const provinceShortNames = readJSON('district-province-short-names');
@@ -573,17 +679,21 @@
       );
       fillOptions(subdivision, rows, 'No subdivision', selected);
     };
-    const render = (selection = {}) => {
-      const lagers = (locations.lagers || []).map((row) => ({
-        ...row,
-        name: `${row.code} · ${row.name}`,
-      }));
+    const updateLagers = (selected = '') => {
+      const lagers = (locations.lagers || [])
+        .filter((row) => String(row.zonal_office_id) === office.value)
+        .map((row) => ({
+          ...row,
+          name: `${row.code} · ${row.name}`,
+        }));
       fillOptions(
         lager,
         lagers,
-        district.value ? 'Select a lager' : 'Select a department or district first',
-        selection.lager,
+        office.value ? 'Select a lager' : 'Select a zonal office first',
+        selected,
       );
+    };
+    const render = (selection = {}) => {
       fillOptions(
         office,
         locations.offices || [],
@@ -591,6 +701,17 @@
           ? 'Select a zonal office'
           : 'Select a department or district first',
         selection.office,
+      );
+      updateLagers(selection.lager);
+      fillOptions(
+        officer,
+        (locations.officers || []).filter(
+          (row) => String(row.zonal_office_id) === office.value,
+        ),
+        office.value
+          ? 'Select a Ledger Maintenance Officer'
+          : 'Select a zonal office first',
+        selection.officer,
       );
       updateSubdivisions(selection.subdivision);
       updateSchool(selection.school);
@@ -606,6 +727,7 @@
       subdivision: subdivision?.value,
       school: school?.value,
       lager: lager?.value,
+      officer: officer?.value,
     });
     const loadDistrict = async (selection = {}) => {
       pending?.abort();
@@ -665,7 +787,11 @@
             zonal_office_id: selectedSchool.zonal_office_id,
           });
         }
-        if (previousLager && !data.lagers.some((row) => row.id === previousLager.id))
+        if (
+          previousLager &&
+          String(previousLager.zonal_office_id) === String(selection.office) &&
+          !data.lagers.some((row) => row.id === previousLager.id)
+        )
           data.lagers.push(previousLager);
         locations = data;
         render({
@@ -695,6 +821,16 @@
     };
     district.addEventListener('change', () => loadDistrict());
     office.addEventListener('change', () => {
+      fillOptions(
+        officer,
+        (locations.officers || []).filter(
+          (row) => String(row.zonal_office_id) === office.value,
+        ),
+        office.value
+          ? 'Select a Ledger Maintenance Officer'
+          : 'Select a zonal office first',
+      );
+      updateLagers();
       updateSubdivisions();
       updateSchool();
     });
@@ -718,13 +854,16 @@
         return;
       }
       const selectedLager =
-        district.value === String(row.district_id) ? lager?.value : '';
+        office.value === String(row.zonal_office_id) ? lager?.value : '';
+      const selectedOfficer =
+        office.value === String(row.zonal_office_id) ? officer?.value : '';
       district.value = String(row.district_id);
       loadDistrict({
         office: row.zonal_office_id,
         subdivision: row.subdivision_id || '',
         school: row.id,
         lager: selectedLager,
+        officer: selectedOfficer,
       });
     });
     form.addEventListener('submit', (event) => {
@@ -776,22 +915,30 @@
   });
 
   const directoryDistrict = document.getElementById('filter-district');
+  const directoryOffice = document.getElementById('filter-office');
   const directoryLager = document.getElementById('filter-lager');
   if (directoryDistrict && directoryLager) {
     const lagers = readJSON('directory-lagers');
-    directoryDistrict.addEventListener('change', () => {
+    const updateDirectoryLagers = () => {
       const rows = lagers
         .filter(
           (row) =>
-            !directoryDistrict.value ||
-            String(row.district_id) === directoryDistrict.value,
+            (!directoryDistrict.value ||
+              String(row.district_id) === directoryDistrict.value) &&
+            (!directoryOffice?.value ||
+              String(row.zonal_office_id) === directoryOffice.value),
         )
         .map((row) => ({
           ...row,
-          name: `${row.code} · ${row.name} · ${row.district__name}`,
+          name: `${row.code} · ${row.name} · ${row.zonal_office__name} · ${row.district__name}`,
         }));
       fillOptions(directoryLager, rows, 'All lagers');
+    };
+    directoryDistrict.addEventListener('change', () => {
+      if (directoryOffice) directoryOffice.value = '';
+      updateDirectoryLagers();
     });
+    directoryOffice?.addEventListener('change', updateDirectoryLagers);
   }
 
   document
@@ -817,6 +964,33 @@
       amounts.forEach((input) => input.addEventListener('input', updateTotal));
       updateTotal();
     });
+
+  document.querySelectorAll('[data-approval-hierarchy]').forEach((form) => {
+    const moduleSelect = form.querySelector('[data-approval-module]');
+    const actionSelect = form.querySelector('[data-approval-action]');
+    const updateApprovalAction = () => {
+      const allowed = moduleSelect.value === 'membertransfer' ? 'add' : 'change';
+      for (const option of actionSelect.options)
+        option.disabled = option.value !== allowed;
+      actionSelect.value = allowed;
+    };
+    moduleSelect?.addEventListener('change', updateApprovalAction);
+    if (moduleSelect && actionSelect) updateApprovalAction();
+    const add = form.querySelector('[data-add-approval-level]');
+    const total = form.querySelector('[name="levels-TOTAL_FORMS"]');
+    const levels = form.querySelector('[data-approval-levels]');
+    const template = form.querySelector('[data-approval-level-template]');
+    add?.addEventListener('click', () => {
+      const index = Number(total.value);
+      if (index >= 20) return;
+      const fragment = document.createElement('template');
+      fragment.innerHTML = template.innerHTML.replaceAll('__prefix__', String(index));
+      levels.append(fragment.content.cloneNode(true));
+      total.value = String(index + 1);
+      add.disabled = index + 1 >= 20;
+      levels.lastElementChild?.querySelector('input[type="number"]')?.focus();
+    });
+  });
 
   document.querySelectorAll('[data-submit-label]').forEach((button) => {
     button.form?.addEventListener('submit', (event) => {

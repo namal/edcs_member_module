@@ -58,7 +58,7 @@ class DistrictAccessTests(TestCase):
                 code=f"ACCESS-D-{index}",
             )
             lager = Lager.objects.create(
-                district=district,
+                zonal_office=office,
                 name=f"Access Lager {index}",
                 code=f"ACCESS-L-{index}",
             )
@@ -98,8 +98,11 @@ class DistrictAccessTests(TestCase):
         self.client.force_login(self.user)
 
     def member_payload(self, index=0, **overrides):
+        from .test_support import officer_for
+
         row = self.rows[index]
         data = {
+            "maintenance_officer": officer_for(row["office"]).pk,
             "district": row["district"].pk,
             "office_location": row["office"].pk,
             "school": row["school"].pk,
@@ -380,7 +383,7 @@ class DistrictAccessTests(TestCase):
             response = self.client.post(reverse("member_edit", args=[member.pk]), data)
             self.assertRedirects(response, reverse("member_detail", args=[member.pk]))
             disposable = Lager.objects.create(
-                district=self.districts[index],
+                zonal_office=self.rows[index]["office"],
                 name="Delete within assignment",
                 code=f"DELETE-{index}",
             )

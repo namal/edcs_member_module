@@ -60,9 +60,12 @@
           </tr>
         </thead>
         <tbody>
-          {% for entry in loan.entries.all %}
+          {% for entry in loan_entries %}
             <tr>
-              <td>{{ entry.entry_date|date:'d M Y' }}</td>
+              <td>
+                {{ entry.entry_date|date:'d M Y' }}
+                {% include 'components/ledger_reference.html' %}
+              </td>
               <td>{{ entry.get_kind_display }}</td>
               <td>{{ entry.principal_amount|floatformat:2 }}</td>
               <td>{{ entry.interest_amount|floatformat:2 }}</td>

@@ -2,15 +2,15 @@ from django import forms
 from django.contrib.auth import get_user_model, password_validation
 from django.contrib.auth.models import Group, Permission
 
-from .permissions import ACTIONS, MODULES
-from .models import District
+from .permissions import ACTIONS, MODULES, MODULE_ACTIONS
+from .models import District, OfficeLocation, LedgerOfficerProfile, MemberLedger
 
 
 def workspace_permissions():
     codenames = [
         f"{action}_{model._meta.model_name}"
         for model, *_ in MODULES
-        for action in ACTIONS
+        for action in MODULE_ACTIONS.get(model, ACTIONS)
     ]
     return Permission.objects.filter(
         content_type__app_label="members", codename__in=codenames
@@ -49,9 +49,14 @@ class AccessFormMixin:
                 "label": label,
                 "cells": [
                     {
-                        "id": catalog[f"{action}_{model._meta.model_name}"].pk,
+                        "id": (
+                            catalog[f"{action}_{model._meta.model_name}"].pk
+                            if action in MODULE_ACTIONS.get(model, ACTIONS)
+                            else None
+                        ),
                         "label": f"{action.capitalize()} {label.lower()}",
-                        "checked": str(catalog[f"{action}_{model._meta.model_name}"].pk)
+                        "checked": action in MODULE_ACTIONS.get(model, ACTIONS)
+                        and str(catalog[f"{action}_{model._meta.model_name}"].pk)
                         in selected,
                     }
                     for action in ACTIONS
@@ -62,6 +67,12 @@ class AccessFormMixin:
 
 
 class WorkspaceUserForm(AccessFormMixin, forms.ModelForm):
+    epf_number = forms.CharField(label="EPF number", max_length=30, required=False)
+    ledger_office = forms.ModelChoiceField(
+        label="Ledger officer zonal office",
+        queryset=OfficeLocation.objects.all(),
+        required=False,
+    )
     districts = forms.ModelMultipleChoiceField(
         queryset=District.objects.order_by("name"),
         required=False,
@@ -100,6 +111,21 @@ class WorkspaceUserForm(AccessFormMixin, forms.ModelForm):
     def __init__(self, *args, actor, **kwargs):
         super().__init__(*args, **kwargs)
         self.actor = actor
+        profile = (
+            LedgerOfficerProfile.objects.filter(user=self.instance).first()
+            if self.instance.pk
+            else None
+        )
+        if profile:
+            self.initial.update(
+                epf_number=profile.epf_number, ledger_office=profile.zonal_office_id
+            )
+        self.fields["epf_number"].help_text = (
+            "Required when this user is assigned as a Ledger Maintenance Officer."
+        )
+        self.fields["ledger_office"].help_text = (
+            "Officers may maintain active ledgers in this zonal office. Assign its district below."
+        )
         self.fields["email"].help_text = (
             "Optional. A welcome email is sent after a new account is saved "
             "when an email address is provided."
@@ -114,6 +140,53 @@ class WorkspaceUserForm(AccessFormMixin, forms.ModelForm):
 
     def clean(self):
         data = super().clean()
+        epf = (data.get("epf_number") or "").strip().upper() or None
+        data["epf_number"] = epf
+        if (
+            epf
+            and LedgerOfficerProfile.objects.filter(epf_number=epf)
+            .exclude(user_id=self.instance.pk)
+            .exists()
+        ):
+            self.add_error(
+                "epf_number", "This EPF number is already assigned to another user."
+            )
+        office = data.get("ledger_office")
+        if office and not epf:
+            self.add_error("epf_number", "Enter an EPF number for a ledger officer.")
+        if (
+            office
+            and not self.instance.is_superuser
+            and office.district_id
+            not in {item.pk for item in data.get("districts", [])}
+        ):
+            self.add_error(
+                "districts", "Assign the ledger officer's district to this user."
+            )
+        if self.instance.pk:
+            active = MemberLedger.objects.filter(
+                maintenance_officer=self.instance, status="active"
+            )
+            if active.exclude(zonal_office_id=office.pk if office else None).exists():
+                self.add_error(
+                    "ledger_office",
+                    "Reassign active ledgers before changing this officer's zonal office.",
+                )
+            if active.exists() and (not epf or not data.get("is_active")):
+                self.add_error(
+                    "is_active",
+                    "Reassign active ledgers before deactivating this officer or removing the EPF number.",
+                )
+            if (
+                not self.instance.is_superuser
+                and active.exclude(
+                    district_id__in=[item.pk for item in data.get("districts", [])]
+                ).exists()
+            ):
+                self.add_error(
+                    "districts",
+                    "Reassign active ledgers before removing their district access from this officer.",
+                )
         if data.get("password1") != data.get("password2"):
             self.add_error("password2", "The passwords do not match.")
         if self.instance.pk and not data.get("is_active"):
@@ -141,6 +214,13 @@ class WorkspaceUserForm(AccessFormMixin, forms.ModelForm):
         user.groups.set(self.cleaned_data["roles"])
         self.save_permissions(user.user_permissions)
         user.assigned_districts.set(self.cleaned_data["districts"])
+        LedgerOfficerProfile.objects.update_or_create(
+            user=user,
+            defaults={
+                "epf_number": self.cleaned_data.get("epf_number"),
+                "zonal_office": self.cleaned_data.get("ledger_office"),
+            },
+        )
         return user
 
 

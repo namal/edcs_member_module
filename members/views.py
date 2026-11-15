@@ -1,4 +1,5 @@
 import csv
+from .approval_services import form_checkpoint, checkpoint
 from datetime import date
 
 from django.contrib import messages
@@ -78,12 +79,21 @@ def location_data(district_id, instance=None, *, user=None):
         | Q(subdivision__is_active=True)
         | Q(pk=getattr(instance, "school_id", None))
     )
-    lagers = Lager.objects.filter(district_id=district_id).filter(
-        Q(is_active=True, district__is_active=True)
+    lagers = Lager.objects.filter(zonal_office__district_id=district_id).filter(
+        Q(
+            is_active=True,
+            zonal_office__is_active=True,
+            zonal_office__district__is_active=True,
+        )
         | Q(pk=getattr(instance, "lager_id", None))
     )
     return {
-        "lagers": list(lagers.values("id", "name", "code").order_by("name", "pk")),
+        "officers": officer_options_for_district(district_id),
+        "lagers": list(
+            lagers.values("id", "name", "code", "zonal_office_id").order_by(
+                "name", "pk"
+            )
+        ),
         "offices": list(
             offices.values("id", "name", "address", "phone").order_by("name")
         ),
@@ -101,6 +111,32 @@ def location_data(district_id, instance=None, *, user=None):
             for school in schools
         ],
     }
+
+
+def officer_options_for_district(district_id):
+    from django.contrib.auth import get_user_model
+    from django.db.models import F
+
+    return [
+        {
+            "id": user.pk,
+            "name": f"{user.get_full_name() or user.username} · EPF {user.ledger_profile.epf_number}",
+            "zonal_office_id": user.ledger_profile.zonal_office_id,
+        }
+        for user in get_user_model()
+        .objects.filter(
+            is_active=True,
+            ledger_profile__zonal_office__district_id=district_id,
+            ledger_profile__epf_number__isnull=False,
+        )
+        .exclude(ledger_profile__epf_number="")
+        .filter(
+            Q(is_superuser=True)
+            | Q(assigned_districts=F("ledger_profile__zonal_office__district_id"))
+        )
+        .select_related("ledger_profile")
+        .distinct()
+    ]
 
 
 def location_context(form):
@@ -154,7 +190,7 @@ def paginated(request, queryset):
 def filtered_members(request):
     queryset = district_records(request.user, Member).select_related(
         "district",
-        "lager__district",
+        "lager__zonal_office__district",
         "office_location",
         "subdivision",
         "school__district",
@@ -165,6 +201,7 @@ def filtered_members(request):
     if query:
         queryset = queryset.filter(
             Q(full_name__icontains=query)
+            | Q(short_name__icontains=query)
             | Q(member_no__icontains=query)
             | Q(nic_no__icontains=query)
             | Q(computer_no__icontains=query)
@@ -270,10 +307,15 @@ def member_list(request):
     queryset = filtered_members(request)
     district_id = request.GET.get("district", "")
     offices = district_records(request.user, OfficeLocation).select_related("district")
-    lagers = district_records(request.user, Lager).select_related("district")
+    lagers = district_records(request.user, Lager).select_related(
+        "zonal_office__district"
+    )
     if district_id.isdigit():
         offices = offices.filter(district_id=district_id)
-        lagers = lagers.filter(district_id=district_id)
+        lagers = lagers.filter(zonal_office__district_id=district_id)
+    office_id = request.GET.get("office", "")
+    if office_id.isdigit():
+        lagers = lagers.filter(zonal_office_id=office_id)
     context = {
         "section": "members",
         "title": "Member directory",
@@ -282,11 +324,20 @@ def member_list(request):
         "districts": district_records(request.user, District).all(),
         "offices": offices,
         "lagers": lagers,
-        "all_lagers": list(
-            district_records(request.user, Lager).values(
-                "id", "name", "code", "district_id", "district__name"
+        "all_lagers": [
+            {
+                "id": lager.pk,
+                "name": lager.name,
+                "code": lager.code,
+                "district_id": lager.district_id,
+                "district__name": lager.district.name,
+                "zonal_office_id": lager.zonal_office_id,
+                "zonal_office__name": lager.zonal_office.name,
+            }
+            for lager in district_records(request.user, Lager).select_related(
+                "zonal_office__district"
             )
-        ),
+        ],
         "statuses": Member.Status.choices,
         "genders": Member.Gender.choices,
     }
@@ -308,6 +359,9 @@ def member_form(request, pk=None):
         user=request.user,
     )
     if request.method == "POST" and form.is_valid():
+        queued = form_checkpoint(request, form)
+        if queued is not None:
+            return queued
         member = form.save()
         messages.success(
             request,
@@ -348,7 +402,7 @@ def member_detail(request, pk):
     member = get_object_or_404(
         district_records(request.user, Member).select_related(
             "district",
-            "lager__district",
+            "lager__zonal_office__district",
             "office_location",
             "subdivision",
             "school__district",
@@ -418,6 +472,12 @@ def member_export(request):
             "Lager Code",
             "Lager",
             "Province Short Name",
+            "Title",
+            "Short Name",
+            "Date of Birth",
+            "Retirement Age",
+            "Expected Retirement Date",
+            "Recorded Retirement Date",
         ]
     )
     for member in filtered_members(request).iterator():
@@ -443,6 +503,16 @@ def member_export(request):
             member.lager.code if member.lager_id else "",
             member.lager.name if member.lager_id else "",
             member.district.province_short_name,
+            member.title,
+            member.short_name,
+            member.date_of_birth.isoformat() if member.date_of_birth else "",
+            member.retirement_age,
+            (
+                member.expected_retirement_date.isoformat()
+                if member.expected_retirement_date
+                else ""
+            ),
+            member.pension_date.isoformat() if member.pension_date else "",
         ]
         writer.writerow(
             [
@@ -460,6 +530,15 @@ def member_export(request):
 
 def delete_record(request, obj, back, section):
     if request.method == "POST":
+        queued = checkpoint(
+            request,
+            type(obj),
+            "delete",
+            f"Delete {obj._meta.verbose_name}: {obj}",
+            target=obj,
+        )
+        if queued is not None:
+            return queued
         name = str(obj)
         try:
             obj.delete()
@@ -508,7 +587,7 @@ def district_list(request):
             office_count=Count("offices", distinct=True),
             member_count=Count("members", distinct=True),
             school_count=Count("schools", distinct=True),
-            lager_count=Count("lagers", distinct=True),
+            lager_count=Count("offices__lagers", distinct=True),
         )
         .order_by("name", "pk")
     )
@@ -538,6 +617,7 @@ def office_list(request):
         .annotate(
             member_count=Count("members", distinct=True),
             subdivision_count=Count("subdivisions", distinct=True),
+            lager_count=Count("lagers", distinct=True),
         )
         .order_by("district__name", "name", "pk")
     )
@@ -587,6 +667,9 @@ def master_form(request, model, form_class, pk, section, singular, destination):
         user=request.user,
     )
     if request.method == "POST" and form.is_valid():
+        queued = form_checkpoint(request, form)
+        if queued is not None:
+            return queued
         form.save()
         messages.success(
             request,
@@ -692,20 +775,20 @@ EXTRA_MASTERS = {
 def extra_master_list(request, kind):
     model, _, singular, prefix = EXTRA_MASTERS[kind]
     require_permission(request.user, model, "view")
-    if model is Subdivision:
+    if model in (Subdivision, Lager):
         queryset = district_records(request.user, model).select_related(
             "zonal_office__district"
         )
         district_field = "zonal_office__district_id"
+        if model is Lager:
+            queryset = queryset.annotate(member_count=Count("members")).order_by(
+                "zonal_office__district__name", "zonal_office__name", "name", "pk"
+            )
     else:
         queryset = district_records(request.user, model).select_related("district")
         district_field = "district_id"
         if model is School:
             queryset = queryset.select_related("zonal_office", "subdivision")
-        elif model is Lager:
-            queryset = queryset.annotate(member_count=Count("members")).order_by(
-                "district__name", "name", "pk"
-            )
     query = request.GET.get("q", "").strip()
     if query:
         queryset = queryset.filter(Q(name__icontains=query) | Q(code__icontains=query))
@@ -713,7 +796,7 @@ def extra_master_list(request, kind):
     if district.isdigit():
         queryset = queryset.filter(**{district_field: district})
     office = request.GET.get("zonal_office", "")
-    if office.isdigit() and model is not Lager:
+    if office.isdigit():
         queryset = queryset.filter(zonal_office_id=office)
     context = {
         "section": kind,
@@ -729,6 +812,9 @@ def extra_master_list(request, kind):
         "can_delete": request.user.has_perm(f"members.delete_{model._meta.model_name}"),
         "filtered_count": queryset.count(),
         "districts": district_records(request.user, District).all(),
+        "zonal_offices": district_records(request.user, OfficeLocation)
+        .filter(**({"district_id": district} if district.isdigit() else {}))
+        .select_related("district"),
     }
     context.update(paginated(request, queryset))
     return render(request, "members/extra_master_list.html", context)

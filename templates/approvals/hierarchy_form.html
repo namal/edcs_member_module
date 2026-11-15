@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-6">
+    <p class="eyebrow">Administration</p>
+    <h1 class="page-title">{{ title }}</h1>
+    <p class="muted mt-2">
+      Approval is required only for member transfers and edits to existing records. Choose All modules to use one hierarchy for edits throughout the workspace; a module's own hierarchy takes priority.
+    </p>
+  </div>
+  <form method="post" data-approval-hierarchy>
+    {% csrf_token %}{{ form.version }}
+    <section class="form-section">
+      {% if form.non_field_errors %}<div class="alert message-error">{{ form.non_field_errors }}</div>{% endif %}
+      <div class="form-grid">
+        {% include 'components/field.html' with field=form.name %}
+        {% include 'components/field.html' with field=form.module %}
+        {% include 'components/field.html' with field=form.action %}
+        {% include 'components/field.html' with field=form.is_active %}
+      </div>
+      <div class="mt-4">{% include 'components/field.html' with field=form.reason %}</div>
+    </section>
+    {{ formset.management_form }}
+    {% if formset.non_form_errors %}<div class="alert message-error mb-5">{{ formset.non_form_errors }}</div>{% endif %}
+    <div data-approval-levels>
+      {% for level in formset %}
+        {% include 'approvals/level_fields.html' %}
+      {% endfor %}
+    </div>
+    <template data-approval-level-template>
+      {% include 'approvals/level_fields.html' with level=formset.empty_form %}
+    </template>
+    <div class="flex flex-wrap gap-3">
+      <button type="button" class="btn btn-secondary" data-add-approval-level>Add approval level</button>
+      <button class="btn btn-primary" data-submit-label="Saving…">Save hierarchy</button>
+      <a class="btn btn-secondary" href="{% url 'approval_hierarchy_list' %}">Cancel</a>
+    </div>
+    <p class="field-help mt-4">
+      Changes are audited. Pending requests retain their submitted hierarchy; administrators can reject or override them at any time. Deactivate a hierarchy to stop requiring it for new requests.
+    </p>
+  </form>
+{% endblock %}

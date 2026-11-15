@@ -20,6 +20,8 @@ from django.urls import include, path
 from django.contrib.auth import views as auth_views
 from .views import WorkspaceLoginView, session_activity
 
+handler404 = "config.views.page_not_found"
+
 urlpatterns = [
     path("admin/django/", admin.site.urls),
     path("admin/", include("members.access_urls")),

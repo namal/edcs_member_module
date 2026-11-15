@@ -20,12 +20,13 @@ from .models import (
     OfficeLocation,
     OpeningBalance,
     PaymentPlan,
+    PaymentPlanTemplate,
     PaymentTransaction,
     PaymentType,
     School,
     Subdivision,
 )
-from .permissions import MODULES
+from .permissions import MODULES, MODULE_ACTIONS, ACTIONS
 
 
 class WorkspacePermissionTests(TestCase):
@@ -46,7 +47,7 @@ class WorkspacePermissionTests(TestCase):
             district=cls.district, zonal_office=cls.office, name="School", code="SCH"
         )
         cls.lager = Lager.objects.create(
-            district=cls.district, name="Lager", code="LAG"
+            zonal_office=cls.office, name="Lager", code="LAG"
         )
         cls.member = Member.objects.create(
             district=cls.district,
@@ -107,6 +108,9 @@ class WorkspacePermissionTests(TestCase):
             "school": cls.school,
             "lager": cls.lager,
             "payment_plan": cls.plan,
+            "payment_plan_template": PaymentPlanTemplate.objects.create(
+                name="Standard plan"
+            ),
             "opening_balance": OpeningBalance.objects.create(member=plan_member),
             "payment_type": PaymentType.objects.get(name="Special Deposit"),
             "payment_transaction": PaymentTransaction.objects.create(
@@ -115,6 +119,64 @@ class WorkspacePermissionTests(TestCase):
                 credit="100.00",
             ),
         }
+        from . import models as m
+        from .test_support import officer_for
+        from .transfer_services import assign_ledger_officer, transfer_member
+
+        cls.user.user_permissions.set(
+            Permission.objects.filter(content_type__app_label="members")
+        )
+        office = OfficeLocation.objects.create(
+            district=cls.district,
+            name="Receiving permissions office",
+            code="PERM-RECEIVE",
+        )
+        school = School.objects.create(
+            district=cls.district,
+            zonal_office=office,
+            name="Receiving permissions school",
+            code="PERM-RECEIVE-S",
+        )
+        lager = Lager.objects.create(
+            zonal_office=office,
+            name="Receiving permissions lager",
+            code="PERM-RECEIVE-L",
+        )
+        transfer_member_row = Member.objects.create(
+            district=cls.district,
+            office_location=cls.office,
+            school=cls.school,
+            lager=cls.lager,
+            member_no="PERM-TRANSFER",
+            full_name="Permission transfer member",
+            salary="0",
+            office_address="Office",
+            private_address="Home",
+            phone_mobile="0771234567",
+            gender="female",
+            nic_no="199012345699",
+        )
+        original = transfer_member_row.ledgers.get(status="active")
+        assign_ledger_officer(
+            cls.user,
+            original.pk,
+            officer_for(cls.office),
+            "Initial test responsibility",
+        )
+        cls.records["member_transfer"] = transfer_member(
+            cls.user,
+            member_pk=transfer_member_row.pk,
+            expected_ledger_pk=original.pk,
+            office=office,
+            lager=lager,
+            school=school,
+            subdivision=None,
+            officer=officer_for(office),
+            effective_date=timezone.localdate(),
+            reason="Permissions transfer fixture",
+        )
+        cls.records["member_ledger"] = cls.member.ledgers.get(status="active")
+        cls.user.user_permissions.clear()
 
     def setUp(self):
         self.client.force_login(self.user)
@@ -127,7 +189,10 @@ class WorkspacePermissionTests(TestCase):
         )
 
     def member_payload(self):
+        from .test_support import officer_for
+
         return {
+            "maintenance_officer": officer_for(self.office).pk,
             "district": self.district.pk,
             "office_location": self.office.pk,
             "school": self.school.pk,
@@ -258,6 +323,7 @@ class WorkspacePermissionTests(TestCase):
                             (
                                 200
                                 if operation == allowed_operation
+                                and permission in MODULE_ACTIONS.get(model, ACTIONS)
                                 and not (model is District and operation == "create")
                                 and not (
                                     model
@@ -329,7 +395,7 @@ class WorkspacePermissionTests(TestCase):
         self.grant("delete_member")
         response = self.client.post(reverse("member_delete", args=[self.member.pk]))
         self.assertRedirects(response, reverse("dashboard"))
-        self.assertFalse(Member.objects.filter(pk=self.member.pk).exists())
+        self.assertTrue(Member.objects.filter(pk=self.member.pk).exists())
 
     def test_zero_id_edit_route_never_falls_back_to_add_permission(self):
         self.user.user_permissions.set(

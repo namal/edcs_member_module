@@ -45,8 +45,7 @@
               {{ role.user_count }} assigned user{{ role.user_count|pluralize }} · {{ role.permissions.count }} permission{{ role.permissions.count|pluralize }}
             </p>
           </div>
-          <a href="{% url 'access_role_edit' role.pk %}"
-             class="btn btn-secondary text-xs">Edit role →</a>
+          <a href="{% url 'access_role_edit' role.pk %}" class="btn btn-secondary">Edit role →</a>
         </div>
       {% empty %}
         <div class="empty-state">
