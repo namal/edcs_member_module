@@ -101,6 +101,9 @@ class FixDepositTests(TestCase):
         cls.foreign_account = FixDepositAccount.objects.create(
             member=cls.foreign, policy=cls.policy, cycle_started_on=date(2020, 1, 1)
         )
+        from .test_support import assign_member_ledgers
+
+        assign_member_ledgers(cls.user, cls.members)
 
     def setUp(self):
         self.client.force_login(self.user)

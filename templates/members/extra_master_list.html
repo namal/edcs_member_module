@@ -63,13 +63,23 @@
           <thead>
             <tr>
               <th>{{ singular }}</th>
-              <th>Code</th>
+              <th>
+                {% if section == 'lagers' %}
+                  Ledger Code
+                {% else %}
+                  Code
+                {% endif %}
+              </th>
               <th>Province full name</th>
               <th>Province short name</th>
               <th>District</th>
               <th>Zonal office</th>
               {% if section == 'schools' %}<th>Subdivision</th>{% endif %}
-              {% if section == 'lagers' %}<th>Registered members</th>{% endif %}
+              {% if section == 'lagers' %}
+                <th>Ledger Maintenance Officer</th>
+                <th>Assigned System User's EPF Number</th>
+                <th>Registered members</th>
+              {% endif %}
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -123,6 +133,14 @@
                 <td>{{ record.zonal_office.name }}</td>
                 {% if section == 'schools' %}<td>{{ record.subdivision.name|default:'—' }}</td>{% endif %}
                 {% if section == 'lagers' %}
+                  <td>
+                    {% if record.maintenance_officer_id %}
+                      {{ record.maintenance_officer.get_full_name|default:record.maintenance_officer.username }}
+                    {% else %}
+                      Officer assignment required
+                    {% endif %}
+                  </td>
+                  <td>{{ record.maintenance_officer.ledger_profile.epf_number|default:'EPF required' }}</td>
                   <td>
                     {% if perms.members.view_member %}
                       <a class="text-link"

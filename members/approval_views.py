@@ -16,7 +16,7 @@ from .approval_services import (
     visible_requests,
 )
 from .permissions import MODULES
-from .approval_scope import ALL_MODULES
+from .approval_scope import ALL_MODULES, PAYMENT_EXCEPTIONS
 from .views import paginated
 
 
@@ -25,13 +25,18 @@ def hierarchy_list(request):
     rows = ApprovalHierarchy.objects.prefetch_related("levels__approvers")
     labels = {model._meta.model_name: label for model, label, *_ in MODULES}
     labels[ALL_MODULES] = "All modules"
+    labels[PAYMENT_EXCEPTIONS] = "Payment exceptions"
     rows = list(rows)
     for row in rows:
         row.module_label = labels.get(row.module, row.module)
         row.scope_label = (
-            "Member transfer"
-            if row.module == "membertransfer"
-            else "Edit existing records"
+            "Below-plan payment"
+            if row.module == PAYMENT_EXCEPTIONS
+            else (
+                "Member transfer"
+                if row.module == "membertransfer"
+                else "Edit existing records"
+            )
         )
     return render(
         request,

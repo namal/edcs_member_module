@@ -73,6 +73,9 @@ class TransactionTests(TestCase):
         cls.payment_type.interest_rate = Decimal("7.25")
         cls.payment_type.save()
         cls.other_type = PaymentType.objects.get(name="Fix Deposit")
+        from .test_support import assign_member_ledgers
+
+        assign_member_ledgers(cls.user, cls.members)
 
     def setUp(self):
         self.client.force_login(self.user)

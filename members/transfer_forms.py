@@ -1,10 +1,11 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.db.models import OuterRef, Subquery
 
 from . import models as m
 from .forms import selected_id, school_choices
-from .permissions import district_records
+from .permissions import district_records, district_only_queryset
 from .transfer_services import eligible_officers
 
 
@@ -45,6 +46,7 @@ class TransferForm(forms.Form):
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
+        self.ledger_receiving_locations = True
         self.instance = m.Member()
         self.fields["member"].queryset = district_records(user, m.Member).order_by(
             "member_no", "pk"
@@ -77,7 +79,7 @@ class TransferForm(forms.Form):
             else m.OfficeLocation.objects.none()
         )
         self.fields["lager"].queryset = (
-            district_records(user, m.Lager).filter(
+            district_only_queryset(user, m.Lager.objects.all()).filter(
                 zonal_office_id=zone, zonal_office__district_id=district, is_active=True
             )
             if zone and district
@@ -135,8 +137,13 @@ class OfficerAssignmentForm(forms.Form):
             field.widget.attrs["class"] = "field-input"
 
 
+class RetainedMemberChoice(forms.ModelChoiceField):
+    def label_from_instance(self, member):
+        return f"{member.retained_number} · {member.retained_name}"
+
+
 class LedgerFilterForm(forms.Form):
-    member = forms.ModelChoiceField(queryset=m.Member.objects.none(), required=False)
+    member = RetainedMemberChoice(queryset=m.Member.objects.none(), required=False)
     district = forms.ModelChoiceField(
         queryset=m.District.objects.none(), required=False
     )
@@ -153,9 +160,20 @@ class LedgerFilterForm(forms.Form):
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["district"].queryset = district_records(user, m.District)
-        self.fields["member"].queryset = m.Member.objects.filter(
-            pk__in=district_records(user, m.MemberLedger).values("member_id")
-        ).order_by("member_no", "pk")
+        visible = district_records(user, m.MemberLedger)
+        latest = visible.filter(member_id=OuterRef("pk")).order_by("-created_at", "-pk")
+        self.fields["member"].queryset = (
+            m.Member.objects.filter(pk__in=visible.values("member_id"))
+            .annotate(
+                retained_name=Subquery(
+                    latest.values("registration_snapshot__full_name")[:1]
+                ),
+                retained_number=Subquery(
+                    latest.values("registration_snapshot__member_no")[:1]
+                ),
+            )
+            .order_by("member_no", "pk")
+        )
         for field in self.fields.values():
             field.widget.attrs["class"] = "field-input"
         self.fields["member"].widget.attrs["data-searchable-select"] = ""

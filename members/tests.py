@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from .forms import LagerForm, MemberForm, OfficeLocationForm
 from .models import District, Lager, Member, OfficeLocation, School
+from .test_support import officer_for
 
 
 class MemberWorkflowTests(TestCase):
@@ -83,6 +84,7 @@ class MemberWorkflowTests(TestCase):
             if lager is None:
                 lager = Lager.objects.create(
                     zonal_office=office,
+                    maintenance_officer=officer_for(office),
                     name="Default Lager",
                     code=f"DEFAULT-L-{office.pk}",
                 )
@@ -695,10 +697,14 @@ class MemberWorkflowTests(TestCase):
             "zonal_office",
             self.office if district == self.district else self.other_office,
         )
+        from .test_support import officer_for
+
+        data.setdefault("maintenance_officer", officer_for(data["zonal_office"]))
         return Lager.objects.create(**data)
 
     def test_lager_master_crud_requires_district_and_normalizes_code(self):
         payload = {
+            "maintenance_officer": officer_for(self.office).pk,
             "district": self.district.pk,
             "zonal_office": self.office.pk,
             "name": "Central Lager",
@@ -714,7 +720,11 @@ class MemberWorkflowTests(TestCase):
         self.assertRedirects(
             self.client.post(
                 reverse("lager_edit", args=[lager.pk]),
-                {**payload, "name": "Updated Lager"},
+                {
+                    "maintenance_officer": officer_for(self.office).pk,
+                    **payload,
+                    "name": "Updated Lager",
+                },
             ),
             reverse("lager_list"),
         )
@@ -732,6 +742,7 @@ class MemberWorkflowTests(TestCase):
             "code",
             LagerForm(
                 {
+                    "maintenance_officer": officer_for(self.office).pk,
                     "district": self.other_district.pk,
                     "zonal_office": self.other_office.pk,
                     "name": "Other",
@@ -742,6 +753,7 @@ class MemberWorkflowTests(TestCase):
         )
         form = LagerForm(
             {
+                "maintenance_officer": officer_for(self.office).pk,
                 "district": self.district.pk,
                 "zonal_office": self.office.pk,
                 "name": "Central Lager",
@@ -753,6 +765,7 @@ class MemberWorkflowTests(TestCase):
         self.assertTrue(
             LagerForm(
                 {
+                    "maintenance_officer": officer_for(self.office).pk,
                     "district": self.other_district.pk,
                     "zonal_office": self.other_office.pk,
                     "name": "Central Lager",
@@ -922,6 +935,7 @@ class MemberWorkflowTests(TestCase):
 
     def test_lager_requires_zone_and_rejects_zone_from_other_district(self):
         data = {
+            "maintenance_officer": officer_for(self.office).pk,
             "district": self.district.pk,
             "name": "Zone Lager",
             "code": "ZL",
@@ -945,6 +959,7 @@ class MemberWorkflowTests(TestCase):
         )
         form = LagerForm(
             {
+                "maintenance_officer": officer_for(self.office).pk,
                 "district": self.district.pk,
                 "zonal_office": zone.pk,
                 "name": lager.name,
@@ -958,6 +973,7 @@ class MemberWorkflowTests(TestCase):
         self.assertNotEqual(other.zonal_office_id, lager.zonal_office_id)
         duplicate = LagerForm(
             {
+                "maintenance_officer": officer_for(self.office).pk,
                 "district": self.district.pk,
                 "zonal_office": zone.pk,
                 "name": lager.name,
@@ -1052,6 +1068,7 @@ class MemberWorkflowTests(TestCase):
         self.office.is_active = False
         self.office.save()
         data = {
+            "maintenance_officer": officer_for(self.office).pk,
             "district": self.district.pk,
             "zonal_office": self.office.pk,
             "name": lager.name,

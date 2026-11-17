@@ -12,8 +12,8 @@
       {% block title %}{{ title }}{% endblock %}
     · EDCS</title>
     <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
-    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=edcs-8">
-    <script src="{% static 'js/app.js' %}?v=17" defer></script>
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=edcs-11">
+    <script src="{% static 'js/app.js' %}?v=20" defer></script>
     {% include 'components/session_security.html' %}
   </head>
   <body>
@@ -322,6 +322,11 @@
           <p class="alert border-accent-100 bg-accent-50 text-accent-700"
              role="status">
             No districts are assigned to your account. Ask an administrator to assign districts before working with district records.
+          </p>
+        {% elif request.user.is_authenticated and not request.user.is_superuser and uses_member_records and not has_ledger_access %}
+          <p class="alert border-accent-100 bg-accent-50 text-accent-700"
+             role="status">
+            Your account has no assigned ledger with a valid EPF number. Ask an Administrator to assign a ledger before accessing member and deposit records.
           </p>
         {% endif %}
         {% block content %}{% endblock %}

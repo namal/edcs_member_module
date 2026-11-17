@@ -19,7 +19,7 @@ class TransferLedgerMigrationTests(TransactionTestCase):
         return executor.loader.project_state(target).apps
 
     def tearDown(self):
-        self.migrate([("members", "0023_approval_hierarchies")])
+        self.migrate(MigrationExecutor(connection).loader.graph.leaf_nodes("members"))
         super().tearDown()
 
     def test_backfill_links_existing_financial_records_without_altering_them(self):

@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7 flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="eyebrow mb-2">Debit / Credit / Member contribution</p>
+      <h1 class="page-title">
+        Receive contribution<span class="text-brand-600">.</span>
+      </h1>
+      <p class="muted mt-2">
+        Enter the salary deduction or contribution actually received. Preview how it will be credited to the member's payment categories.
+      </p>
+    </div>
+    {% if perms.members.view_paymenttransaction %}
+      <a class="btn btn-secondary" href="{% url 'contribution_list' %}">Receipt history</a>
+    {% endif %}
+  </div>
+  <form method="post">
+    {% csrf_token %}{{ form.operation_key }}{{ form.review_hash }}
+    {% if form.errors %}
+      <div class="alert message-error" role="alert">Please review the contribution. {{ form.non_field_errors }}</div>
+    {% endif %}
+    <section class="form-section">
+      <div class="form-grid">
+        {% include 'components/field.html' with field=form.member %}
+        {% include 'components/field.html' with field=form.received_on %}
+        {% include 'components/field.html' with field=form.amount %}
+        {% include 'components/field.html' with field=form.payment_type %}
+        {% include 'components/field.html' with field=form.reference %}
+        {% include 'components/field.html' with field=form.description wide=True %}
+      </div>
+      <p class="field-help mt-4">
+        Positive amounts in the current payment plan define the ratios. Blank or zero plan categories are excluded. This records received money; it does not deduct salary from an external payroll.
+      </p>
+    </section>
+    {% if preview %}
+      <section class="card mb-6" aria-label="Allocation preview">
+        <div class="card-heading">
+          <h2 class="section-title">Allocation preview</h2>
+          <span class="badge bg-brand-50 text-brand-700">LKR</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Payment category</th>
+                <th>Plan amount</th>
+                <th>Ratio</th>
+                <th>Allocated amount</th>
+                <th>Approval</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in preview.rows %}
+                <tr>
+                  <td>{{ row.name }}</td>
+                  <td>{{ row.configured|floatformat:2 }}</td>
+                  <td>{{ row.ratio }}%</td>
+                  <td>{{ row.amount|floatformat:2 }}</td>
+                  <td>
+                    {% if row.below %}
+                      {% if user.is_superuser %}
+                        Below plan — administrator may post
+                      {% else %}
+                        Below plan — approval required
+                      {% endif %}
+                    {% else %}
+                      Meets plan
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th>Total</th>
+                <td>{{ preview.plan_total|floatformat:2 }}</td>
+                <td>100%</td>
+                <td>{{ preview.total|floatformat:2 }}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="p-6">
+          {% if preview.requires_approval and not user.is_superuser %}
+            <p class="font-semibold text-brand-700">
+              This entire receipt will wait for Payment exceptions approval. No categories are credited until final approval.
+            </p>
+          {% elif preview.requires_approval %}
+            <p class="font-semibold text-brand-700">
+              System administrator: this contribution will post immediately without an approval request.
+            </p>
+          {% else %}
+            <p class="font-semibold text-brand-700">
+              All applicable amounts meet or exceed the plan. The receipt will post without additional approval.
+            </p>
+          {% endif %}
+          <p class="field-help mt-2">
+            Ratios are displayed rounded. Allocation uses exact plan proportions and distributes any remaining cents so the credits total the amount received.
+          </p>
+        </div>
+      </section>
+    {% endif %}
+    <div class="flex flex-wrap justify-end gap-3">
+      <button class="btn btn-secondary" name="intent" value="preview">Preview allocation</button>
+      {% if preview and not form.errors %}
+        <button class="btn btn-primary"
+                name="intent"
+                value="post"
+                data-submit-label="Processing…">
+          {% if preview.requires_approval and not user.is_superuser %}
+            Submit for approval
+          {% else %}
+            Post contribution
+          {% endif %}
+        </button>
+      {% endif %}
+    </div>
+  </form>
+{% endblock %}

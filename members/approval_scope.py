@@ -1,9 +1,12 @@
-"""Only transfers and updates to existing workspace records need approval."""
+"""Explicit approval scopes, including mandatory below-plan payment exceptions."""
 
 ALL_MODULES = "all_modules"
+PAYMENT_EXCEPTIONS = "paymentexception"
 
 
 def requires_approval_scope(module, action, view_name=""):
+    if module == PAYMENT_EXCEPTIONS:
+        return action in ("add", "change")
     if module == "membertransfer":
         return action == "add"
     # Recording a repayment creates a new ledger entry, even though its module

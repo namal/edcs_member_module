@@ -635,6 +635,30 @@
     const school = form.querySelector('#id_school');
     const lager = form.querySelector('#id_lager');
     const officer = form.querySelector('#id_maintenance_officer');
+    const officerEpf = form.querySelector('#id_officer_epf');
+    const officerData = readJSON('ledger-officers');
+    const allOfficers = Array.isArray(officerData) ? officerData : [];
+    const showOfficerEpf = () => {
+      if (officerEpf)
+        officerEpf.value =
+          allOfficers.find((row) => String(row.id) === officer?.value)?.epf_number ||
+          '';
+    };
+    const assignLagerOfficer = () => {
+      if (!officer || !lager) return;
+      const selected = (locations.lagers || []).find(
+        (row) => String(row.id) === lager.value,
+      );
+      officer.value = selected?.maintenance_officer_id
+        ? String(selected.maintenance_officer_id)
+        : '';
+      showOfficerEpf();
+    };
+    officer?.addEventListener('change', () => {
+      if (lager?.value) assignLagerOfficer();
+      else showOfficerEpf();
+    });
+    lager?.addEventListener('change', assignLagerOfficer);
     const feedback = form.querySelector('#office-feedback');
     const provinces = readJSON('district-provinces');
     const provinceShortNames = readJSON('district-province-short-names');
@@ -705,14 +729,12 @@
       updateLagers(selection.lager);
       fillOptions(
         officer,
-        (locations.officers || []).filter(
-          (row) => String(row.zonal_office_id) === office.value,
-        ),
-        office.value
-          ? 'Select a Ledger Maintenance Officer'
-          : 'Select a zonal office first',
+        allOfficers,
+        'Select a Ledger Maintenance Officer',
         selection.officer,
       );
+      if (lager) assignLagerOfficer();
+      else showOfficerEpf();
       updateSubdivisions(selection.subdivision);
       updateSchool(selection.school);
       say(
@@ -752,7 +774,7 @@
       say('Loading locations…');
       try {
         const response = await fetch(
-          `${form.dataset.locationUrl}?district=${encodeURIComponent(district.value)}`,
+          `${form.dataset.locationUrl}?district=${encodeURIComponent(district.value)}${form.dataset.locationPurpose === 'transfer' ? '&purpose=transfer' : ''}`,
           { signal: controller.signal, headers: { Accept: 'application/json' } },
         );
         if (
@@ -821,16 +843,9 @@
     };
     district.addEventListener('change', () => loadDistrict());
     office.addEventListener('change', () => {
-      fillOptions(
-        officer,
-        (locations.officers || []).filter(
-          (row) => String(row.zonal_office_id) === office.value,
-        ),
-        office.value
-          ? 'Select a Ledger Maintenance Officer'
-          : 'Select a zonal office first',
-      );
+      fillOptions(officer, allOfficers, 'Select a Ledger Maintenance Officer');
       updateLagers();
+      showOfficerEpf();
       updateSubdivisions();
       updateSchool();
     });
@@ -969,7 +984,11 @@
     const moduleSelect = form.querySelector('[data-approval-module]');
     const actionSelect = form.querySelector('[data-approval-action]');
     const updateApprovalAction = () => {
-      const allowed = moduleSelect.value === 'membertransfer' ? 'add' : 'change';
+      const allowed = ['membertransfer', 'paymentexception'].includes(
+        moduleSelect.value,
+      )
+        ? 'add'
+        : 'change';
       for (const option of actionSelect.options)
         option.disabled = option.value !== allowed;
       actionSelect.value = allowed;

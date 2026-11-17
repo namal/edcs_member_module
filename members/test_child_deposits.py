@@ -90,6 +90,9 @@ class ChildDepositTests(TestCase):
             opened_on=date(2026, 1, 1),
             opening_amount="999999.00",
         )
+        from .test_support import assign_member_ledgers
+
+        assign_member_ledgers(cls.user, cls.members)
 
     def setUp(self):
         self.client.force_login(self.user)

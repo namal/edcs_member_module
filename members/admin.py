@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 from django.db.models import Count
@@ -36,6 +37,7 @@ from .models import (
     LedgerEvent,
 )
 from .notifications import notify_user_created
+from .forms import LagerForm
 
 admin.site.unregister(get_user_model())
 
@@ -313,17 +315,28 @@ class SchoolAdmin(admin.ModelAdmin):
 
 @admin.register(Lager)
 class LagerAdmin(admin.ModelAdmin):
+    form = LagerForm
     list_display = [
         "name",
         "code",
         "zonal_office",
         "district",
+        "maintenance_officer",
+        "officer_epf",
         "member_count",
         "is_active",
     ]
     list_filter = ["zonal_office__district", "zonal_office", "is_active"]
     search_fields = ["name", "code"]
-    list_select_related = ["zonal_office__district"]
+    list_select_related = [
+        "zonal_office__district",
+        "maintenance_officer__ledger_profile",
+    ]
+
+    @admin.display(description="EPF number")
+    def officer_epf(self, obj):
+        profile = getattr(obj.maintenance_officer, "ledger_profile", None)
+        return profile.epf_number if profile else "EPF required"
 
     def get_queryset(self, request):
         return (
@@ -350,8 +363,15 @@ class PaymentTypeAdmin(admin.ModelAdmin):
     search_fields = ["name"]
 
 
+class PaymentTransactionAdminForm(forms.ModelForm):
+    class Meta:
+        model = PaymentTransaction
+        fields = "__all__"
+
+
 @admin.register(PaymentTransaction)
 class PaymentTransactionAdmin(admin.ModelAdmin):
+    form = PaymentTransactionAdminForm
     list_display = [
         "transaction_date",
         "member",
@@ -365,6 +385,16 @@ class PaymentTransactionAdmin(admin.ModelAdmin):
     list_select_related = ["member", "payment_type"]
     autocomplete_fields = ["member", "payment_type"]
     readonly_fields = ["created_by", "created_at", "updated_at"]
+
+    def has_change_permission(self, request, obj=None):
+        if obj and hasattr(obj, "receipt_allocation"):
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and hasattr(obj, "receipt_allocation"):
+            return False
+        return super().has_delete_permission(request, obj)
 
     def get_actions(self, request):
         actions = super().get_actions(request)
@@ -524,3 +554,8 @@ class ApprovalRequestAdmin(PermanentLedgerAdmin):
 admin.site.register(ApprovalHierarchy, PermanentLedgerAdmin)
 admin.site.register(ApprovalLevel, PermanentLedgerAdmin)
 admin.site.register(ApprovalAuditEvent, PermanentLedgerAdmin)
+
+from .contribution_models import PaymentReceipt, PaymentReceiptAllocation
+
+admin.site.register(PaymentReceipt, PermanentLedgerAdmin)
+admin.site.register(PaymentReceiptAllocation, PermanentLedgerAdmin)

@@ -20,7 +20,7 @@ from .models import (
     Member,
     PaymentTransaction,
 )
-from .permissions import district_records, require_permission
+from .permissions import district_records, require_member_access, require_permission
 from .transaction_balances import account_statement
 
 ZERO = Decimal("0.00")
@@ -174,6 +174,7 @@ def _locked_account(actor, pk, action):
         district_records(actor, FixDepositAccount), pk=pk
     ).member_id
     Member.objects.select_for_update().get(pk=member_id)
+    require_member_access(actor, member_id, lock=True)
     account = get_object_or_404(
         district_records(actor, FixDepositAccount)
         .select_for_update(of=("self",))

@@ -184,6 +184,9 @@ class LagerActivityTests(TestCase):
             calculated_through=date(2025, 12, 31),
             annual_interest="4",
         )
+        from .test_support import assign_member_ledgers
+
+        assign_member_ledgers(cls.user, cls.members)
 
     def setUp(self):
         self.client.force_login(self.user)
@@ -408,6 +411,7 @@ class LagerActivityTests(TestCase):
             zonal_office=self.member.office_location,
             name="Transferred lager",
             code="TRANSFER-L",
+            maintenance_officer=self.user,
         )
         self.member.lager = other
         self.member.save()
@@ -426,7 +430,10 @@ class LagerActivityTests(TestCase):
         self.member.save()
         self.assertContains(self.report(), self.member.full_name)
         empty = m.Lager.objects.create(
-            zonal_office=self.member.office_location, name="Empty lager", code="EMPTY-L"
+            zonal_office=self.member.office_location,
+            name="Empty lager",
+            code="EMPTY-L",
+            maintenance_officer=self.user,
         )
         response = self.client.get(self.url(lager=empty))
         self.assertEqual(response.context["member_count"], 0)

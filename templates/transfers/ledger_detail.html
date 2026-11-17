@@ -6,7 +6,12 @@
       <p class="eyebrow mb-2">{{ ledger.get_status_display }} ledger</p>
       <h1 class="page-title">{{ ledger.reference }}</h1>
       <p class="muted mt-2">
-        {{ ledger.member.member_no }} · {{ ledger.registration_snapshot.full_name }} · {{ ledger.location_snapshot.zonal_office }}
+        {% if ledger.status == 'active' %}
+          {{ ledger.member.member_no }}
+        {% else %}
+          {{ ledger.closing_balances.member_profile.member_no|default:ledger.registration_snapshot.member_no }}
+        {% endif %}
+        · {{ ledger.registration_snapshot.full_name }} · {{ ledger.location_snapshot.zonal_office }}
       </p>
     </div>
     <div class="flex flex-wrap gap-3">
@@ -36,7 +41,7 @@
       <div>
         <dt class="detail-label">Department / lager</dt>
         <dd class="detail-value">
-          {{ ledger.location_snapshot.school|default:'Not recorded' }} · {{ ledger.location_snapshot.lager|default:'Not recorded' }}
+          {{ ledger.location_snapshot.school|default:'Not recorded' }} · {{ ledger.assigned_lager.name|default:'Not recorded' }}
         </dd>
       </div>
       <div>
@@ -146,6 +151,9 @@
               <td>{{ row.ledger.reference }}</td>
               <td>
                 {{ row.snapshot.label }}<span class="mt-1 block text-xs">{{ row.get_action_display }}</span>
+                {% if row.snapshot.approval_reference %}
+                  <span class="mt-1 block text-xs">Approval {{ row.snapshot.approval_reference }}</span>
+                {% endif %}
               </td>
               <td>
                 {{ row.snapshot.account }}

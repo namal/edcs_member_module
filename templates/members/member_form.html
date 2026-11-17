@@ -87,6 +87,7 @@
             {% include 'components/field.html' with field=form.school wide=True %}
             {% if form.maintenance_officer %}
               {% include 'components/field.html' with field=form.maintenance_officer wide=True %}
+              {% include 'components/field.html' with field=form.officer_epf wide=True %}
             {% endif %}
           </div>
           <p id="office-feedback"
@@ -204,4 +205,5 @@
   {{ district_province_short_names|json_script:'district-province-short-names' }}
   {{ initial_locations|json_script:'initial-locations' }}
   {{ member_schools|json_script:'member-schools' }}
+  {{ ledger_officers|json_script:'ledger-officers' }}
 {% endblock %}

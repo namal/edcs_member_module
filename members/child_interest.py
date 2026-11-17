@@ -268,6 +268,10 @@ def post_child_interest_year(pk, *, actor=None, today=None, expected_fingerprint
         pk=pk
     )
     Member.objects.select_for_update().get(pk=record.deposit.child.member_id)
+    if actor is not None:
+        from .permissions import require_member_access
+
+        require_member_access(actor, record.deposit.child.member_id, lock=True)
     record = (
         ChildDepositInterestYear.objects.select_for_update()
         .select_related("deposit__child", "deposit__deposit_type")

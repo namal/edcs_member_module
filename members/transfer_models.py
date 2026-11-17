@@ -43,8 +43,18 @@ class LedgerOfficerProfile(models.Model):
     def clean(self):
         super().clean()
         self.epf_number = (self.epf_number or "").strip().upper() or None
+        if self.pk and not self.epf_number and self.user.assigned_lagers.exists():
+            raise ValidationError(
+                {
+                    "epf_number": "Reassign this user's ledger masters before removing their EPF number."
+                }
+            )
         if (
             self.pk
+            and type(self)
+            .objects.filter(pk=self.pk)
+            .exclude(zonal_office_id=self.zonal_office_id)
+            .exists()
             and self.user.responsible_ledgers.filter(status="active")
             .exclude(zonal_office_id=self.zonal_office_id)
             .exists()
@@ -171,6 +181,10 @@ class MemberLedger(models.Model):
     def name(self):
         return self.reference
 
+    @property
+    def assigned_lager(self):
+        return self.member.lager if self.status == "active" else self.lager
+
     def __str__(self):
         return f"{self.reference} · {self.member.member_no}"
 
@@ -221,6 +235,18 @@ class MemberTransfer(PermanentHistory):
 
     def __str__(self):
         return self.reference
+
+    @property
+    def retained_member_name(self):
+        return self.from_ledger.closing_balances.get(
+            "member_profile", self.from_ledger.registration_snapshot
+        ).get("full_name", "")
+
+    @property
+    def retained_member_no(self):
+        return self.from_ledger.closing_balances.get(
+            "member_profile", self.from_ledger.registration_snapshot
+        ).get("member_no", "")
 
     def save(self, *args, **kwargs):
         if not getattr(self, "_transfer_service_write", False):

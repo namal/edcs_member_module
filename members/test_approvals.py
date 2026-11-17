@@ -27,6 +27,9 @@ class ApprovalWorkflowTests(TestCase):
         cls.requester.user_permissions.set(
             Permission.objects.filter(content_type__app_label="members")
         )
+        from .test_support import assign_member_ledgers
+
+        assign_member_ledgers(cls.requester, [cls.member])
         cls.first = get_user_model().objects.create_user(
             "first-approver", password="test-only-pass", first_name="First Approver"
         )
@@ -84,12 +87,12 @@ class ApprovalWorkflowTests(TestCase):
         self.assertEqual(m.PaymentTransaction.objects.count(), count)
         self.old_entry.refresh_from_db()
         self.assertEqual(self.old_entry.credit, Decimal("200"))
-        decide(self.first, record.pk, "approve")
+        decide(self.actor, record.pk, "approve", "First level reviewed")
         record.refresh_from_db()
         self.assertEqual(record.current_step, 1)
         self.assertEqual(record.status, "pending")
         self.assertEqual(m.PaymentTransaction.objects.count(), count)
-        decide(self.second, record.pk, "approve")
+        decide(self.actor, record.pk, "approve", "Second level reviewed")
         record.refresh_from_db()
         self.assertEqual(record.status, "approved")
         self.assertEqual(m.PaymentTransaction.objects.count(), count)
@@ -150,8 +153,8 @@ class ApprovalWorkflowTests(TestCase):
         self.hierarchy()
         record = self.submit_entry()
         with self.assertRaises(ValidationError):
-            decide(self.first, record.pk, "reject")
-        decide(self.first, record.pk, "reject", "Incorrect supporting information")
+            decide(self.actor, record.pk, "reject")
+        decide(self.actor, record.pk, "reject", "Incorrect supporting information")
         self.assertFalse(
             m.PaymentTransaction.objects.filter(reference="PENDING-APPROVAL").exists()
         )
@@ -160,9 +163,8 @@ class ApprovalWorkflowTests(TestCase):
         other.refresh_from_db()
         self.assertEqual(other.status, "cancelled")
 
-    def test_administrator_can_approve_remaining_levels_and_override_own_request(self):
+    def test_administrator_can_approve_remaining_levels(self):
         self.hierarchy()
-        self.client.force_login(self.actor)
         record = self.submit_entry()
         with self.assertRaises(ValidationError):
             decide(self.actor, record.pk, "override_approve")
@@ -184,8 +186,9 @@ class ApprovalWorkflowTests(TestCase):
         self.hierarchy()
         record = self.submit_entry()
         for user, expected in (
-            (self.first, 200),
-            (self.second, 200),
+            (self.first, 404),
+            (self.second, 404),
+            (self.actor, 200),
             (self.outsider, 404),
         ):
             client = Client()
@@ -303,7 +306,7 @@ class ApprovalWorkflowTests(TestCase):
         policy.levels.first().approvers.set([self.outsider])
         policy.is_active = False
         policy.save()
-        decide(self.first, record.pk, "approve")
+        decide(self.actor, record.pk, "approve", "Submitted hierarchy reviewed")
         record.refresh_from_db()
         self.assertEqual(record.current_step, 1)
         self.assertEqual(record.steps[0]["approvers"][0]["id"], self.first.pk)
@@ -659,7 +662,7 @@ class ApprovalWorkflowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(m.ApprovalHierarchy.objects.exists())
 
-    def test_advanced_admin_cannot_bypass_configured_approval(self):
+    def test_advanced_admin_edits_immediately_with_configured_approval(self):
         self.hierarchy()
         self.client.force_login(self.actor)
         response = self.client.post(
@@ -668,10 +671,11 @@ class ApprovalWorkflowTests(TestCase):
             ),
             self.entry_payload(),
         )
-        self.assertEqual(response.status_code, 403)
-        self.assertFalse(
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
             m.PaymentTransaction.objects.filter(reference="PENDING-APPROVAL").exists()
         )
+        self.assertFalse(m.ApprovalRequest.objects.exists())
 
     def test_advanced_admin_creation_is_not_blocked_by_edit_hierarchy(self):
         self.hierarchy(module="all_modules")
@@ -692,8 +696,11 @@ class ConcurrentApprovalTests(TransactionTestCase):
         from threading import Barrier
         from django.db import connections
 
-        author = get_user_model().objects.create_superuser(
+        author = get_user_model().objects.create_user(
             "concurrent-author", password="test-only-pass"
+        )
+        author.user_permissions.set(
+            Permission.objects.filter(content_type__app_label="members")
         )
         users = [
             get_user_model().objects.create_user(f"concurrent-reviewer-{index}")

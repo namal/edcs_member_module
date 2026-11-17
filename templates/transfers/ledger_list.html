@@ -29,21 +29,28 @@
       <table class="data-table">
         <thead>
           <tr>
-            <th>Ledger</th>
+            <th>Ledger Record ID</th>
+            <th>Ledger Code</th>
             <th>Member</th>
             <th>Office</th>
-            <th>Maintenance officer / EPF</th>
+            <th>Maintenance officer</th>
+            <th class="min-w-40 max-w-56 whitespace-normal">Assigned System User's EPF Number</th>
             <th>Period / status</th>
           </tr>
         </thead>
         <tbody>
           {% for row in page_obj %}
             <tr>
-              <td>
+              <td class="whitespace-nowrap">
                 <a class="text-link" href="{% url 'member_ledger_detail' row.pk %}">{{ row.reference }}</a>
               </td>
-              <td>
-                {{ row.member.member_no }}
+              <td class="whitespace-nowrap">{{ row.assigned_lager.code|default:'Not assigned' }}</td>
+              <td class="min-w-44">
+                {% if row.status == 'active' %}
+                  {{ row.member.member_no }}
+                {% else %}
+                  {{ row.closing_balances.member_profile.member_no|default:row.registration_snapshot.member_no }}
+                {% endif %}
                 <p>{{ row.registration_snapshot.full_name }}</p>
               </td>
               <td>
@@ -52,7 +59,10 @@
               </td>
               <td>
                 {{ row.officer_name|default:'Assignment required' }}
-                <p>EPF {{ row.officer_epf|default:'Not entered' }}</p>
+                <p class="muted text-xs">EPF at responsibility assignment: {{ row.officer_epf|default:'Not entered' }}</p>
+              </td>
+              <td class="whitespace-nowrap">
+                {{ row.assigned_lager.maintenance_officer.ledger_profile.epf_number|default:'Not assigned' }}
               </td>
               <td>
                 {{ row.opened_on|date:'d M Y' }}
@@ -62,7 +72,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="5">No ledger pages match these filters.</td>
+              <td colspan="7">No ledger pages match these filters.</td>
             </tr>
           {% endfor %}
         </tbody>

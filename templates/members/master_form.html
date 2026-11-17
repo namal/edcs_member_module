@@ -109,7 +109,7 @@
       {% elif section == 'subdivisions' %}
         Choose a district and zonal office for each subdivision. Subdivision selection is optional when registering a member.
       {% elif section == 'lagers' %}
-        Select a district, then its zonal office. Each lager belongs to one zonal office and can have many registered members. Its code is unique. A lager with registered members stays in its zonal office.
+        Select a district, its zonal office and a Ledger Maintenance Officer with a valid EPF number. This Lager assignment controls the user's access to its members, including member and Child Deposit transactions. Reassigning the Lager changes access immediately. Existing member-ledger officer snapshots and handover history are retained.
       {% elif section == 'payment_types' %}
         Set the annual interest rate here. Quarterly Interest calculates the minimum month-end balance for each quarter and posts the annual total after year-end. Other frequency settings remain bank reference settings. Lower display order numbers appear first.
       {% elif section == 'child_deposit_types' %}
@@ -130,4 +130,5 @@
 {{ district_provinces|json_script:'district-provinces' }}
 {{ district_province_short_names|json_script:'district-province-short-names' }}
 {{ initial_locations|json_script:'initial-locations' }}
+{{ ledger_officers|json_script:'ledger-officers' }}
 {% endblock %}

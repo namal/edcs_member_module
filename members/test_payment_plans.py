@@ -73,6 +73,9 @@ class PaymentPlanTests(TestCase):
             gender="female",
             nic_no="199012345679",
         )
+        from .test_support import assign_member_ledgers
+
+        assign_member_ledgers(cls.user, [cls.member, cls.other])
 
     def setUp(self):
         self.client.force_login(self.user)

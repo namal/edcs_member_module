@@ -246,6 +246,10 @@ def calculation_fingerprint(record):
 def post_interest_year(pk, *, actor=None, today=None, expected_fingerprint=None):
     record = DepositInterestYear.objects.get(pk=pk)
     Member.objects.select_for_update().get(pk=record.member_id)
+    if actor is not None:
+        from .permissions import require_member_access
+
+        require_member_access(actor, record.member_id, lock=True)
     record = (
         DepositInterestYear.objects.select_for_update()
         .select_related("member", "payment_type")

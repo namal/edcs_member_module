@@ -14,10 +14,18 @@
       {% endif %}
     </div>
     <div class="flex gap-2">
+      {% if perms.members.add_paymenttransaction %}
+        <a class="btn btn-primary"
+           href="{% url 'contribution_create' %}?member={{ plan.member_id }}">Receive contribution</a>
+      {% endif %}
+      {% if perms.members.view_paymenttransaction %}
+        <a class="btn btn-secondary"
+           href="{% url 'contribution_list' %}?member={{ plan.member_id }}">Contribution receipts</a>
+      {% endif %}
       {% if perms.members.change_paymentplan %}
         <a class="btn btn-primary" href="{% url 'payment_plan_edit' plan.pk %}">Edit payment plan</a>
       {% endif %}
-      {% if perms.members.delete_paymentplan %}
+      {% if perms.members.delete_paymentplan and not plan.paymentreceipt_set.exists %}
         <a class="btn btn-secondary"
            href="{% url 'payment_plan_delete' plan.pk %}">Delete</a>
       {% endif %}

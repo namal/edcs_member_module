@@ -1,6 +1,7 @@
 from django.urls import path
 from . import (
     approval_views,
+    contribution_views,
     child_views,
     fix_deposit_views,
     interest_views,
@@ -15,6 +16,19 @@ from . import (
 )
 
 urlpatterns = [
+    path(
+        "contributions/", contribution_views.contribution_list, name="contribution_list"
+    ),
+    path(
+        "contributions/new/",
+        contribution_views.contribution_create,
+        name="contribution_create",
+    ),
+    path(
+        "contributions/<int:pk>/",
+        contribution_views.contribution_detail,
+        name="contribution_detail",
+    ),
     path("approvals/", approval_views.request_list, name="approval_request_list"),
     path(
         "approvals/<int:pk>/",

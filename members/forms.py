@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from .models import District, Lager, Member, OfficeLocation, School, Subdivision
 from .permissions import scope_queryset
+from .officers import maintenance_officers, officer_label, validate_master_officer
 
 
 def selected_id(form, name):
@@ -109,6 +110,9 @@ class MemberForm(StyledModelForm):
         queryset=get_user_model().objects.none(),
         required=False,
         label="Ledger Maintenance Officer",
+    )
+    officer_epf = forms.CharField(
+        label="Ledger Maintenance Officer EPF number", disabled=True, required=False
     )
     short_name = forms.CharField(label="Short Name", required=False, disabled=True)
     retirement_age = forms.IntegerField(required=False, disabled=True, initial=60)
@@ -216,23 +220,14 @@ class MemberForm(StyledModelForm):
         office_id = selected_id(self, "office_location")
         if self.instance.pk:
             self.fields.pop("maintenance_officer")
+            self.fields.pop("officer_epf")
         else:
-            from .transfer_services import eligible_officers
-
             self.fields["maintenance_officer"].required = True
-            self.fields["maintenance_officer"].queryset = (
-                eligible_officers(office_id)
-                if office_id
-                and self.fields["office_location"]
-                .queryset.filter(pk=office_id)
-                .exists()
-                else self.fields["maintenance_officer"].queryset.none()
-            )
-            self.fields["maintenance_officer"].label_from_instance = (
-                lambda user: f"{user.get_full_name() or user.username} · EPF {user.ledger_profile.epf_number}"
-            )
+            self.fields["officer_epf"].required = True
+            self.fields["maintenance_officer"].queryset = maintenance_officers()
+            self.fields["maintenance_officer"].label_from_instance = officer_label
             self.fields["maintenance_officer"].help_text = (
-                "Choose the officer responsible for the original ledger. Configure the officer's EPF, zonal office and district access in Users & access."
+                "All active officers with a recorded EPF are listed. Selecting a lager assigns its officer automatically. Maintain this assignment in Master data → Lagers."
             )
         lagers = Lager.objects.select_related("zonal_office__district").filter(
             Q(
@@ -250,6 +245,22 @@ class MemberForm(StyledModelForm):
             else lagers.none()
         )
         self.fields["lager"].empty_label = "Select a lager"
+        if not self.instance.pk:
+            lager = (
+                self.fields["lager"]
+                .queryset.select_related("maintenance_officer__ledger_profile")
+                .filter(pk=selected_id(self, "lager"))
+                .first()
+            )
+            if lager and lager.maintenance_officer_id:
+                self.initial["maintenance_officer"] = lager.maintenance_officer_id
+                profile = getattr(lager.maintenance_officer, "ledger_profile", None)
+                self.initial["officer_epf"] = profile.epf_number if profile else ""
+                if self.is_bound:
+                    self.data = self.data.copy()
+                    self.data[self.add_prefix("maintenance_officer")] = str(
+                        lager.maintenance_officer_id
+                    )
         if district_id:
             schools = schools.filter(district_id=district_id)
         office_id = selected_id(self, "office_location")
@@ -284,6 +295,23 @@ class MemberForm(StyledModelForm):
 
     def clean_nic_no(self):
         return self.cleaned_data["nic_no"].strip().upper()
+
+    def clean(self):
+        data = super().clean()
+        if not self.instance.pk and (lager := data.get("lager")):
+            if not lager.maintenance_officer_id:
+                self.add_error(
+                    "lager",
+                    "Configure this lager's Ledger Maintenance Officer and EPF in Master data before registering a member.",
+                )
+            else:
+                try:
+                    validate_master_officer(lager.maintenance_officer)
+                except forms.ValidationError as error:
+                    self.add_error("lager", " ".join(error.messages))
+                else:
+                    data["maintenance_officer"] = lager.maintenance_officer
+        return data
 
     def save(self, commit=True):
         if not self.instance.pk:
@@ -360,10 +388,21 @@ class SubdivisionForm(StyledModelForm):
 
 class LagerForm(StyledModelForm):
     district = forms.ModelChoiceField(queryset=District.objects.none())
+    officer_epf = forms.CharField(
+        label="Ledger Maintenance Officer EPF number", required=True, disabled=True
+    )
 
     class Meta:
         model = Lager
-        fields = ["district", "zonal_office", "name", "code", "is_active"]
+        fields = [
+            "district",
+            "zonal_office",
+            "name",
+            "code",
+            "maintenance_officer",
+            "officer_epf",
+            "is_active",
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -382,6 +421,21 @@ class LagerForm(StyledModelForm):
         )
         self.fields["zonal_office"].empty_label = "Select a zonal office"
         self.scope_fields()
+
+        self.fields["maintenance_officer"].required = True
+        self.fields["maintenance_officer"].queryset = maintenance_officers()
+        self.fields["maintenance_officer"].label_from_instance = officer_label
+        self.fields["maintenance_officer"].help_text = (
+            "Choose any active officer with a recorded EPF. The EPF below is filled from the officer's user profile."
+        )
+        officer = (
+            self.fields["maintenance_officer"]
+            .queryset.filter(pk=selected_id(self, "maintenance_officer"))
+            .first()
+        )
+        self.initial["officer_epf"] = (
+            officer.ledger_profile.epf_number if officer else ""
+        )
 
     def clean_code(self):
         return self.cleaned_data["code"].strip().upper()

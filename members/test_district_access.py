@@ -93,6 +93,9 @@ class DistrictAccessTests(TestCase):
                     "payment_plan": plan,
                 }
             )
+        from .test_support import assign_member_ledgers
+
+        assign_member_ledgers(cls.user, [row["member"] for row in cls.rows])
 
     def setUp(self):
         self.client.force_login(self.user)
@@ -386,6 +389,7 @@ class DistrictAccessTests(TestCase):
                 zonal_office=self.rows[index]["office"],
                 name="Delete within assignment",
                 code=f"DELETE-{index}",
+                maintenance_officer=self.user,
             )
             self.client.post(reverse("lager_delete", args=[disposable.pk]))
             self.assertFalse(Lager.objects.filter(pk=disposable.pk).exists())
@@ -467,6 +471,7 @@ class DistrictAccessTests(TestCase):
             {
                 "username": self.user.username,
                 "is_active": "on",
+                "epf_number": self.user.ledger_profile.epf_number,
                 "districts": [self.districts[0].pk, self.districts[1].pk],
                 "module_permissions": list(
                     workspace_permissions().values_list("pk", flat=True)
@@ -482,6 +487,7 @@ class DistrictAccessTests(TestCase):
         data = {
             "username": self.user.username,
             "is_active": "on",
+            "epf_number": self.user.ledger_profile.epf_number,
             "districts": [999999],
         }
         response = self.client.post(url, data)

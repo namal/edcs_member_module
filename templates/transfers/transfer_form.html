@@ -35,7 +35,8 @@
     <form method="post"
           data-location-form
           data-office-field="zonal_office"
-          data-location-url="{% url 'location_options' %}">
+          data-location-url="{% url 'location_options' %}"
+          data-location-purpose="transfer">
       {% csrf_token %}
       <input type="hidden" name="member" value="{{ selected_member.pk }}">
       {{ form.source_ledger }}

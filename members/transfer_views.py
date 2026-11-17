@@ -65,8 +65,11 @@ def member_transfer_list(request):
 
         rows = rows.filter(
             Q(reference__icontains=query)
-            | Q(member__member_no__icontains=query)
-            | Q(member__full_name__icontains=query)
+            | Q(from_ledger__registration_snapshot__member_no__icontains=query)
+            | Q(from_ledger__registration_snapshot__full_name__icontains=query)
+            | Q(
+                from_ledger__closing_balances__member_profile__full_name__icontains=query
+            )
         )
     return render(
         request,
@@ -174,7 +177,10 @@ def member_ledger_list(request):
     require_permission(request.user, m.MemberLedger, "view")
     form = LedgerFilterForm(request.GET, user=request.user)
     rows = district_records(request.user, m.MemberLedger).select_related(
-        "member", "district", "zonal_office"
+        "member__lager__maintenance_officer__ledger_profile",
+        "district",
+        "zonal_office",
+        "lager__maintenance_officer__ledger_profile",
     )
     if form.is_valid():
         data = form.cleaned_data
@@ -334,8 +340,8 @@ def member_ledger_detail(request, pk, export=False):
             "balances": visible_balances(request.user, snapshot),
             "opening_balances": visible_balances(request.user, ledger.opening_balances),
             "can_view_current_member": request.user.has_perm("members.view_member")
-            and accessible_districts(request.user)
-            .filter(pk=ledger.member.district_id)
+            and district_records(request.user, m.Member)
+            .filter(pk=ledger.member_id)
             .exists(),
             "officer_history": ledger.officer_history.all(),
             **page,

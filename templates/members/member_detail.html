@@ -56,6 +56,10 @@
         <a class="btn btn-secondary"
            href="{% url 'payment_transaction_create' %}?member={{ member.pk }}">Add debit / credit</a>
       {% endif %}
+      {% if perms.members.add_paymenttransaction %}
+        <a class="btn btn-primary"
+           href="{% url 'contribution_create' %}?member={{ member.pk }}">Receive contribution</a>
+      {% endif %}
       {% if perms.members.view_depositinterestyear %}
         <a class="btn btn-secondary"
            href="{% url 'deposit_interest_list' %}?member={{ member.pk }}">Quarterly interest</a>

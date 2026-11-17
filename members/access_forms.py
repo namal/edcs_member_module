@@ -164,10 +164,23 @@ class WorkspaceUserForm(AccessFormMixin, forms.ModelForm):
                 "districts", "Assign the ledger officer's district to this user."
             )
         if self.instance.pk:
+            if self.instance.assigned_lagers.exists() and (
+                not epf or not data.get("is_active")
+            ):
+                self.add_error(
+                    "epf_number" if not epf else "is_active",
+                    "Reassign this user's ledger masters before removing the EPF number or deactivating the account.",
+                )
             active = MemberLedger.objects.filter(
                 maintenance_officer=self.instance, status="active"
             )
-            if active.exclude(zonal_office_id=office.pk if office else None).exists():
+            old_office = self.initial.get("ledger_office")
+            if (
+                old_office != (office.pk if office else None)
+                and active.exclude(
+                    zonal_office_id=office.pk if office else None
+                ).exists()
+            ):
                 self.add_error(
                     "ledger_office",
                     "Reassign active ledgers before changing this officer's zonal office.",
@@ -179,8 +192,11 @@ class WorkspaceUserForm(AccessFormMixin, forms.ModelForm):
                 )
             if (
                 not self.instance.is_superuser
-                and active.exclude(
-                    district_id__in=[item.pk for item in data.get("districts", [])]
+                and active.filter(
+                    district_id__in=set(
+                        self.instance.assigned_districts.values_list("pk", flat=True)
+                    )
+                    - {item.pk for item in data.get("districts", [])}
                 ).exists()
             ):
                 self.add_error(

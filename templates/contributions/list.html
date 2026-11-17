@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7 flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <p class="eyebrow mb-2">Debit / Credit</p>
+      <h1 class="page-title">
+        Member contributions<span class="text-brand-600">.</span>
+      </h1>
+      <p class="muted mt-2">Salary deduction receipts and their permanent category allocations.</p>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <a class="btn btn-secondary" href="{% url 'payment_transaction_list' %}">Statements</a>
+      {% if perms.members.add_paymenttransaction %}
+        <a class="btn btn-primary" href="{% url 'contribution_create' %}">Receive contribution</a>
+      {% endif %}
+    </div>
+  </div>
+  <form method="get" class="form-section">
+    <label class="field-label" for="receipt-query">Search member or receipt reference</label>
+    <input class="field-input"
+           id="receipt-query"
+           name="q"
+           value="{{ request.GET.q }}">
+    <button class="btn btn-secondary mt-4">Search</button>
+  </form>
+  <section class="card mb-6">
+    <div class="card-heading">
+      <h2 class="section-title">Posted receipts</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Member</th>
+            <th>Reference</th>
+            <th>Received (LKR)</th>
+            <th>Processing</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for receipt in page_obj %}
+            <tr>
+              <td>
+                <a class="text-link" href="{% url 'contribution_detail' receipt.pk %}">{{ receipt.received_on|date:'d M Y' }}</a>
+              </td>
+              <td>{{ receipt.member }}</td>
+              <td>{{ receipt.reference|default:receipt.receipt_number }}</td>
+              <td>{{ receipt.amount|floatformat:2 }}</td>
+              <td>
+                {% if receipt.approval_request_id %}
+                  Approved exception
+                {% else %}
+                  Automatic
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5">No posted contributions match.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include 'components/pagination.html' %}
+  </section>
+  <section class="card">
+    <div class="card-heading">
+      <h2 class="section-title">Your pending contribution approvals</h2>
+      <a class="text-link" href="{% url 'approval_request_list' %}">Approval history, including rejected and cancelled requests</a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Request</th>
+            <th>Contribution</th>
+            <th>Submitted</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in pending %}
+            <tr>
+              <td>
+                <a class="text-link" href="{% url 'approval_request_detail' item.pk %}">{{ item.reference }}</a>
+              </td>
+              <td>{{ item.description }}</td>
+              <td>{{ item.created_at|date:'d M Y H:i' }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="3">No pending contribution requests assigned to you or submitted by you.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

@@ -218,6 +218,14 @@ class School(models.Model):
 
 
 class Lager(models.Model):
+    maintenance_officer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="assigned_lagers",
+        verbose_name="Ledger Maintenance Officer",
+    )
     zonal_office = models.ForeignKey(
         OfficeLocation, on_delete=models.PROTECT, related_name="lagers"
     )
@@ -246,6 +254,10 @@ class Lager(models.Model):
 
     def clean(self):
         super().clean()
+        if self.maintenance_officer_id:
+            from .officers import validate_master_officer
+
+            validate_master_officer(self.maintenance_officer)
         if self.pk:
             previous = (
                 type(self)
@@ -263,8 +275,16 @@ class Lager(models.Model):
                 )
 
     def save(self, *args, **kwargs):
-        self.clean()
-        return super().save(*args, **kwargs)
+        with transaction.atomic():
+            if self.pk:
+                type(self).objects.select_for_update().filter(pk=self.pk).first()
+                from .ledger_tracking import ledger_actor
+                from .permissions import require_lager_access
+
+                if ledger_actor.get() is not None:
+                    require_lager_access(ledger_actor.get(), self.pk)
+            self.clean()
+            return super().save(*args, **kwargs)
 
 
 class Member(models.Model):
@@ -403,6 +423,9 @@ class Member(models.Model):
 
     def clean(self):
         super().clean()
+        from .permissions import guard_member_actor
+
+        guard_member_actor(self)
         self.update_generated_fields()
         self.validate_retirement()
         from .transfer_services import guard_member_location
@@ -502,6 +525,9 @@ class Member(models.Model):
         with transaction.atomic():
             if self.pk:
                 type(self).objects.select_for_update().filter(pk=self.pk).first()
+            from .permissions import guard_member_actor
+
+            guard_member_actor(self, locking=True)
             created = self.pk is None
             guard_member_location(self)
             guard_member_pension(self)
@@ -794,6 +820,9 @@ class PaymentTransaction(LedgerTrackedModel):
         with transaction.atomic():
             if self.member_id:
                 Member.objects.select_for_update().filter(pk=self.member_id).first()
+            from .contribution_services import guard_receipt_transaction
+
+            guard_receipt_transaction(self)
             guard_transaction(self)
             from .deposit_interest import guard_interest_transaction
 
@@ -806,6 +835,9 @@ class PaymentTransaction(LedgerTrackedModel):
         with transaction.atomic():
             Member.objects.select_for_update().filter(pk=self.member_id).first()
             try:
+                from .contribution_services import guard_receipt_transaction
+
+                guard_receipt_transaction(self, deleting=True)
                 guard_transaction(self, deleting=True)
                 from .deposit_interest import guard_interest_transaction
 
@@ -2033,3 +2065,5 @@ from .approval_models import (
     ApprovalRequest,
     ApprovalAuditEvent,
 )
+
+from .contribution_models import PaymentReceipt, PaymentReceiptAllocation

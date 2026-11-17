@@ -107,6 +107,8 @@ class MemberTransferTests(TestCase):
         m.PaymentPlanAmount.objects.create(
             plan=cls.plan, payment_type=cls.payment_type, amount=Decimal("25")
         )
+        for lager, officer in zip(cls.lagers, cls.officers):
+            m.Lager.objects.filter(pk=lager.pk).update(maintenance_officer=officer)
 
     def setUp(self):
         self.client.force_login(self.actor)
@@ -152,6 +154,9 @@ class MemberTransferTests(TestCase):
                 codename__in=["view_memberledger", "view_membertransfer", *extra],
             )
         )
+        from .test_support import assign_lagers
+
+        assign_lagers(user, m.Lager.objects.filter(zonal_office__district=district))
         client = Client()
         client.force_login(user)
         return user, client
@@ -374,7 +379,8 @@ class MemberTransferTests(TestCase):
         self.officers[1].save()
         profile = self.officers[1].ledger_profile
         profile.epf_number = None
-        profile.save()
+        # Simulate malformed legacy data; normal profile writes now prevent this.
+        m.LedgerOfficerProfile.objects.filter(pk=profile.pk).update(epf_number=None)
         with self.assertRaises(ValidationError):
             self.transfer()
         self.assertEqual(m.MemberTransfer.objects.count(), 0)

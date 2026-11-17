@@ -66,6 +66,9 @@ class OpeningBalanceTests(TestCase):
         cls.member, cls.other, cls.outside = cls.members
         cls.user.assigned_districts.add(cls.member.district)
         cls.deposit = PaymentType.objects.get(name="Special Deposit")
+        from .test_support import assign_member_ledgers
+
+        assign_member_ledgers(cls.user, cls.members)
 
     def setUp(self):
         self.client.force_login(self.user)

@@ -21,14 +21,7 @@ class LagerZonalMigrationTests(TransactionTestCase):
 
     def tearDown(self):
         # A test failure must not leave the rest of the suite on the old schema.
-        self.migrate(
-            [
-                (
-                    "members",
-                    "0023_approval_hierarchies",
-                )
-            ]
-        )
+        self.migrate(MigrationExecutor(connection).loader.graph.leaf_nodes("members"))
         super().tearDown()
 
     def test_identity_migration_backfills_names_without_guessing_birth_or_retirement_dates(

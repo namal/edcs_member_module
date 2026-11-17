@@ -12,9 +12,12 @@
       </p>
     </div>
     <div class="flex flex-wrap gap-3">
+      <a class="btn btn-secondary" href="{% url 'contribution_list' %}">Contribution receipts</a>
       <a class="btn btn-secondary"
          href="{% url 'payment_transaction_report' %}{% if query_string %}?{{ query_string }}{% endif %}">Member balances</a>
       {% if perms.members.add_paymenttransaction %}
+        <a class="btn btn-primary"
+           href="{% url 'contribution_create' %}{% if selected_member %}?member={{ selected_member.pk }}{% endif %}">Receive contribution</a>
         <a class="btn btn-primary"
            href="{% url 'payment_transaction_create' %}{% if selected_member %}?{{ selection_query }}{% endif %}">Add entry</a>
       {% endif %}

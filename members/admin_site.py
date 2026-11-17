@@ -15,6 +15,7 @@ class WorkspaceAdminSite(AdminSite):
             model = getattr(getattr(view, "__self__", None), "model", None)
             if (
                 request.method == "POST"
+                and not (request.user.is_active and request.user.is_superuser)
                 and model is not None
                 and model._meta.app_label == "members"
             ):

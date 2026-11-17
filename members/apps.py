@@ -34,6 +34,8 @@ class MembersConfig(AppConfig):
             "LedgerEvent",
             "ApprovalRequest",
             "ApprovalAuditEvent",
+            "PaymentReceipt",
+            "PaymentReceiptAllocation",
         ):
             pre_delete.connect(
                 protect_history_delete,

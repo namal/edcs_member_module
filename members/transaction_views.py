@@ -4,8 +4,11 @@ from urllib.parse import urlencode
 from django import forms
 from django.contrib import messages
 from .approval_services import form_checkpoint, checkpoint
+from .approval_scope import PAYMENT_EXCEPTIONS
+from .contribution_services import below_plan_amount
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.db.models.deletion import ProtectedError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -157,6 +160,10 @@ def payment_transaction_form(request, pk=None):
         if pk is not None
         else None
     )
+    if entry and hasattr(entry, "receipt_allocation"):
+        raise PermissionDenied(
+            "Allocated contribution entries are retained with their receipt and cannot be edited."
+        )
     form = PaymentTransactionForm(
         request.POST if request.method == "POST" else None,
         instance=entry,
@@ -168,14 +175,35 @@ def payment_transaction_form(request, pk=None):
         },
     )
     if request.method == "POST" and form.is_valid():
-        queued = form_checkpoint(request, form)
-        if queued is not None:
-            return queued
         saved = form.save(commit=False)
         if entry is None:
             saved.created_by = request.user
         try:
-            saved.save()
+            with transaction.atomic():
+                Member.objects.select_for_update().get(pk=saved.member_id)
+                configured = below_plan_amount(saved)
+                if configured is not None:
+                    queued = checkpoint(
+                        request,
+                        PaymentTransaction,
+                        "change" if entry else "add",
+                        f"Below-plan category payment: {saved.member}",
+                        target=entry,
+                        form=form,
+                        approval_module=PAYMENT_EXCEPTIONS,
+                        required=True,
+                        extra_summary=[
+                            {
+                                "label": "Configured category contribution (LKR)",
+                                "value": str(configured),
+                            }
+                        ],
+                    )
+                else:
+                    queued = form_checkpoint(request, form)
+                if queued is not None:
+                    return queued
+                saved.save()
         except ValidationError as error:
             form.add_error(None, " ".join(error.messages))
         else:

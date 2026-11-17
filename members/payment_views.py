@@ -2,6 +2,7 @@ from django.contrib import messages
 from .approval_services import form_checkpoint, checkpoint
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
+from django.db.models.deletion import ProtectedError
 from django.db.models import Count, Q
 from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
@@ -170,7 +171,25 @@ def payment_plan_delete(request, pk):
         )
         if queued is not None:
             return queued
-        plan.delete()
+        try:
+            plan.delete()
+        except ProtectedError:
+            messages.error(
+                request,
+                "This payment plan is retained by contribution receipts or ledger history. Edit its future amounts instead.",
+            )
+            return redirect(
+                (
+                    "payment_plan_detail"
+                    if request.user.has_perm("members.view_paymentplan")
+                    else "dashboard"
+                ),
+                **(
+                    {"pk": plan.pk}
+                    if request.user.has_perm("members.view_paymentplan")
+                    else {}
+                ),
+            )
         messages.success(
             request,
             "The payment plan has been deleted. The member is still registered.",

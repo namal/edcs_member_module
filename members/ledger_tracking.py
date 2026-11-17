@@ -184,6 +184,10 @@ def ledger_context(obj, *, deleting=False, locking=True):
     member = (Member.objects.select_for_update() if locking else Member.objects).get(
         pk=member_id
     )
+    if ledger_actor.get() is not None:
+        from .permissions import require_member_access
+
+        require_member_access(ledger_actor.get(), member, lock=locking)
     ledger = MemberLedger.objects.filter(member=member, status="active").first()
     if ledger is None:
         if not locking:
@@ -249,6 +253,7 @@ def ledger_context(obj, *, deleting=False, locking=True):
 
 def record_event(obj, ledger, record, action):
     from .models import LedgerEvent, LedgerRecord
+    from .approval_services import execution
 
     if record is None:
         record, _ = LedgerRecord.objects.get_or_create(
@@ -260,12 +265,17 @@ def record_event(obj, ledger, record, action):
     if actor is None and action == "created":
         actor = getattr(obj, "created_by", None) or getattr(obj, "recorded_by", None)
     name, epf = officer_identity(actor)
+    snapshot = snapshot_record(obj)
+    approved = execution.get()
+    if approved and approved["seen"]:
+        snapshot["approval_request_id"] = approved["record"].pk
+        snapshot["approval_reference"] = approved["record"].reference
     LedgerEvent.objects.create(
         record=record,
         ledger=ledger,
         action=action,
         effective_on=effective_date(obj),
-        snapshot=snapshot_record(obj),
+        snapshot=snapshot,
         actor=actor,
         actor_name=name,
         actor_epf=epf,
@@ -322,10 +332,19 @@ def protect_history_delete(sender, instance, **kwargs):
 
 
 def attach_ledger_references(objects, model, user):
-    from .models import LedgerRecord, MemberLedger
+    from .models import LedgerRecord, MemberLedger, PaymentReceiptAllocation
     from .permissions import district_records
 
     rows = list(objects)
+    allocated = (
+        set(
+            PaymentReceiptAllocation.objects.filter(
+                transaction_id__in=[obj.pk for obj in rows]
+            ).values_list("transaction_id", flat=True)
+        )
+        if model._meta.model_name == "paymenttransaction"
+        else set()
+    )
     records = {
         record.source_id: record
         for record in LedgerRecord.objects.filter(
@@ -345,7 +364,8 @@ def attach_ledger_references(objects, model, user):
         record = records.get(obj.pk)
         obj.ledger_page = record.original_ledger if record else None
         obj.ledger_readonly = bool(
-            record and record.original_ledger.status == "transferred"
+            obj.pk in allocated
+            or (record and record.original_ledger.status == "transferred")
         )
         obj.can_view_ledger = bool(record and record.original_ledger_id in visible)
     return rows

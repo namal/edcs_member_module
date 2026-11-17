@@ -12,7 +12,13 @@ from django.utils import timezone
 
 from . import models as m
 from .ledger_tracking import ledger_actor, officer_identity
-from .permissions import accessible_districts, require_district, require_permission
+from .permissions import (
+    accessible_districts,
+    require_district,
+    require_member_access,
+    require_permission,
+    scope_queryset,
+)
 
 
 def json_values(value):
@@ -60,12 +66,21 @@ def eligible_officers(office):
     )
 
 
-def validate_officer(officer, office):
+def validate_officer(officer, office, *, lager=None):
     if officer is not None:
         get_user_model().objects.select_for_update().filter(pk=officer.pk).first()
         m.LedgerOfficerProfile.objects.select_for_update().filter(
             user_id=officer.pk
         ).first()
+    if (
+        lager is not None
+        and lager.maintenance_officer_id == getattr(officer, "pk", None)
+        and officer is not None
+    ):
+        from .officers import validate_master_officer
+
+        validate_master_officer(officer)
+        return
     if officer is None or not eligible_officers(office).filter(pk=officer.pk).exists():
         raise ValidationError(
             {
@@ -93,8 +108,15 @@ def initialize_member_ledger(member, officer=None, actor=None):
         raise ValidationError(
             "This member has no active ledger. Review the transfer history before posting."
         )
+    lager = (
+        m.Lager.objects.select_for_update().get(pk=member.lager_id)
+        if member.lager_id
+        else None
+    )
+    if lager and lager.maintenance_officer_id:
+        officer = lager.maintenance_officer
     if officer:
-        validate_officer(officer, member.office_location)
+        validate_officer(officer, member.office_location, lager=lager)
     name, epf = officer_identity(officer)
     ledger = _save_ledger(
         m.MemberLedger(
@@ -191,7 +213,12 @@ def visible_balances(user, snapshot):
 @transaction.atomic
 def assign_ledger_officer(actor, ledger_pk, officer, reason, *, initializing=False):
     require_permission(actor, m.MemberLedger, "add" if initializing else "change")
-    ledger = get_object_or_404(m.MemberLedger.objects.select_for_update(), pk=ledger_pk)
+    member_id = get_object_or_404(m.MemberLedger, pk=ledger_pk).member_id
+    member = m.Member.objects.select_for_update().get(pk=member_id)
+    m.Lager.objects.select_for_update().filter(pk=member.lager_id).first()
+    ledger = get_object_or_404(
+        scope_queryset(actor, m.MemberLedger.objects.select_for_update()), pk=ledger_pk
+    )
     require_district(actor, ledger.district_id)
     if ledger.status != "active":
         raise ValidationError(
@@ -293,6 +320,12 @@ def transfer_member(
 ):
     require_permission(actor, m.MemberTransfer, "add")
     member = get_object_or_404(m.Member.objects.select_for_update(), pk=member_pk)
+    list(
+        m.Lager.objects.select_for_update()
+        .filter(pk__in=[member.lager_id, lager.pk])
+        .order_by("pk")
+    )
+    require_member_access(actor, member)
     office = get_object_or_404(
         m.OfficeLocation.objects.select_for_update().select_related("district"),
         pk=office.pk,
@@ -360,7 +393,18 @@ def transfer_member(
         effective_date,
         snapshot,
     )
-    _save_ledger(current, update_fields=["status", "closed_on", "closing_balances"])
+    current.lager_id = member.lager_id
+    current.location_snapshot = location_snapshot(member)
+    _save_ledger(
+        current,
+        update_fields=[
+            "status",
+            "closed_on",
+            "closing_balances",
+            "lager",
+            "location_snapshot",
+        ],
+    )
     member.district_id, member.office_location = office.district_id, office
     member.lager, member.school, member.subdivision = lager, school, subdivision
     member._member_transfer = True

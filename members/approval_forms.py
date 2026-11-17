@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.forms import formset_factory
 
 from .approval_models import ApprovalHierarchy
-from .approval_scope import ALL_MODULES
+from .approval_scope import ALL_MODULES, PAYMENT_EXCEPTIONS
 from .permissions import MODULES
 
 
@@ -20,16 +20,24 @@ class HierarchyForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["module"] = forms.ChoiceField(
-            choices=[(ALL_MODULES, "All modules — edits only")]
+            choices=[
+                (ALL_MODULES, "All modules — edits only"),
+                (PAYMENT_EXCEPTIONS, "Payment exceptions — below-plan contributions"),
+            ]
             + [(model._meta.model_name, label) for model, label, *_ in MODULES]
         )
         self.fields["action"] = forms.ChoiceField(
-            choices=[("change", "Edit existing records"), ("add", "Member transfer")]
+            choices=[
+                ("change", "Edit existing records"),
+                ("add", "Member transfer / below-plan payment"),
+            ]
         )
         self.fields["module"].widget.attrs["data-approval-module"] = ""
         self.fields["action"].widget.attrs["data-approval-action"] = ""
         self.initial["action"] = (
-            "add" if self.instance.module == "membertransfer" else "change"
+            "add"
+            if self.instance.module in ("membertransfer", PAYMENT_EXCEPTIONS)
+            else "change"
         )
         self.initial["version"] = self.instance.version if self.instance.pk else 0
         for field in self.fields.values():
@@ -41,11 +49,15 @@ class HierarchyForm(forms.ModelForm):
 
     def clean(self):
         data = super().clean()
-        expected_action = "add" if data.get("module") == "membertransfer" else "change"
+        expected_action = (
+            "add"
+            if data.get("module") in ("membertransfer", PAYMENT_EXCEPTIONS)
+            else "change"
+        )
         if data.get("action") and data["action"] != expected_action:
             self.add_error(
                 "action",
-                "Approvals apply only to member transfers and editing existing records. Select Member transfer for Member Transfers, or Edit existing records for other modules.",
+                "Select Member transfer / below-plan payment for Member Transfers or Payment exceptions; select Edit existing records for other modules.",
             )
         return data
 

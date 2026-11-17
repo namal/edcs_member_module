@@ -49,6 +49,9 @@ class WorkspacePermissionTests(TestCase):
         cls.lager = Lager.objects.create(
             zonal_office=cls.office, name="Lager", code="LAG"
         )
+        from .test_support import assign_lagers
+
+        assign_lagers(cls.user, [cls.lager])
         cls.member = Member.objects.create(
             district=cls.district,
             office_location=cls.office,

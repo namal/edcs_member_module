@@ -18,7 +18,7 @@ from django.utils import timezone
 
 from .approval_models import ApprovalHierarchy, ApprovalRequest, ApprovalAuditEvent
 from .ledger_tracking import ledger_actor, officer_identity
-from .approval_scope import ALL_MODULES, requires_approval_scope
+from .approval_scope import ALL_MODULES, PAYMENT_EXCEPTIONS, requires_approval_scope
 
 execution = ContextVar("approval_execution", default=None)
 
@@ -122,7 +122,12 @@ def _summary(form, target):
         return [{"label": "Record", "value": str(target)}] if target else []
     rows = []
     for name, value in form.cleaned_data.items():
-        if name in ("operation_key", "calculation_hash", "source_ledger"):
+        if name in (
+            "operation_key",
+            "calculation_hash",
+            "source_ledger",
+            "review_hash",
+        ):
             continue
         if hasattr(value, "all"):
             value = ", ".join(str(item) for item in value)
@@ -147,6 +152,41 @@ def _parameters(data):
         for key, values in data.lists()
         if key != "csrfmiddlewaretoken"
     }
+
+
+def approval_scope_identity(target, form=None):
+    from .permissions import MEMBER_LOOKUPS
+    from .models import Member
+
+    if target is None or not target.pk:
+        member = form.cleaned_data.get("member") if form is not None else None
+        return (member.lager_id, member.pk) if member else (None, None)
+    name = target._meta.model_name
+    if name == "lager":
+        return target.pk, None
+    if name == "memberledger":
+        member_id = target.member_id
+        return (
+            Member.objects.filter(pk=member_id)
+            .values_list("lager_id", flat=True)
+            .first(),
+            member_id,
+        )
+    lookup = MEMBER_LOOKUPS.get(name)
+    if lookup:
+        member_id = (
+            type(target)
+            .objects.filter(pk=target.pk)
+            .values_list(lookup, flat=True)
+            .first()
+        )
+        return (
+            Member.objects.filter(pk=member_id)
+            .values_list("lager_id", flat=True)
+            .first(),
+            member_id,
+        )
+    return None, None
 
 
 def form_checkpoint(
@@ -176,11 +216,22 @@ def form_checkpoint(
 
 
 def checkpoint(
-    request, model, action, description, *, target=None, form=None, extra_summary=None
+    request,
+    model,
+    action,
+    description,
+    *,
+    target=None,
+    form=None,
+    extra_summary=None,
+    approval_module=None,
+    required=False,
 ):
     """Return a queue redirect, or None to continue the already validated operation."""
-    module = model._meta.model_name
+    module = approval_module or model._meta.model_name
     current = execution.get()
+    if current is None and request.user.is_active and request.user.is_superuser:
+        return None
     if not requires_approval_scope(module, action, request.resolver_match.view_name):
         if current is not None:
             raise ValidationError(
@@ -219,7 +270,11 @@ def checkpoint(
 
     policy = (
         ApprovalHierarchy.objects.filter(
-            module__in=[module, ALL_MODULES], is_active=True, action__in=[action, "*"]
+            module__in=(
+                [module] if module == PAYMENT_EXCEPTIONS else [module, ALL_MODULES]
+            ),
+            is_active=True,
+            action__in=["add" if module == PAYMENT_EXCEPTIONS else action, "*"],
         )
         .annotate(
             module_priority=Case(
@@ -237,6 +292,10 @@ def checkpoint(
         .first()
     )
     if policy is None:
+        if required:
+            raise ValidationError(
+                "Configure an active Payment exceptions hierarchy before submitting a below-plan payment."
+            )
         return None
     from .permissions import require_permission
 
@@ -248,6 +307,10 @@ def checkpoint(
         if not policy.is_active:
             raise PermissionDenied("This approval hierarchy changed. Reload the form.")
         steps = hierarchy_snapshot(policy)["levels"]
+        if steps:
+            steps[0]["access_lager_id"], steps[0]["access_member_id"] = (
+                approval_scope_identity(target, form)
+            )
         active_users = set(
             get_user_model().objects.filter(is_active=True).values_list("pk", flat=True)
         )
@@ -315,13 +378,57 @@ def visible_requests(user):
     # Assignment snapshots continue to govern pending requests after policy edits.
     from django.db.models import Q
 
+    from django.db.models import BigIntegerField
+    from django.db.models.fields.json import KT
+    from django.db.models.functions import Cast
+    from .permissions import (
+        assigned_lagers,
+        accessible_districts,
+        accessible_members,
+        MEMBER_LOOKUPS,
+    )
+
+    member_targets = [f"members.{name}" for name in MEMBER_LOOKUPS] + [
+        "members.lager",
+        "members.memberledger",
+        "members.membertransfer",
+    ]
+    sensitive_modules = list(MEMBER_LOOKUPS) + [
+        "lager",
+        "memberledger",
+        "membertransfer",
+        PAYMENT_EXCEPTIONS,
+    ]
+    owned = assigned_lagers(user).filter(
+        zonal_office__district_id__in=accessible_districts(user).values("pk")
+    )
+    rows = rows.alias(
+        access_lager=Cast(KT("steps__0__access_lager_id"), BigIntegerField()),
+        access_member=Cast(KT("steps__0__access_member_id"), BigIntegerField()),
+    ).filter(
+        Q(access_lager__in=owned.values("pk"))
+        | (
+            Q(access_lager__isnull=True)
+            & ~Q(target_model__in=member_targets)
+            & ~Q(module__in=sensitive_modules)
+        )
+    )
+    rows = rows.filter(
+        ~Q(status="pending")
+        | Q(access_member__isnull=True)
+        | Q(access_member__in=accessible_members(user).values("pk"))
+    )
     return rows.filter(
         Q(requested_by=user) | Q(steps__contains=[{"approvers": [{"id": user.pk}]}])
     )
 
 
 def decision_rights(user, record):
-    pending = record.status == "pending" and user.is_active
+    pending = (
+        record.status == "pending"
+        and user.is_active
+        and (user.is_superuser or visible_requests(user).filter(pk=record.pk).exists())
+    )
     step = (
         record.steps[record.current_step]
         if record.steps and record.current_step < len(record.steps)

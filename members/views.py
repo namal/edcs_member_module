@@ -40,9 +40,10 @@ from .permissions import (
     require_location_access,
     require_permission,
 )
+from .officers import officer_options
 
 
-def location_data(district_id, instance=None, *, user=None):
+def location_data(district_id, instance=None, *, user=None, receiving=False):
     if not str(district_id or "").isdigit() or (
         user is not None
         and not accessible_districts(user).filter(pk=district_id).exists()
@@ -87,12 +88,16 @@ def location_data(district_id, instance=None, *, user=None):
         )
         | Q(pk=getattr(instance, "lager_id", None))
     )
+    if user is not None and not receiving:
+        from .permissions import scope_queryset
+
+        lagers = scope_queryset(user, lagers)
     return {
         "officers": officer_options_for_district(district_id),
         "lagers": list(
-            lagers.values("id", "name", "code", "zonal_office_id").order_by(
-                "name", "pk"
-            )
+            lagers.values(
+                "id", "name", "code", "zonal_office_id", "maintenance_officer_id"
+            ).order_by("name", "pk")
         ),
         "offices": list(
             offices.values("id", "name", "address", "phone").order_by("name")
@@ -152,8 +157,12 @@ def location_context(form):
             pk: short_name for pk, name, short_name in provinces
         },
         "initial_locations": location_data(
-            selected_id(form, "district"), form.instance, user=form.user
+            selected_id(form, "district"),
+            form.instance,
+            user=form.user,
+            receiving=getattr(form, "ledger_receiving_locations", False),
         ),
+        "ledger_officers": officer_options() if provinces else [],
     }
 
 
@@ -264,7 +273,11 @@ def dashboard(request):
     total = district_records(request.user, Member).count()
     districts = list(
         district_records(request.user, District)
-        .annotate(member_count=Count("members"))
+        .annotate(
+            member_count=Count(
+                "members", filter=Q(members__in=district_records(request.user, Member))
+            )
+        )
         .filter(member_count__gt=0)
         .order_by("-member_count", "name")[:5]
     )
@@ -585,7 +598,11 @@ def district_list(request):
         district_records(request.user, District)
         .annotate(
             office_count=Count("offices", distinct=True),
-            member_count=Count("members", distinct=True),
+            member_count=Count(
+                "members",
+                distinct=True,
+                filter=Q(members__in=district_records(request.user, Member)),
+            ),
             school_count=Count("schools", distinct=True),
             lager_count=Count("offices__lagers", distinct=True),
         )
@@ -615,7 +632,11 @@ def office_list(request):
         district_records(request.user, OfficeLocation)
         .select_related("district")
         .annotate(
-            member_count=Count("members", distinct=True),
+            member_count=Count(
+                "members",
+                distinct=True,
+                filter=Q(members__in=district_records(request.user, Member)),
+            ),
             subdivision_count=Count("subdivisions", distinct=True),
             lager_count=Count("lagers", distinct=True),
         )
@@ -761,7 +782,12 @@ def location_options(request):
     district = request.GET.get("district", "")
     if district.isdigit():
         require_district(request.user, district)
-    return JsonResponse(location_data(district, user=request.user))
+    receiving = request.GET.get("purpose") == "transfer"
+    if receiving:
+        from .models import MemberTransfer
+
+        require_permission(request.user, MemberTransfer, "add")
+    return JsonResponse(location_data(district, user=request.user, receiving=receiving))
 
 
 EXTRA_MASTERS = {
@@ -781,6 +807,7 @@ def extra_master_list(request, kind):
         )
         district_field = "zonal_office__district_id"
         if model is Lager:
+            queryset = queryset.select_related("maintenance_officer__ledger_profile")
             queryset = queryset.annotate(member_count=Count("members")).order_by(
                 "zonal_office__district__name", "zonal_office__name", "name", "pk"
             )
