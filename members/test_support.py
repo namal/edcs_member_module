@@ -55,3 +55,29 @@ def officer_for(office):
         maintenance_officer=user
     )
     return user
+
+
+def membership_approval_policy():
+    """Explicit independent activation reviewer for registration integration tests."""
+    from django.contrib.auth.models import Permission
+    from .models import ApprovalHierarchy, ApprovalLevel
+
+    reviewer, _ = get_user_model().objects.get_or_create(
+        username="fixture-membership-reviewer"
+    )
+    reviewer.user_permissions.add(
+        Permission.objects.get(
+            codename="change_memberstatusrequest", content_type__app_label="members"
+        )
+    )
+    policy, _ = ApprovalHierarchy.objects.get_or_create(
+        module="memberstatusrequest",
+        action="change",
+        is_active=True,
+        defaults={"name": "Fixture membership approval"},
+    )
+    level, _ = ApprovalLevel.objects.get_or_create(
+        hierarchy=policy, position=1, defaults={"name": "Independent higher review"}
+    )
+    level.approvers.add(reviewer)
+    return policy

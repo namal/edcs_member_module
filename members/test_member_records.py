@@ -249,6 +249,7 @@ class MemberRecordTests(TestCase):
     def test_audit_survives_member_deletion_and_failed_changes_roll_back(self):
         member = m.Member.objects.get(pk=self.member.pk)
         member.pk = None
+        member.status = "pending"
         member.member_no = "DELETABLE"
         member.computer_no = "DELETE-COMP"
         member.nic_no = "199012345679"

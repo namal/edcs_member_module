@@ -55,6 +55,10 @@ class ApprovalLevel(models.Model):
         settings.AUTH_USER_MODEL, related_name="approval_levels", blank=True
     )
     allow_rejection = models.BooleanField(default=True)
+    allow_self_approval = models.BooleanField(
+        default=False,
+        help_text="Membership Status only: allow the requester to approve this level when explicitly assigned as an approver.",
+    )
 
     class Meta:
         default_permissions = ()
@@ -127,6 +131,15 @@ class ApprovalRequest(models.Model):
 
     def __str__(self):
         return self.reference
+
+    def get_status_display(self):
+        if self.module == "memberstatusrequest" and self.status == "approved":
+            request = self.membership_request
+            if request.state == "scheduled":
+                return "Approved · scheduled"
+            if request.state == "failed":
+                return "Approved · could not apply"
+        return dict(self.Status.choices).get(self.status, self.status)
 
     def save(self, *args, **kwargs):
         if not getattr(self, "_approval_service_write", False):

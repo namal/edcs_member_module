@@ -76,6 +76,11 @@ class LevelForm(forms.Form):
     allow_rejection = forms.BooleanField(
         required=False, initial=True, label="Assigned users may reject requests"
     )
+    allow_self_approval = forms.BooleanField(
+        required=False,
+        label="Allow requester approval at this level (Membership Status only)",
+        help_text="The requester must also be explicitly assigned as an approver and have Membership Status Edit/review permission. Leave off to require another reviewer.",
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

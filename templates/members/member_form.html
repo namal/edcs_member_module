@@ -72,9 +72,7 @@
             </span>
             <div>
               <h2 class="form-section-title">Branch, province & zonal office</h2>
-              <p class="text-xs text-slate-600">
-                Search for a department, or choose a branch and zonal office to narrow the list.
-              </p>
+              <p class="text-xs text-slate-600">Search for a department, or choose a branch and zonal office to narrow the list.</p>
             </div>
           </div>
           <div class="form-grid">
@@ -158,16 +156,14 @@
             <button class="btn btn-primary"
                     data-submit-label="Saving…"
                     name="next_step"
-                    value="{% if not member and perms.members.add_paymentplan %}payment_plan{% else %}member{% endif %}">
+                    value="member">
               <svg class="icon h-4 w-4">
                 <use href="#i-check" />
               </svg>
               {% if member %}
                 Save changes
-              {% elif perms.members.add_paymentplan %}
-                Register &amp; set payment plan
               {% else %}
-                Register member
+                Register &amp; request activation
               {% endif %}
             </button>
           </div>
@@ -182,7 +178,7 @@
           </span>
           <h3 class="text-sm font-semibold text-brand-700">Small details. Big difference.</h3>
           <p class="mt-3 text-xs leading-6 text-brand-700">
-            Department and lager are required. Type directly in the Department dropdown to find a department by name or code. Branch and zonal office narrow the list. Selecting a department fills its location automatically. Then choose a lager from that zonal office. Subdivision remains optional.
+            Department and lager are required. Type directly in the Department dropdown to find a department by name, location or code. Each option shows the department name, department location, zonal office and branch. Branch and zonal office narrow the list. Selecting a department fills its branch and zonal office automatically. Then choose a lager from that zonal office. Subdivision remains optional.
           </p>
           <hr class="my-4 border-brand-100">
           <p class="text-xs leading-6 text-brand-700">

@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <a class="text-link mb-5" href="{% url 'member_status_list' %}">← Membership Status</a>
+  <div class="mb-7 flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <p class="eyebrow mb-2">{{ record.get_kind_display }}</p>
+      <h1 class="page-title">{{ record.reference }}</h1>
+      <p class="muted mt-2">{{ record.snapshot.member_no }} · {{ record.snapshot.member_name }}</p>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <span class="badge bg-brand-50 text-brand-700">{{ record.get_state_display }}</span><a class="btn btn-primary"
+   href="{% url 'approval_request_detail' record.approval_id %}">
+        {% if rights.approve %}
+          Review approval
+        {% else %}
+          Approval progress
+        {% endif %}
+      </a>
+    </div>
+  </div>
+  <section class="card mb-6">
+    <div class="card-heading">
+      <h2 class="section-title">Request details</h2>
+      <span class="badge bg-slate-100 text-slate-700">Current member: {{ record.member.get_status_display }}</span>
+    </div>
+    <dl class="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div>
+        <dt class="detail-label">Membership number</dt>
+        <dd class="detail-value">
+          {{ record.snapshot.member_no }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Member name</dt>
+        <dd class="detail-value">
+          {{ record.snapshot.member_name }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">District / Branch</dt>
+        <dd class="detail-value">
+          {{ record.snapshot.district }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Zonal office</dt>
+        <dd class="detail-value">
+          {{ record.snapshot.zonal_office }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Ledger Code / ledger page</dt>
+        <dd class="detail-value">
+          {{ record.snapshot.ledger_code }}
+          <p class="field-help">{{ record.snapshot.ledger_reference }}</p>
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Status when requested</dt>
+        <dd class="detail-value">
+          {{ record.snapshot.current_status }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Reason</dt>
+        <dd class="detail-value">
+          {{ record.reason_label }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Requested effective date</dt>
+        <dd class="detail-value">
+          {{ record.requested_effective_date|date:'d M Y' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Requested by</dt>
+        <dd class="detail-value">
+          {{ record.requester_name }}
+          <p class="field-help">EPF {{ record.requester_epf|default:'Not recorded' }}</p>
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Request date and time</dt>
+        <dd class="detail-value">
+          {{ record.requested_at|date:'d M Y H:i:s' }}
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Final approval</dt>
+        <dd class="detail-value">
+          {% if record.approved_by %}
+            {{ record.approved_by.get_full_name|default:record.approved_by.username }}
+          {% else %}
+            Awaiting approval
+          {% endif %}
+          <p class="field-help">{{ record.approved_at|date:'d M Y H:i:s' }}</p>
+        </dd>
+      </div>
+      <div>
+        <dt class="detail-label">Actually applied</dt>
+        <dd class="detail-value">
+          {{ record.applied_at|date:'d M Y H:i:s'|default:'Not yet applied' }}
+        </dd>
+      </div>
+    </dl>
+    <div class="border-t border-slate-100 p-6">
+      <h3 class="detail-label mb-2">Detailed reason description</h3>
+      <p class="whitespace-pre-wrap text-sm">{{ record.description }}</p>
+      {% if record.outcome %}<p class="field-help mt-4">{{ record.outcome }}</p>{% endif %}
+    </div>
+  </section>
+  <section class="form-section">
+    <h2 class="section-title mb-4">Supporting documents</h2>
+    <ul class="space-y-3">
+      {% for document in record.documents.all %}
+        <li>
+          <a class="text-link"
+             href="{% url 'member_status_document' document.pk %}">{{ document.name }}</a><span class="field-help">· {{ document.size|filesizeformat }}</span>
+        </li>
+      {% empty %}
+        <li class="muted">No supporting documents attached.</li>
+      {% endfor %}
+    </ul>
+  </section>
+  <section class="card mb-6">
+    <div class="card-heading">
+      <h2 class="section-title">Membership status history</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Request</th>
+            <th>Action / reason</th>
+            <th>Requested by / date</th>
+            <th>Requested effective date</th>
+            <th>Status / applied time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in history %}
+            <tr>
+              <td>
+                <a class="text-link" href="{% url 'member_status_detail' item.pk %}">{{ item.reference }}</a>
+              </td>
+              <td>
+                {{ item.get_kind_display }}
+                <p class="field-help">{{ item.reason_label }}</p>
+              </td>
+              <td>
+                {{ item.requester_name }}
+                <p class="field-help">{{ item.requested_at|date:'d M Y H:i' }}</p>
+              </td>
+              <td>{{ item.requested_effective_date|date:'d M Y' }}</td>
+              <td>
+                {{ item.get_state_display }}
+                <p class="field-help">{{ item.applied_at|date:'d M Y H:i:s' }}</p>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="card">
+    <div class="card-heading">
+      <h2 class="section-title">Active membership periods · same ledger retained</h2>
+    </div>
+    <p class="field-help px-6 pt-5">
+      An approved reactivation starts a new period at the actual application time. Earlier periods and all balances remain available.
+    </p>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Ledger page</th>
+            <th>Active from</th>
+            <th>Active until</th>
+            <th>History source</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for period in periods %}
+            <tr>
+              <td>{{ period.ledger.reference }}</td>
+              <td>{{ period.started_at|date:'d M Y H:i:s' }}</td>
+              <td>{{ period.ended_at|date:'d M Y H:i:s'|default:'Current active period' }}</td>
+              <td>
+                {% if period.imported %}
+                  Retained existing membership
+                {% else %}
+                  {{ period.opened_by_request.reference }}
+                {% endif %}
+                {% if period.closed_by_request %}
+                  <p class="field-help">Closed by {{ period.closed_by_request.reference }}</p>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4">No approved active period recorded yet.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

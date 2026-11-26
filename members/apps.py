@@ -69,6 +69,10 @@ class MembersConfig(AppConfig):
             "MemberAuditEvent",
             "AuditLog",
             "FinancialYearClosing",
+            "MemberStatusRequest",
+            "MemberStatusDocument",
+            "MemberStatusEvent",
+            "MemberActivePeriod",
         ):
             pre_delete.connect(
                 protect_history_delete,

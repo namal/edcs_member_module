@@ -5,6 +5,8 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.core.paginator import Paginator
 from django.db.models import Count, Q, Sum
 from django.db.models.deletion import ProtectedError
@@ -120,6 +122,7 @@ def location_data(district_id, instance=None, *, user=None, receiving=False):
             {
                 "id": school.pk,
                 "name": str(school),
+                "location": school.location,
                 "zonal_office_id": school.zonal_office_id,
                 "subdivision_id": school.subdivision_id,
                 "address": school.address,
@@ -173,6 +176,7 @@ def member_school_data(form):
         {
             "id": school.pk,
             "name": str(school),
+            "location": school.location,
             "code": school.code,
             "district_id": school.district_id,
             "zonal_office_id": school.zonal_office_id,
@@ -374,25 +378,46 @@ def member_form(request, pk=None):
         user=request.user,
     )
     if request.method == "POST" and form.is_valid():
-        queued = form_checkpoint(request, form)
-        if queued is not None:
-            return queued
-        member = form.save()
-        messages.success(
-            request,
-            f'{member.full_name} was successfully {"updated" if pk is not None else "registered"}.',
-        )
-        if (
-            pk is None
-            and request.POST.get("next_step") == "payment_plan"
-            and request.user.has_perm("members.add_paymentplan")
-        ):
-            return redirect(f'{reverse("payment_plan_create")}?member={member.pk}')
-        if request.user.has_perm("members.view_member"):
-            return redirect("member_detail", pk=member.pk)
-        if pk is not None:
-            return redirect("member_edit", pk=member.pk)
-        return redirect("member_create")
+        if pk is None:
+            from .status_services import submit_status_request
+
+            try:
+                with transaction.atomic():
+                    member = form.save()
+                    activation = submit_status_request(
+                        request.user,
+                        member.pk,
+                        "activate",
+                        "new_registration",
+                        "Initial activation requested following new member registration.",
+                        timezone.localdate(),
+                        registration=True,
+                    )
+            except ValidationError as error:
+                form.instance.pk = None
+                form.instance._state.adding = True
+                member = None
+                form.add_error(None, error)
+            else:
+                messages.success(
+                    request,
+                    f"{member.member_no} registered awaiting activation. {activation.reference} requires the configured workflow approvals.",
+                )
+                return redirect("member_status_detail", pk=activation.pk)
+        else:
+            queued = form_checkpoint(request, form)
+            if queued is not None:
+                return queued
+            member = form.save()
+            messages.success(request, f"{member.full_name} was successfully updated.")
+            return redirect(
+                (
+                    "member_detail"
+                    if request.user.has_perm("members.view_member")
+                    else "member_edit"
+                ),
+                pk=member.pk,
+            )
     return render(
         request,
         "members/member_form.html",
@@ -426,6 +451,8 @@ def member_detail(request, pk):
         ),
         pk=pk,
     )
+    from .status_services import visible_status_requests
+
     return render(
         request,
         "members/member_detail.html",
@@ -433,6 +460,9 @@ def member_detail(request, pk):
             "section": "members",
             "title": "Member profile",
             "member": member,
+            "membership_requests": visible_status_requests(request.user).filter(
+                member=member
+            )[:10],
             "contribution_total": member.payment_receipts.aggregate(
                 total=Sum("amount")
             )["total"]
@@ -924,7 +954,10 @@ def extra_master_list(request, kind):
             queryset = queryset.select_related("zonal_office", "subdivision")
     query = request.GET.get("q", "").strip()
     if query:
-        queryset = queryset.filter(Q(name__icontains=query) | Q(code__icontains=query))
+        search = Q(name__icontains=query) | Q(code__icontains=query)
+        if model is School:
+            search |= Q(location__icontains=query)
+        queryset = queryset.filter(search)
     district = request.GET.get("district", "")
     if district.isdigit():
         queryset = queryset.filter(**{district_field: district})

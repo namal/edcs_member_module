@@ -135,9 +135,16 @@ class MemberWorkflowTests(TestCase):
                 self.assertEqual(anonymous.get(reverse(name)).status_code, 302)
 
     def test_valid_registration_persists_and_normalizes_identifiers(self):
+        from .test_support import membership_approval_policy
+
+        membership_approval_policy()
         response = self.client.post(reverse("member_create"), self.payload())
         member = Member.objects.get()
-        self.assertRedirects(response, reverse("member_detail", args=[member.pk]))
+        self.assertEqual(member.status, "pending")
+        self.assertRedirects(
+            response,
+            reverse("member_status_detail", args=[member.status_requests.get().pk]),
+        )
         self.assertEqual(member.member_no, "M-001")
         self.assertEqual(member.salary, Decimal("85000.50"))
         self.assertEqual(member.computer_no, "COMP-M-001")
@@ -416,7 +423,7 @@ class MemberWorkflowTests(TestCase):
         from .models import Subdivision
 
         school = self.make_school()
-        expected = f"Central School · {self.district.province_display} · {self.district.name} · {self.office.name}"
+        expected = f"Central School · {self.office.name} · {self.district.name} · {self.district.province_display}"
         self.assertEqual(str(school), expected)
         subdivision = Subdivision.objects.create(
             zonal_office=self.office, name="North Division", code="DIV-NORTH"
@@ -555,6 +562,7 @@ class MemberWorkflowTests(TestCase):
             "zonal_office": self.office.pk,
             "subdivision": subdivision.pk,
             "name": "School One",
+            "location": "Central town",
             "code": "sch-1",
             "is_active": True,
         }
@@ -605,6 +613,83 @@ class MemberWorkflowTests(TestCase):
             ).status_code,
             200,
         )
+
+    def test_department_location_is_saved_and_shown_in_registration_and_search(self):
+        data = {
+            "district": self.district.pk,
+            "zonal_office": self.office.pk,
+            "name": "Education Department",
+            "location": "  Nugegoda  ",
+            "code": "DEP-LOC",
+            "is_active": True,
+        }
+        response = self.client.get(reverse("school_create"))
+        fields = list(response.context["form"].fields)
+        self.assertEqual(fields[fields.index("name") + 1], "location")
+        self.assertRedirects(
+            self.client.post(reverse("school_create"), data), reverse("school_list")
+        )
+        department = School.objects.get(code="DEP-LOC")
+        self.assertEqual(department.location, "Nugegoda")
+        expected = (
+            f"Education Department · Nugegoda · {self.office.name} · "
+            f"{self.district.name} · {self.district.province_display}"
+        )
+        response = self.client.get(reverse("member_create"))
+        self.assertContains(response, expected)
+        row = next(
+            row
+            for row in response.context["member_schools"]
+            if row["id"] == department.pk
+        )
+        self.assertEqual(row["name"], expected)
+        self.assertEqual(row["location"], "Nugegoda")
+        options = self.client.get(
+            reverse("location_options"), {"district": self.district.pk}
+        ).json()
+        row = next(row for row in options["schools"] if row["id"] == department.pk)
+        self.assertEqual(row["name"], expected)
+        self.assertEqual(row["location"], "Nugegoda")
+        self.assertContains(
+            self.client.get(reverse("school_list"), {"q": "Nugegoda"}), expected
+        )
+        # Updating a department's descriptive location keeps its member link.
+        member = self.create_member(school=department.pk)
+        data["location"] = "Maharagama"
+        self.assertRedirects(
+            self.client.post(reverse("school_edit", args=[department.pk]), data),
+            reverse("school_list"),
+        )
+        department.refresh_from_db()
+        member.refresh_from_db()
+        self.assertEqual(department.location, "Maharagama")
+        self.assertEqual(member.school_id, department.pk)
+        self.assertContains(
+            self.client.get(reverse("member_edit", args=[member.pk])),
+            "Education Department · Maharagama",
+        )
+
+    def test_department_location_required_but_legacy_departments_remain_selectable(
+        self,
+    ):
+        from .forms import SchoolForm
+
+        data = {
+            "district": self.district.pk,
+            "zonal_office": self.office.pk,
+            "name": "Education Department",
+            "code": "DEP-LOC",
+            "is_active": True,
+        }
+        for location in [None, "", "   "]:
+            with self.subTest(location=location):
+                payload = data if location is None else {**data, "location": location}
+                self.assertIn("location", SchoolForm(payload).errors)
+        department = self.make_school(location="")
+        member = self.create_member(school=department.pk)
+        response = self.client.get(reverse("member_edit", args=[member.pk]))
+        self.assertContains(response, str(department))
+        self.assertNotIn(" ·  · ", str(department))
 
     def test_linked_location_records_cannot_move_or_be_deleted(self):
         from .forms import SchoolForm, SubdivisionForm
@@ -1197,13 +1282,20 @@ class MemberWorkflowTests(TestCase):
         self.assertIn("lager", error.exception.message_dict)
 
     def test_school_first_registration_derives_missing_location_fields(self):
+        from .test_support import membership_approval_policy
+
+        membership_approval_policy()
         school = self.make_school()
         payload = self.payload(school=school.pk)
         payload.pop("district")
         payload.pop("office_location")
         response = self.client.post(reverse("member_create"), payload)
         member = Member.objects.get()
-        self.assertRedirects(response, reverse("member_detail", args=[member.pk]))
+        self.assertEqual(member.status, "pending")
+        self.assertRedirects(
+            response,
+            reverse("member_status_detail", args=[member.status_requests.get().pk]),
+        )
         self.assertEqual(member.district_id, school.district_id)
         self.assertEqual(member.office_location_id, school.zonal_office_id)
         self.assertEqual(member.school_id, school.pk)

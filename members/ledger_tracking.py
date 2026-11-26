@@ -14,6 +14,12 @@ ledger_actor = ContextVar("ledger_actor", default=None)
 
 # Model: member path, effective date, permission module, human-readable category.
 TRACKED = {
+    "memberstatusevent": (
+        "member",
+        "effective_at",
+        "memberstatusrequest",
+        "Membership status change",
+    ),
     "paymenttransaction": (
         "member",
         "transaction_date",
@@ -184,6 +190,13 @@ def ledger_context(obj, *, deleting=False, locking=True):
     member = (Member.objects.select_for_update() if locking else Member.objects).get(
         pk=member_id
     )
+    if member.status == "pending" and obj._meta.model_name in DATED_POSTINGS | {
+        "openingbalance",
+        "openingbalanceamount",
+    }:
+        raise ValidationError(
+            "This member is awaiting activation approval. Financial postings require an active membership."
+        )
     if ledger_actor.get() is not None:
         from .permissions import require_member_access
 
@@ -266,6 +279,9 @@ def record_event(obj, ledger, record, action):
         actor = getattr(obj, "created_by", None) or getattr(obj, "recorded_by", None)
     name, epf = officer_identity(actor)
     snapshot = snapshot_record(obj)
+    if obj._meta.model_name == "memberstatusevent":
+        snapshot["approval_request_id"] = obj.request.approval_id
+        snapshot["approval_reference"] = obj.request.approval.reference
     approved = execution.get()
     if approved and approved["seen"]:
         snapshot["approval_request_id"] = approved["record"].pk
@@ -398,6 +414,10 @@ class LedgerActorMiddleware:
             request.user if request.user.is_authenticated else None
         )
         try:
+            if request.user.is_authenticated:
+                from .status_services import apply_due_status_requests
+
+                apply_due_status_requests()
             return self.get_response(request)
         finally:
             ledger_actor.reset(token)

@@ -296,6 +296,9 @@ class OfficeLocationAdmin(admin.ModelAdmin):
 
 @admin.register(Member)
 class MemberAdmin(admin.ModelAdmin):
+    def has_add_permission(self, request):
+        return False  # Registration must create an independent activation request.
+
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name == "gender":
             from .models import Gender
@@ -320,7 +323,12 @@ class MemberAdmin(admin.ModelAdmin):
     ]
     list_filter = ["district", "lager", "status", "gender"]
     search_fields = ["member_no", "full_name", "short_name", "nic_no", "computer_no"]
-    readonly_fields = ["short_name", "retirement_age", "expected_retirement_date"]
+    readonly_fields = [
+        "short_name",
+        "retirement_age",
+        "expected_retirement_date",
+        "status",
+    ]
     list_select_related = [
         "district",
         "lager__zonal_office__district",
@@ -341,6 +349,7 @@ class SubdivisionAdmin(admin.ModelAdmin):
 class SchoolAdmin(admin.ModelAdmin):
     list_display = [
         "name",
+        "location",
         "code",
         "district",
         "zonal_office",
@@ -348,7 +357,7 @@ class SchoolAdmin(admin.ModelAdmin):
         "is_active",
     ]
     list_filter = ["district", "zonal_office", "is_active"]
-    search_fields = ["name", "code"]
+    search_fields = ["name", "location", "code"]
     list_select_related = ["district", "zonal_office", "subdivision"]
 
 

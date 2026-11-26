@@ -9,6 +9,23 @@
       </svg>
     Back to member directory</a>
   {% endif %}
+  {% if member.status == 'pending' %}
+    <div class="alert border-accent-100 bg-accent-50 text-accent-700 mb-6">
+      This member is awaiting higher-level activation approval. Registration does not activate membership.
+    </div>
+  {% endif %}
+  {% if perms.members.add_memberstatusrequest and member.status != 'retired' %}
+    <a class="btn btn-secondary mb-5 no-print"
+       href="{% url 'member_status_create' %}?member={{ member.pk }}">Request
+      {% if member.status == 'active' %}
+        inactivation
+      {% elif member.status == 'inactive' %}
+        reactivation
+      {% else %}
+        activation
+      {% endif %}
+    </a>
+  {% endif %}
   <div class="mb-7 flex flex-wrap items-center justify-between gap-4">
     <div>
       <p class="eyebrow mb-2">Member profile</p>
@@ -399,4 +416,46 @@
     </div>
     {% include 'members/audit_events.html' with events=member_audit_events %}
   </section>
+  {% if membership_requests %}
+    <section class="card mb-6">
+      <div class="card-heading">
+        <h2 class="section-title">Membership status history</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Request</th>
+              <th>Action / reason</th>
+              <th>Requested</th>
+              <th>Effective / applied</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in membership_requests %}
+              <tr>
+                <td>
+                  <a class="text-link" href="{% url 'member_status_detail' item.pk %}">{{ item.reference }}</a>
+                </td>
+                <td>
+                  {{ item.get_kind_display }}
+                  <p class="field-help">{{ item.reason_label }}</p>
+                </td>
+                <td>
+                  {{ item.requester_name }}
+                  <p class="field-help">{{ item.requested_at|date:'d M Y H:i' }}</p>
+                </td>
+                <td>
+                  {{ item.requested_effective_date|date:'d M Y' }}
+                  <p class="field-help">{{ item.applied_at|date:'d M Y H:i:s' }}</p>
+                </td>
+                <td>{{ item.get_state_display }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
 {% endblock %}

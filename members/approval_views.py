@@ -53,7 +53,13 @@ def hierarchy_list(request):
 def hierarchy_form(request, pk=None):
     hierarchy = get_object_or_404(ApprovalHierarchy, pk=pk) if pk else None
     form = HierarchyForm(
-        request.POST if request.method == "POST" else None, instance=hierarchy
+        request.POST if request.method == "POST" else None,
+        instance=hierarchy,
+        initial=(
+            {"module": request.GET.get("module", "all_modules")}
+            if hierarchy is None
+            else None
+        ),
     )
     initial = (
         [
@@ -62,6 +68,7 @@ def hierarchy_form(request, pk=None):
                 "name": level.name,
                 "approvers": list(level.approvers.values_list("pk", flat=True)),
                 "allow_rejection": level.allow_rejection,
+                "allow_self_approval": level.allow_self_approval,
             }
             for level in hierarchy.levels.all()
         ]
@@ -98,6 +105,7 @@ def hierarchy_form(request, pk=None):
                         position=item["position"],
                         name=item["name"],
                         allow_rejection=item["allow_rejection"],
+                        allow_self_approval=item.get("allow_self_approval", False),
                     )
                     level.approvers.set(item["approvers"])
                 audit(
@@ -167,10 +175,14 @@ def request_detail(request, pk):
         visible_requests(request.user).select_related("hierarchy"), pk=pk
     )
     form = DecisionForm()
-    form.fields["reason"].required = request.user.is_superuser
+    form.fields["reason"].required = (
+        request.user.is_superuser or record.module == "memberstatusrequest"
+    )
     if request.method == "POST":
         form = DecisionForm(request.POST)
-        form.fields["reason"].required = request.user.is_superuser
+        form.fields["reason"].required = (
+            request.user.is_superuser or record.module == "memberstatusrequest"
+        )
         if form.is_valid():
             try:
                 record = decide(
@@ -208,12 +220,19 @@ def request_detail(request, pk):
             "title": "Approval request",
             "section": "approvals",
             "record": record,
+            "membership_request": (
+                record.membership_request
+                if record.module == "memberstatusrequest"
+                else None
+            ),
             "steps": steps,
             "rights": decision_rights(request.user, record),
             "can_open_result": record.status == "approved"
             and bool(record.result_url)
             and (
-                request.user.is_superuser or record.requested_by_id == request.user.pk
+                request.user.is_superuser
+                or record.requested_by_id == request.user.pk
+                or record.module == "memberstatusrequest"
             ),
             "form": form,
             "events": record.audit_events.all(),

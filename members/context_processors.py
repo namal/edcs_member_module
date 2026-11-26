@@ -13,6 +13,7 @@ def workspace_access(request):
             "members",
             "member_transfers",
             "member_ledgers",
+            "membership_status",
             "payment_plans",
             "opening_balances",
             "payment_transactions",
@@ -28,7 +29,8 @@ def workspace_access(request):
         "ledger_modules": [
             module
             for module in modules
-            if module["section"] in ("member_transfers", "member_ledgers")
+            if module["section"]
+            in ("member_transfers", "member_ledgers", "membership_status")
         ],
         "has_district_access": accessible_districts(request.user).exists(),
         "has_ledger_access": assigned_lagers(request.user)

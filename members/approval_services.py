@@ -79,6 +79,7 @@ def hierarchy_snapshot(hierarchy):
                 "position": level.position,
                 "name": level.name,
                 "allow_rejection": level.allow_rejection,
+                "allow_self_approval": level.allow_self_approval,
                 "approvers": [
                     {
                         "id": user.pk,
@@ -377,6 +378,10 @@ def visible_requests(user):
     rows = ApprovalRequest.objects.all()
     if user.is_superuser:
         return rows
+    from .status_services import visible_status_requests, MODULE as STATUS_MODULE
+
+    status_ids = visible_status_requests(user).values("approval_id")
+    rows = rows.exclude(module=STATUS_MODULE)
     # Assignment snapshots continue to govern pending requests after policy edits.
     from django.db.models import Q
 
@@ -420,8 +425,11 @@ def visible_requests(user):
         | Q(access_member__isnull=True)
         | Q(access_member__in=accessible_members(user).values("pk"))
     )
-    return rows.filter(
+    ordinary = rows.filter(
         Q(requested_by=user) | Q(steps__contains=[{"approvers": [{"id": user.pk}]}])
+    )
+    return ApprovalRequest.objects.filter(
+        Q(pk__in=ordinary.values("pk")) | Q(pk__in=status_ids)
     )
 
 
@@ -440,6 +448,39 @@ def decision_rights(user, record):
         any(item["id"] == user.pk for item in step.get("approvers", []))
         and record.requested_by_id != user.pk
     )
+    if record.module == "memberstatusrequest":
+        explicitly_assigned = any(
+            item["id"] == user.pk for item in step.get("approvers", [])
+        )
+        self_review = record.requested_by_id == user.pk
+        permitted = user.has_perm("members.change_memberstatusrequest") and (
+            not self_review
+            or (explicitly_assigned and step.get("allow_self_approval", False))
+        )
+        can_override = user.is_superuser and (
+            not self_review
+            or all(
+                level.get("allow_self_approval", False)
+                and any(
+                    person["id"] == user.pk for person in level.get("approvers", [])
+                )
+                for level in record.steps[record.current_step :]
+            )
+        )
+        return {
+            "approve": pending
+            and permitted
+            and (user.is_superuser or explicitly_assigned),
+            "reject": pending
+            and permitted
+            and (
+                user.is_superuser
+                or (explicitly_assigned and step.get("allow_rejection", True))
+            ),
+            "override": pending and permitted and can_override,
+            "cancel": pending
+            and (user.is_superuser or record.requested_by_id == user.pk),
+        }
     return {
         "approve": pending and (user.is_superuser or assigned),
         "reject": pending
@@ -456,12 +497,26 @@ def _querydict(values):
     return result
 
 
-def _apply(record):
+def _apply(record, actor=None):
     requester = get_user_model().objects.get(pk=record.requested_by_id)
     if not requester.is_active:
         raise ValidationError(
             "The requester is inactive. Submit a new request from an authorized account."
         )
+    if record.module == "memberstatusrequest":
+        from .status_services import approve_status_request
+
+        token = execution.set(
+            {
+                "record": record,
+                "seen": True,
+                "deciding_actor": actor.pk if actor else None,
+            }
+        )
+        try:
+            return approve_status_request(record, actor)
+        finally:
+            execution.reset(token)
     if record.target_id:
         model = apps.get_model(record.target_model)
         candidate = model.objects.filter(pk=record.target_id).first()
@@ -546,7 +601,9 @@ def decide(actor, request_pk, decision, reason=""):
     reason = reason.strip()
     override = actor.is_superuser and decision != "cancel"
     if (
-        decision in ("reject", "override_approve", "cancel") or override
+        decision in ("reject", "override_approve", "cancel")
+        or override
+        or record.module == "memberstatusrequest"
     ) and not reason:
         raise ValidationError(
             "Enter a reason for this decision. Administrator overrides always require a reason."
@@ -566,6 +623,9 @@ def decide(actor, request_pk, decision, reason=""):
             level=level,
         )
         save_request(record)
+        from .status_services import sync_approval_outcome
+
+        sync_approval_outcome(record, actor)
         return record
     audit(
         actor,
@@ -590,7 +650,7 @@ def decide(actor, request_pk, decision, reason=""):
         return record
     try:
         with transaction.atomic():
-            result_url = _apply(record)
+            result_url = _apply(record, actor=actor)
     except (
         ValidationError,
         PermissionDenied,
@@ -619,6 +679,8 @@ def decide(actor, request_pk, decision, reason=""):
             if decision == "approve"
             else "Administrator approved all remaining levels and applied the requested change."
         )
+        if record.module == "memberstatusrequest":
+            record.outcome = record.membership_request.outcome
         audit(
             actor,
             record.hierarchy,
@@ -630,4 +692,7 @@ def decide(actor, request_pk, decision, reason=""):
         )
     record.completed_at = timezone.now()
     save_request(record)
+    from .status_services import sync_approval_outcome
+
+    sync_approval_outcome(record, actor)
     return record

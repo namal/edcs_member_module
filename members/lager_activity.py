@@ -26,6 +26,10 @@ from .transaction_balances import balance_report
 
 ZERO = Decimal("0.00")
 GROUPS = {
+    "membership_status": (
+        m.MemberStatusRequest,
+        "Membership activation / inactivation",
+    ),
     "members": (m.Member, "Member registration & retirement"),
     "openings": (m.OpeningBalance, "Opening balances"),
     "plans": (m.PaymentPlan, "Payment plans"),
@@ -134,6 +138,18 @@ def activity_query(members, groups, start=None, end=None):
         queries.append(queryset.order_by().values(*annotations))
 
     source(m.Member, "members", "member", "admit_date", "pk", "Member registration")
+    source(
+        m.MemberStatusEvent,
+        "membership_status",
+        "membership_status",
+        "effective_at",
+        "member",
+        "Membership status change",
+        reference="request__reference",
+        details="description",
+        related="request_id",
+        timestamp=True,
+    )
     source(
         m.Member,
         "members",
@@ -370,6 +386,7 @@ def activity_query(members, groups, start=None, end=None):
 def decorate_event(row):
     key = row["event_source"]
     routes = {
+        "membership_status": "member_status_detail",
         "member": "member_detail",
         "retirement": "member_detail",
         "opening": "opening_balance_detail",

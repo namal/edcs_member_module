@@ -128,8 +128,14 @@ class FinancialYearEndTests(TestCase):
     def test_inactive_accounts_and_members_are_included(self):
         self.accounts[0].is_active = False
         self.accounts[0].save()
+        from .status_models import status_write
+
         self.member.status = "inactive"
-        self.member.save()
+        token = status_write.set(True)
+        try:
+            self.member.save()
+        finally:
+            status_write.reset(token)
         self.assertEqual(self.close().account_count, 4)
 
     def test_interest_is_credited_once_and_all_balance_readers_agree_next_year(self):

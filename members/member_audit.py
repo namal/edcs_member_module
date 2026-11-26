@@ -73,6 +73,17 @@ class MemberQuerySet(models.QuerySet):
                 obj.pk: (snapshot(obj), audit_snapshot(obj))
                 for obj in self.select_for_update()
             }
+            if "status" in kwargs:
+                from .status_services import guard_status_change
+
+                if not isinstance(kwargs["status"], str):
+                    raise ValidationError(
+                        "Use Membership Status approval for status changes."
+                    )
+
+                for obj in self.filter(pk__in=previous):
+                    obj.status = kwargs["status"]
+                    guard_status_change(obj)
             count = super().update(**kwargs)
             for member in self.model.objects.using(self.db).filter(pk__in=previous):
                 record_member_change(
@@ -86,6 +97,11 @@ class MemberQuerySet(models.QuerySet):
                     using=self.db,
                 )
             return count
+
+    def bulk_update(self, objs, fields, *args, **kwargs):
+        if "status" in fields:
+            raise ValidationError("Use Membership Status approval for status changes.")
+        return super().bulk_update(objs, fields, *args, **kwargs)
 
     def bulk_create(self, *args, **kwargs):
         raise ValidationError(

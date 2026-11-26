@@ -75,6 +75,9 @@ class LedgerMasterOfficerTests(TestCase):
     def test_registration_assigns_master_officer_without_javascript_or_officer_input(
         self,
     ):
+        from .test_support import membership_approval_policy
+
+        membership_approval_policy()
         data = self.member_payload()
         data.pop("maintenance_officer")
         response = self.client.post(reverse("member_create"), data)

@@ -230,6 +230,9 @@ class WorkspacePermissionTests(TestCase):
         }
 
     def test_edcs_can_view_and_register_members(self):
+        from .test_support import membership_approval_policy
+
+        membership_approval_policy()
         self.grant("view_member", "add_member")
         for name, args in [
             ("dashboard", []),
@@ -244,11 +247,17 @@ class WorkspacePermissionTests(TestCase):
                 )
         response = self.client.post(reverse("member_create"), self.member_payload())
         new_member = Member.objects.get(member_no="M-NEW")
-        self.assertRedirects(response, reverse("member_detail", args=[new_member.pk]))
+        self.assertEqual(new_member.status, "pending")
+        self.assertRedirects(
+            response,
+            reverse("member_status_detail", args=[new_member.status_requests.get().pk]),
+        )
 
     def test_edcs_cannot_edit_delete_or_open_any_master_module(self):
         self.grant("view_member", "add_member")
         for model, _, _, prefix, _ in MODULES:
+            if prefix == "member_status":
+                continue  # Request/review permission boundaries are covered in test_membership_status.
             operations = (
                 ("edit", "delete")
                 if model is Member
@@ -304,6 +313,8 @@ class WorkspacePermissionTests(TestCase):
         self.user.is_staff = True
         self.user.save()
         for model, _, _, prefix, _ in MODULES:
+            if prefix == "member_status":
+                continue  # Request/review permission boundaries are covered in test_membership_status.
             for operation in ("list", "create", "edit", "delete"):
                 args = (
                     [self.records[prefix].pk] if operation in ("edit", "delete") else []
@@ -319,6 +330,8 @@ class WorkspacePermissionTests(TestCase):
 
     def test_each_action_is_checked_independently_for_every_module(self):
         for model, _, _, prefix, _ in MODULES:
+            if prefix == "member_status":
+                continue  # Request/review permission boundaries are covered in test_membership_status.
             model_name = model._meta.model_name
             for permission, allowed_operation in [
                 ("view", "list"),
@@ -361,6 +374,8 @@ class WorkspacePermissionTests(TestCase):
             )
         )
         for _, _, _, prefix, _ in MODULES:
+            if prefix == "member_status":
+                continue  # Request/review permission boundaries are covered in test_membership_status.
             response = self.client.get(reverse(f"{prefix}_list"))
             self.assertContains(
                 response,
@@ -391,9 +406,17 @@ class WorkspacePermissionTests(TestCase):
         )
 
     def test_add_only_member_user_can_save_without_view_permission(self):
+        from .test_support import membership_approval_policy
+
+        membership_approval_policy()
         self.grant("add_member")
         response = self.client.post(reverse("member_create"), self.member_payload())
-        self.assertRedirects(response, reverse("member_create"))
+        created = Member.objects.get(member_no="M-NEW")
+        self.assertEqual(created.status, "pending")
+        self.assertRedirects(
+            response,
+            reverse("member_status_detail", args=[created.status_requests.get().pk]),
+        )
         self.assertTrue(Member.objects.filter(member_no="M-NEW").exists())
         self.assertEqual(self.client.get(reverse("member_list")).status_code, 403)
         self.assertNotContains(
@@ -424,6 +447,8 @@ class WorkspacePermissionTests(TestCase):
             )
         )
         for _, _, _, prefix, _ in MODULES:
+            if prefix == "member_status":
+                continue  # Request/review permission boundaries are covered in test_membership_status.
             self.assertEqual(
                 self.client.get(reverse(f"{prefix}_edit", args=[0])).status_code, 403
             )

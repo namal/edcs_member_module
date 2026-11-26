@@ -176,6 +176,14 @@ class MemberForm(StyledModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self.user is not None:
+            self.fields["status"].disabled = True
+            if not self.instance.pk:
+                self.instance.status = Member.Status.PENDING
+                self.initial["status"] = Member.Status.PENDING
+            self.fields["status"].help_text = (
+                "Activation, inactivation and reactivation require a Membership Status request and workflow approval."
+            )
         self.fields["gender"].choices = [
             ("", "Select a gender"),
             *Gender.objects.filter(
@@ -292,7 +300,7 @@ class MemberForm(StyledModelForm):
         self.fields["school"].queryset = schools
         self.fields["school"].empty_label = "Select a department"
         self.fields["school"].help_text = (
-            "Type a department name or code in the combo. Branch and zonal office narrow the list. "
+            "Type a department name, location or code in the combo. Branch and zonal office narrow the list. "
             "Selecting a department fills its location automatically."
         )
         self.fields["school"].error_messages["required"] = "Select a department."
@@ -321,6 +329,15 @@ class MemberForm(StyledModelForm):
 
     def clean(self):
         data = super().clean()
+        if (
+            self.user is not None
+            and self.instance.pk
+            and self.data.get("status", self.instance.status) != self.instance.status
+        ):
+            self.add_error(
+                "status",
+                "Use Membership Status to request a status change with a reason and approval.",
+            )
         if not self.instance.pk and (lager := data.get("lager")):
             if not lager.maintenance_officer_id:
                 self.add_error(
@@ -481,10 +498,15 @@ class SchoolForm(StyledModelForm):
             "zonal_office",
             "subdivision",
             "name",
+            "location",
             "code",
             "address",
             "is_active",
         ]
+        labels = {"name": "Department name"}
+        help_texts = {
+            "location": "Enter the department's town or location. It appears after the department name when selecting a department for a member."
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

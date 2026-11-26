@@ -224,4 +224,46 @@
       </table>
     </div>
   </section>
+  {% if perms.members.view_memberstatusrequest or perms.members.change_memberstatusrequest or perms.members.add_memberstatusrequest %}
+    <section class="card mt-6">
+      <div class="card-heading">
+        <h2 class="section-title">Membership activation / inactivation history</h2>
+      </div>
+      <p class="field-help p-6">
+        Reactivation keeps this ledger page. Each applied change records its reason, approval and a new active membership period.
+      </p>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Effective time</th>
+              <th>Status change</th>
+              <th>Reason</th>
+              <th>Request / higher-level reviewer</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for event in ledger.membership_events.all %}
+              <tr>
+                <td>{{ event.effective_at|date:'d M Y H:i:s' }}</td>
+                <td>{{ event.from_status|capfirst }} → {{ event.to_status|capfirst }}</td>
+                <td>
+                  {{ event.reason }}
+                  <p class="field-help">{{ event.description }}</p>
+                </td>
+                <td>
+                  {{ event.request.reference }}
+                  <p class="field-help">{{ event.actor_name }} · EPF {{ event.actor_epf|default:'Not recorded' }}</p>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4">No applied membership status changes on this ledger.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
 {% endblock %}

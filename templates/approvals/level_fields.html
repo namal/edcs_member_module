@@ -24,7 +24,10 @@
       {{ level.DELETE }}<span class="text-sm">Remove this level</span>
     </label>
   </div>
+  <label class="mt-4 flex items-start gap-2">
+    {{ level.allow_self_approval }}<span class="text-sm">{{ level.allow_self_approval.label }}<span class="field-help mt-1 block">{{ level.allow_self_approval.help_text }}</span></span>
+  </label>
   <p class="field-help mt-3">
-    Any one designated user can approve this level. Users cannot approve their own requests; administrators may override with a reason.
+    Any one designated user can approve this level. For Membership Status, requester approval is allowed only when explicitly enabled here and the requester is a designated approver. Other modules retain their existing approval rules.
   </p>
 </fieldset>

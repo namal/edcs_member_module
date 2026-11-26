@@ -131,6 +131,9 @@ class PaymentPlanTests(TestCase):
         self.assertFalse(PaymentPlan.objects.exists())
 
     def test_registration_continues_with_saved_member_identity(self):
+        from .test_support import membership_approval_policy
+
+        membership_approval_policy()
         from .test_support import officer_for
 
         payload = {
@@ -157,7 +160,8 @@ class PaymentPlanTests(TestCase):
         response = self.client.post(reverse("member_create"), payload)
         member = Member.objects.get(member_no="M-NEXT")
         self.assertRedirects(
-            response, f'{reverse("payment_plan_create")}?member={member.pk}'
+            response,
+            reverse("member_status_detail", args=[member.status_requests.get().pk]),
         )
         response = self.client.get(response.url)
         self.assertContains(response, "M-NEXT")

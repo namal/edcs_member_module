@@ -1,0 +1,211 @@
+{
+  "prepared_on": "2026-11-26",
+  "timezone": "Asia/Colombo",
+  "notice": "Actual current-system views with fictional records in a uniquely named disposable test database. Live records and settings were not changed.",
+  "captures": [
+    [
+      "01-role-permissions",
+      "01-role-permissions",
+      "statusPermissions",
+      1050,
+      {
+        "name": "Training Membership Manager",
+        "module_permissions": [
+          "117"
+        ]
+      }
+    ],
+    [
+      "02-approval-hierarchy",
+      "02-approval-hierarchy",
+      "top",
+      800,
+      {}
+    ],
+    [
+      "03-ordered-levels",
+      "03-ordered-levels",
+      "levels",
+      1050,
+      {}
+    ],
+    [
+      "04-requester-approval-setting",
+      "04-requester-approval-setting",
+      "firstLevel",
+      1050,
+      {
+        "levels-0-allow_self_approval": true,
+        "levels-0-approvers": [
+          "1",
+          "2"
+        ]
+      }
+    ],
+    [
+      "05-new-registration-status",
+      "05-new-registration-status",
+      "memberIdentity",
+      1050,
+      {
+        "member_no": "ACT-NEW-001",
+        "computer_no": "ACT-C001",
+        "title": "Ms.",
+        "full_name": "Training New Activation Member",
+        "date_of_birth": "1990-02-02",
+        "gender": "female",
+        "nic_no": "199012345678",
+        "admit_date": "2026-11-26"
+      }
+    ],
+    [
+      "06-initial-activation-pending",
+      "06-initial-activation-pending",
+      "top",
+      1150,
+      {}
+    ],
+    [
+      "07-initial-activation-applied",
+      "07-initial-activation-applied",
+      "top",
+      1150,
+      {}
+    ],
+    [
+      "09-deactivation-request-form",
+      "09-deactivation-request-form",
+      "top",
+      1350,
+      {
+        "reason": "resignation",
+        "description": "Training: signed member resignation confirmed against the source record.",
+        "requested_effective_date": "2026-11-26"
+      }
+    ],
+    [
+      "10-deactivation-pending",
+      "10-deactivation-pending",
+      "top",
+      1150,
+      {}
+    ],
+    [
+      "11-supporting-documents",
+      "11-supporting-documents",
+      "documents",
+      1050,
+      {}
+    ],
+    [
+      "12-manager-approval-review",
+      "12-manager-approval-review",
+      "top",
+      1100,
+      {}
+    ],
+    [
+      "13-record-decision",
+      "13-record-decision",
+      "decision",
+      1050,
+      {
+        "reason": "Training: identity, signed resignation and effective date verified."
+      }
+    ],
+    [
+      "14-next-approval-level",
+      "14-next-approval-level",
+      "progress",
+      1050,
+      {}
+    ],
+    [
+      "15-deactivation-applied",
+      "15-deactivation-applied",
+      "top",
+      1150,
+      {}
+    ],
+    [
+      "16-reactivation-request-form",
+      "16-reactivation-request-form",
+      "top",
+      1350,
+      {
+        "reason": "eligibility_restored",
+        "description": "Training: membership eligibility restored following the approved review.",
+        "requested_effective_date": "2026-11-26"
+      }
+    ],
+    [
+      "17-reactivation-and-active-periods",
+      "17-reactivation-and-active-periods",
+      "statusHistory",
+      1050,
+      {}
+    ],
+    [
+      "18-ledger-status-history",
+      "18-ledger-status-history",
+      "ledgerStatusHistory",
+      1050,
+      {}
+    ],
+    [
+      "19-membership-audit-logs",
+      "19-membership-audit-logs",
+      "top",
+      1150,
+      {}
+    ],
+    [
+      "20-member-audit-change",
+      "20-member-audit-change",
+      "auditTable",
+      1050,
+      {}
+    ],
+    [
+      "21-approved-scheduled-request",
+      "21-approved-scheduled-request",
+      "top",
+      1150,
+      {}
+    ],
+    [
+      "08-find-status-requests",
+      "08-find-status-requests",
+      "top",
+      1050,
+      {}
+    ]
+  ],
+  "checks": {
+    "registration_awaited_all_levels": true,
+    "deactivation_waited_for_final_review": true,
+    "documents_private": true,
+    "before": {
+      "ledger": "ML-DF318A25CC33",
+      "balance": "2500.00",
+      "entries": 1
+    },
+    "after": {
+      "ledger": "ML-DF318A25CC33",
+      "balance": "2500.00",
+      "entries": 1
+    },
+    "same_ledger_and_balances": true,
+    "rejection_cancellation_preserved_state": true,
+    "future_approval_scheduled": true
+  },
+  "temporary_database_removed_on_exit": true,
+  "document_validation": {
+    "pdf_pages": 22,
+    "screenshots": 21,
+    "docx_embedded_images_including_logo": 22,
+    "all_docx_xml_valid": true,
+    "all_figure_captions_present_in_order": true,
+    "all_screenshots_verified": true
+  }
+}

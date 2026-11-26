@@ -31,6 +31,7 @@ from .models import (
     MemberLedger,
     MemberTransfer,
     AuditLog,
+    MemberStatusRequest,
 )
 
 MODULES = (
@@ -104,8 +105,18 @@ MODULES = (
     ),
 )
 MODULES += ((AuditLog, "Audit Logs", "audit_logs", "audit_log", "lock"),)
+MODULES += (
+    (
+        MemberStatusRequest,
+        "Membership Status",
+        "membership_status",
+        "member_status",
+        "users",
+    ),
+)
 ACTIONS = ("view", "add", "change", "delete")
 MODULE_ACTIONS = {
+    MemberStatusRequest: ("view", "add", "change"),
     AuditLog: ("view",),
     PaymentTransaction: ("view", "add", "change"),
     MemberTransfer: ("view", "add"),
@@ -136,6 +147,10 @@ DISTRICT_LOOKUPS = {
 
 # Every member-linked model uses the same current ledger ownership boundary.
 MEMBER_LOOKUPS = {
+    "memberstatusrequest": "member_id",
+    "memberstatusdocument": "request__member_id",
+    "memberstatusevent": "member_id",
+    "memberactiveperiod": "member_id",
     "member": "pk",
     "child": "member_id",
     "childdeposit": "child__member_id",
@@ -209,6 +224,10 @@ def require_lager_access(user, lager_id):
 
 def guard_member_actor(member, *, locking=False):
     from .ledger_tracking import ledger_actor
+    from .status_models import status_write
+
+    if status_write.get():
+        return  # The status service locks and revalidates the requester's Lager scope.
 
     actor = ledger_actor.get()
     if actor is None or actor.is_superuser:
@@ -375,6 +394,7 @@ def module_access(user):
         access = {
             action: has_module_permission(user, model, action) for action in ACTIONS
         }
+        can_review_status = model is MemberStatusRequest and access["change"]
         modules.append(
             {
                 **access,
@@ -382,8 +402,12 @@ def module_access(user):
                 "section": section,
                 "prefix": prefix,
                 "icon": icon,
-                "url": f"{prefix}_list" if access["view"] else f"{prefix}_create",
-                "visible": access["view"] or access["add"],
+                "url": (
+                    f"{prefix}_list"
+                    if access["view"] or can_review_status
+                    else f"{prefix}_create"
+                ),
+                "visible": access["view"] or access["add"] or can_review_status,
             }
         )
     return modules

@@ -426,8 +426,14 @@ class LagerActivityTests(TestCase):
         )
 
     def test_inactive_members_and_empty_lagers_are_included_correctly(self):
+        from .status_models import status_write
+
         self.member.status = "inactive"
-        self.member.save()
+        token = status_write.set(True)
+        try:
+            self.member.save()
+        finally:
+            status_write.reset(token)
         self.assertContains(self.report(), self.member.full_name)
         empty = m.Lager.objects.create(
             zonal_office=self.member.office_location,

@@ -1,0 +1,66 @@
+{
+  "captures": [
+    [
+      "01-new-request",
+      "01-new-request",
+      "top",
+      1300,
+      {}
+    ],
+    [
+      "02-pending-request",
+      "02-pending-request",
+      "top",
+      1300,
+      {}
+    ],
+    [
+      "03-review-approval",
+      "03-review-approval",
+      "top",
+      1300,
+      {}
+    ],
+    [
+      "04-membership-list",
+      "04-membership-list",
+      "top",
+      1300,
+      {}
+    ],
+    [
+      "05-reactivated-history",
+      "05-reactivated-history",
+      "statusHistory",
+      1300,
+      {}
+    ],
+    [
+      "06-ledger-status-history",
+      "06-ledger-status-history",
+      "ledgerStatusHistory",
+      1300,
+      {}
+    ],
+    [
+      "01-new-request",
+      "mobile-request",
+      "top",
+      1700,
+      {}
+    ]
+  ],
+  "verification": {
+    "full_regression_tests_passed": 655,
+    "final_membership_and_approval_tests_passed": 65,
+    "migrations_applied": [
+      "0034_membership_status_approvals",
+      "0035_workflow_level_self_approval"
+    ],
+    "same_ledger_and_balances_preserved": true,
+    "requester_approval_controlled_per_workflow_level": true,
+    "supporting_documents_authenticated": true,
+    "training_database_removed": true,
+    "desktop_and_mobile_previews_verified": true
+  }
+}

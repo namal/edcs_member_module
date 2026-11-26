@@ -12,6 +12,7 @@ from .ledger_tracking import ledger_actor, officer_identity
 audit_request = ContextVar("audit_request", default={})
 SKIP_MODELS = {"auditlog", "memberauditevent", "ledgerevent", "ledgerrecord"}
 SENSITIVE = {
+    "content",  # Supporting-document bytes stay in private storage, never audit JSON.
     "password",
     "payload",
     "query",
@@ -21,6 +22,10 @@ SENSITIVE = {
 }
 VOLATILE = {"updated_at", "last_login"}
 MODULES = {
+    "memberstatusrequest": ("memberstatusrequest", "Membership status"),
+    "memberstatusdocument": ("memberstatusrequest", "Membership status"),
+    "memberstatusevent": ("memberstatusrequest", "Membership status"),
+    "memberactiveperiod": ("memberstatusrequest", "Membership status"),
     "financialyearclosing": ("financialyearclosing", "Financial year-end closing"),
     "user": ("users", "Users & access"),
     "group": ("roles", "Roles & permissions"),

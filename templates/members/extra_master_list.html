@@ -18,12 +18,18 @@
     <form method="get"
           class="flex flex-wrap gap-3 border-b border-slate-100 p-5">
       <div class="min-w-48 flex-1">
-        <label for="search" class="sr-only">Search name or code</label>
+        <label for="search" class="sr-only">
+          {% if section == 'schools' %}
+            Search name, location or code
+          {% else %}
+            Search name or code
+          {% endif %}
+        </label>
         <input class="field-input"
                name="q"
                id="search"
                value="{{ request.GET.q }}"
-               placeholder="Search name or code…">
+               placeholder="{% if section == 'schools' %}Search name, location or code…{% else %}Search name or code…{% endif %}">
       </div>
       <div class="min-w-48">
         <label for="district" class="sr-only">Filter by branch</label>

@@ -550,6 +550,9 @@ class LedgerAccessTests(TestCase):
             )
 
     def test_member_cannot_be_registered_against_another_users_lager(self):
+        from .test_support import membership_approval_policy
+
+        membership_approval_policy()
         payload = {
             "district": self.district.pk,
             "office_location": self.office.pk,

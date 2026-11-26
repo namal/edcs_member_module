@@ -174,6 +174,7 @@ class School(models.Model):
         null=True,
     )
     name = models.CharField(max_length=200)
+    location = models.CharField("Department location", max_length=200)
     code = models.CharField(max_length=20, unique=True)
     address = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
@@ -186,9 +187,10 @@ class School(models.Model):
     def __str__(self):
         parts = [
             self.name,
-            self.district.province_display,
-            self.district.name,
+            self.location,
             self.zonal_office.name,
+            self.district.name,
+            self.district.province_display,
         ]
         if self.subdivision_id:
             parts.append(self.subdivision.name)
@@ -384,6 +386,7 @@ class Member(models.Model):
         ACTIVE = "active", "Active"
         INACTIVE = "inactive", "Inactive"
         RETIRED = "retired", "Retired"
+        PENDING = "pending", "Awaiting activation"
 
     district = models.ForeignKey(
         District,
@@ -640,6 +643,9 @@ class Member(models.Model):
 
             guard_member_actor(self, locking=True)
             created = self.pk is None
+            from .status_services import guard_status_change
+
+            guard_status_change(self)
             guard_member_location(self)
             guard_member_pension(self)
             if self.lager_id and (
@@ -2309,3 +2315,9 @@ from .approval_models import (
 from .contribution_models import PaymentReceipt, PaymentReceiptAllocation
 from .audit_models import AuditLog
 from .year_end_models import FinancialYearClosing
+from .status_models import (
+    MemberStatusRequest,
+    MemberStatusDocument,
+    MemberStatusEvent,
+    MemberActivePeriod,
+)

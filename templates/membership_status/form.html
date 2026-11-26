@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <a class="text-link mb-5" href="{% url 'member_status_list' %}">← Membership Status</a>
+  <h1 class="page-title mb-3">Request membership status change</h1>
+  <p class="muted mb-6">
+    Select a member from your assigned Lagers. The current status stays in place until the configured workflow approvals and the effective date.
+  </p>
+  <section class="form-section">
+    <h2 class="section-title mb-5">1. Select member</h2>
+    <form method="get" class="flex flex-wrap items-end gap-4">
+      <div class="min-w-48 flex-1">{% include 'components/field.html' with field=form.member %}</div>
+      <button class="btn btn-secondary">Review member</button>
+    </form>
+  </section>
+  {% if form.non_field_errors %}
+    <div class="alert message-error" role="alert">{{ form.non_field_errors }}</div>
+  {% endif %}
+  {% if selected_member %}
+    <section class="card mb-6">
+      <div class="card-heading">
+        <h2 class="section-title">{{ selected_member.member_no }} · {{ selected_member.full_name }}</h2>
+        <span class="badge bg-brand-50 text-brand-700">{{ selected_member.get_status_display }}</span>
+      </div>
+      <dl class="grid gap-5 p-6 sm:grid-cols-3">
+        <div>
+          <dt class="detail-label">District / Branch</dt>
+          <dd class="detail-value">
+            {{ selected_member.district.name }}
+          </dd>
+        </div>
+        <div>
+          <dt class="detail-label">Zonal office</dt>
+          <dd class="detail-value">
+            {{ selected_member.office_location.name }}
+          </dd>
+        </div>
+        <div>
+          <dt class="detail-label">Ledger Code</dt>
+          <dd class="detail-value">
+            {{ selected_member.lager.code }}
+          </dd>
+        </div>
+      </dl>
+    </section>
+    <section class="form-section">
+      <h2 class="section-title mb-5">2. Reason and supporting details</h2>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="member" value="{{ selected_member.pk }}">
+        <div class="form-grid">
+          {% include 'components/field.html' with field=form.kind %}
+          {% include 'components/field.html' with field=form.reason %}
+          {% include 'components/field.html' with field=form.description wide=True %}
+          {% include 'components/field.html' with field=form.requested_effective_date %}
+          {% include 'components/field.html' with field=form.documents wide=True %}
+        </div>
+        <p class="field-help mt-5">
+          Requested by and request time are recorded automatically. A valid reason and detailed description are required. Supporting documents are private. Reactivation keeps the same ledger and starts a new active membership period when applied.
+        </p>
+        <div class="mt-6 flex flex-wrap gap-3">
+          <button class="btn btn-primary" data-submit-label="Submitting…">Submit for higher-level approval</button>
+          <a class="btn btn-secondary" href="{% url 'member_status_list' %}">Cancel</a>
+        </div>
+      </form>
+    </section>
+  {% endif %}
+{% endblock %}

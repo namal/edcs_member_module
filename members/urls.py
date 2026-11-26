@@ -1,6 +1,7 @@
 from django.urls import path
 from . import (
     balance_views,
+    status_views,
     year_end_views,
     audit_views,
     approval_views,
@@ -19,6 +20,24 @@ from . import (
 )
 
 urlpatterns = [
+    path(
+        "membership-status/", status_views.member_status_list, name="member_status_list"
+    ),
+    path(
+        "membership-status/new/",
+        status_views.member_status_create,
+        name="member_status_create",
+    ),
+    path(
+        "membership-status/<int:pk>/",
+        status_views.member_status_detail,
+        name="member_status_detail",
+    ),
+    path(
+        "membership-status/documents/<int:pk>/",
+        status_views.member_status_document,
+        name="member_status_document",
+    ),
     path(
         "api/contributions/child-accounts/",
         contribution_views.contribution_child_accounts,

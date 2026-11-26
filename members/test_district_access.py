@@ -180,6 +180,9 @@ class DistrictAccessTests(TestCase):
         )
 
     def test_member_creation_rejects_foreign_district_and_department_ids(self):
+        from .test_support import membership_approval_policy
+
+        membership_approval_policy()
         for data in (
             self.member_payload(1),
             self.member_payload(school=self.rows[1]["school"].pk),
@@ -192,7 +195,11 @@ class DistrictAccessTests(TestCase):
         response = self.client.post(reverse("member_create"), self.member_payload())
         saved = Member.objects.get(member_no="ACCESS-NEW")
         self.assertEqual(saved.district, self.districts[0])
-        self.assertRedirects(response, reverse("member_detail", args=[saved.pk]))
+        self.assertEqual(saved.status, "pending")
+        self.assertRedirects(
+            response,
+            reverse("member_status_detail", args=[saved.status_requests.get().pk]),
+        )
 
     def test_member_edit_cannot_move_record_to_unassigned_district(self):
         member = self.rows[0]["member"]
