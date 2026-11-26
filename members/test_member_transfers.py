@@ -454,12 +454,13 @@ class MemberTransferTests(TestCase):
         self.assertEqual(self.member.office_location_id, self.offices[0].pk)
 
     def test_transfer_form_and_detail_routes_work(self):
-        self.assertEqual(
-            self.client.get(
-                reverse("member_transfer_create"), {"member": self.member.pk}
-            ).status_code,
-            200,
+        form_page = self.client.get(
+            reverse("member_transfer_create"), {"member": self.member.pk}
         )
+        self.assertEqual(form_page.status_code, 200)
+        # The location script uses this data when selecting a receiving Lager.
+        self.assertContains(form_page, 'id="ledger-officers"')
+        self.assertContains(form_page, '"epf_number": "EPF-1"')
         response = self.client.post(reverse("member_transfer_create"), self.payload())
         result = m.MemberTransfer.objects.get()
         self.assertRedirects(

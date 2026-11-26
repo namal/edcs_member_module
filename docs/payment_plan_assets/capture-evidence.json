@@ -1,0 +1,204 @@
+{
+  "prepared_on": "2026-11-26",
+  "timezone": "Asia/Colombo",
+  "notice": "Actual current views with fictional records in a uniquely named disposable PostgreSQL database. Live records and settings were not changed.",
+  "captures": [
+    [
+      "03-custom-plan-form",
+      "03-custom-plan-form",
+      "planForm",
+      1050,
+      {
+        "member": 2,
+        "agreement_date": "2026-11-26",
+        "amount_1": "250",
+        "amount_2": "0",
+        "amount_3": "0",
+        "amount_4": "0",
+        "amount_5": "0",
+        "amount_6": "0",
+        "amount_7": "0",
+        "amount_8": "0"
+      }
+    ],
+    [
+      "01-payment-plan-list",
+      "01-payment-plan-list",
+      "top",
+      1050,
+      {}
+    ],
+    [
+      "02-select-member",
+      "02-select-member",
+      "top",
+      1050,
+      {}
+    ],
+    [
+      "05-create-template",
+      "05-create-template",
+      "templateForm",
+      1050,
+      {
+        "name": "Training standard monthly plan",
+        "description": "Fictional LKR 1,700 monthly agreement; Share is fixed.",
+        "is_active": "on",
+        "amount_1": "200",
+        "amount_2": "500",
+        "amount_3": "300",
+        "amount_4": "100",
+        "amount_5": "300",
+        "amount_6": "200",
+        "amount_7": "100",
+        "amount_8": "0",
+        "fixed_3": "on"
+      }
+    ],
+    [
+      "04-template-list",
+      "04-template-list",
+      "top",
+      1050,
+      {}
+    ],
+    [
+      "06-apply-template",
+      "06-apply-template",
+      "planForm",
+      1050,
+      {
+        "member": 1,
+        "agreement_date": "2026-11-26",
+        "apply_template": 1,
+        "amount_1": "400",
+        "amount_2": "500",
+        "amount_3": "300",
+        "amount_4": "100",
+        "amount_5": "300",
+        "amount_6": "200",
+        "amount_7": "100",
+        "amount_8": "0"
+      }
+    ],
+    [
+      "07-saved-payment-plan",
+      "07-saved-payment-plan",
+      "top",
+      1450,
+      {}
+    ],
+    [
+      "08-edit-payment-plan",
+      "08-edit-payment-plan",
+      "planForm",
+      1050,
+      {
+        "member": 1,
+        "agreement_date": "2026-11-26",
+        "amount_1": "500",
+        "amount_2": "500",
+        "amount_3": "300",
+        "amount_4": "100",
+        "amount_5": "300",
+        "amount_6": "200",
+        "amount_7": "100",
+        "amount_8": "0"
+      }
+    ],
+    [
+      "09-plan-change-approval",
+      "09-plan-change-approval",
+      "top",
+      1050,
+      {}
+    ],
+    [
+      "10-approved-payment-plan",
+      "10-approved-payment-plan",
+      "top",
+      1450,
+      {}
+    ],
+    [
+      "11-template-changed-independent",
+      "11-template-changed-independent",
+      "top",
+      1050,
+      {}
+    ],
+    [
+      "12-receive-contribution-preview",
+      "12-receive-contribution-preview",
+      "contributionPreview",
+      1200,
+      {}
+    ],
+    [
+      "13-posted-contribution-receipt",
+      "13-posted-contribution-receipt",
+      "top",
+      1200,
+      {}
+    ],
+    [
+      "14-member-bank-balance",
+      "14-member-bank-balance",
+      "top",
+      1000,
+      {}
+    ],
+    [
+      "15-current-plan-reference",
+      "15-current-plan-reference",
+      "currentPlan",
+      1050,
+      {}
+    ],
+    [
+      "16-delete-plan-confirmation",
+      "16-delete-plan-confirmation",
+      "deleteDialog",
+      1050,
+      {}
+    ],
+    [
+      "17-deletion-protected",
+      "17-deletion-protected",
+      "top",
+      1450,
+      {}
+    ],
+    [
+      "18-invalid-amount",
+      "18-invalid-amount",
+      "agreement",
+      1050,
+      {}
+    ]
+  ],
+  "checks": {
+    "selection_excludes_members_with_saved_plans": true,
+    "template_copy_is_independent_and_plan_does_not_credit_cash": true,
+    "edit_waited_for_approval_and_did_not_credit_cash": true,
+    "template_edit_and_inactivation_preserved_assigned_plan": true,
+    "only_posted_receipt_increased_bank_balance": {
+      "before": "2500.00",
+      "receipt": "2000.00",
+      "after": "4500.00"
+    },
+    "posted_receipt_snapshot_retained_after_later_plan_change": true,
+    "used_plan_delete_was_protected": true,
+    "negative_and_changed_fixed_amounts_rejected": true
+  },
+  "temporary_database_removed_on_exit": true,
+  "document_validation": {
+    "pdf_pages": 20,
+    "screenshots": 18,
+    "docx_embedded_images_including_logo": 19,
+    "all_docx_xml_valid": true,
+    "all_screenshot_files_verified": true,
+    "all_pdf_figure_captions_present_in_order": true,
+    "pdf_layout_visually_reviewed": true
+  }
+}

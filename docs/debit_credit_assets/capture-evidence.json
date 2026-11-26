@@ -1,0 +1,233 @@
+{
+  "prepared_on": "2026-11-26",
+  "timezone": "Asia/Colombo",
+  "notice": "Actual current-system views with fictional training data in a uniquely named disposable PostgreSQL database. Live accounts, users and policies were not changed.",
+  "captures": [
+    [
+      "01-debit-credit-workspace",
+      "01-debit-credit-workspace",
+      "top",
+      1100,
+      {}
+    ],
+    [
+      "02-member-selection-and-saved-balance",
+      "02-member-selection-and-saved-balance",
+      "memberBalance",
+      1100,
+      {}
+    ],
+    [
+      "03-add-credit-details",
+      "03-add-credit-details",
+      "entryDetails",
+      1100,
+      {
+        "member": 1,
+        "payment_type": "1",
+        "transaction_date": "2026-11-24",
+        "debit": "",
+        "credit": "1000",
+        "reference": "TRAINING-CREDIT",
+        "description": "Training member account credit received"
+      }
+    ],
+    [
+      "04-add-debit-details",
+      "04-add-debit-details",
+      "entryDetails",
+      1100,
+      {
+        "member": 1,
+        "payment_type": "1",
+        "transaction_date": "2026-11-25",
+        "debit": "250",
+        "credit": "",
+        "reference": "TRAINING-DEBIT",
+        "description": "Training authorized member account debit"
+      }
+    ],
+    [
+      "05-member-account-statement",
+      "05-member-account-statement",
+      "top",
+      1400,
+      {}
+    ],
+    [
+      "06-select-child-deposit-account",
+      "06-select-child-deposit-account",
+      "accountSelection",
+      1100,
+      {}
+    ],
+    [
+      "07-child-balances-and-transactions",
+      "07-child-balances-and-transactions",
+      "childBalances",
+      1100,
+      {}
+    ],
+    [
+      "08-child-account-statement",
+      "08-child-account-statement",
+      "top",
+      1450,
+      {}
+    ],
+    [
+      "09-opposite-correction-form",
+      "09-opposite-correction-form",
+      "entryDetails",
+      1100,
+      {
+        "reverses": 2,
+        "member": 1,
+        "payment_type": 1,
+        "transaction_date": "2026-11-26",
+        "debit": "0",
+        "credit": "250",
+        "reference": "TRAINING-DEBIT-CORRECTION",
+        "description": "Training: reverse the incorrect debit while retaining the original record."
+      }
+    ],
+    [
+      "10-statement-with-linked-correction",
+      "10-statement-with-linked-correction",
+      "top",
+      1450,
+      {}
+    ],
+    [
+      "11-edit-permitted-entry-details",
+      "11-edit-permitted-entry-details",
+      "entryDetails",
+      1100,
+      {
+        "member": 1,
+        "payment_type": "1",
+        "transaction_date": "2026-11-24",
+        "debit": "",
+        "credit": "1000",
+        "reference": "TRAINING-CREDIT",
+        "description": "Training credit reference verified against the source voucher."
+      }
+    ],
+    [
+      "12-receive-contribution-input",
+      "12-receive-contribution-input",
+      "receiptInput",
+      1100,
+      {}
+    ],
+    [
+      "13-standard-plan-allocation",
+      "13-standard-plan-allocation",
+      "allocationPreview",
+      1100,
+      {}
+    ],
+    [
+      "14-remaining-member-and-child-allocation",
+      "14-remaining-member-and-child-allocation",
+      "remaining",
+      1100,
+      {}
+    ],
+    [
+      "15-posted-salary-receipt",
+      "15-posted-salary-receipt",
+      "top",
+      1500,
+      {}
+    ],
+    [
+      "16-child-module-after-receipt",
+      "16-child-module-after-receipt",
+      "top",
+      1400,
+      {}
+    ],
+    [
+      "17-below-plan-allocation-preview",
+      "17-below-plan-allocation-preview",
+      "allocationPreview",
+      1100,
+      {}
+    ],
+    [
+      "18-payment-exception-approval",
+      "18-payment-exception-approval",
+      "top",
+      1200,
+      {}
+    ],
+    [
+      "21-receipt-history-and-pending",
+      "21-receipt-history-and-pending",
+      "top",
+      1400,
+      {}
+    ],
+    [
+      "19-next-approval-level",
+      "19-next-approval-level",
+      "approvalProgress",
+      1100,
+      {}
+    ],
+    [
+      "20-approved-exception-receipt",
+      "20-approved-exception-receipt",
+      "top",
+      1400,
+      {}
+    ],
+    [
+      "22-member-balance-report",
+      "22-member-balance-report",
+      "top",
+      1500,
+      {}
+    ],
+    [
+      "23-date-range-and-brought-forward",
+      "23-date-range-and-brought-forward",
+      "top",
+      1450,
+      {}
+    ],
+    [
+      "24-invalid-date-selection",
+      "24-invalid-date-selection",
+      "statementFilters",
+      1100,
+      {}
+    ]
+  ],
+  "checks": {
+    "single_entries_credit_and_debit_reconciled": true,
+    "child_entry_reached_child_module_without_member_credit": true,
+    "member_and_child_opposite_corrections_retained_originals": true,
+    "remaining_member_800_child_500_posted_once": true,
+    "whole_partial_receipt_waited_for_both_levels": true,
+    "separate_opposite_adjustment_preserves_receipt_snapshot": true,
+    "validation_protected_entries_and_date_filter_balances": true,
+    "worked_final_balances": {
+      "member": "8100.00",
+      "child": "800.00",
+      "special_deposit": "3000.00",
+      "selected_day_brought_forward": "1750.00"
+    }
+  },
+  "temporary_database_removed_on_exit": true,
+  "document_validation": {
+    "pdf_pages": 24,
+    "screenshots": 24,
+    "docx_embedded_images_including_logo": 25,
+    "all_docx_xml_valid": true,
+    "all_screenshot_files_verified": true,
+    "all_pdf_figure_captions_present_in_order": true,
+    "pdf_layout_visually_reviewed": true
+  }
+}

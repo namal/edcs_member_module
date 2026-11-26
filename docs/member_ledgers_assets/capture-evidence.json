@@ -1,0 +1,189 @@
+{
+  "prepared_on": "2026-11-26",
+  "timezone": "Asia/Colombo",
+  "notice": "Current Django views with fictional training records in a uniquely named disposable PostgreSQL database. Live records and settings were not changed.",
+  "captures": [
+    [
+      "01-ledger-list",
+      "01-ledger-list",
+      "top",
+      1000,
+      {}
+    ],
+    [
+      "02-filter-member",
+      "02-filter-member",
+      "top",
+      1000,
+      {}
+    ],
+    [
+      "03-active-ledger",
+      "03-active-ledger",
+      "top",
+      900,
+      {}
+    ],
+    [
+      "04-registration-snapshot",
+      "04-registration-snapshot",
+      "registration",
+      1000,
+      {}
+    ],
+    [
+      "05-current-balances",
+      "05-current-balances",
+      "currentBalances",
+      1000,
+      {}
+    ],
+    [
+      "06-activity-record-details",
+      "06-activity-record-details",
+      "recordDetails",
+      1000,
+      {}
+    ],
+    [
+      "07-activity-filters-export",
+      "07-activity-filters-export",
+      "ledgerActivity",
+      950,
+      {}
+    ],
+    [
+      "08-officer-assignment-required",
+      "08-officer-assignment-required",
+      "top",
+      1000,
+      {}
+    ],
+    [
+      "09-assign-original-officer",
+      "09-assign-original-officer",
+      "top",
+      1000,
+      {
+        "member": 2,
+        "maintenance_officer": 2,
+        "reason": "Training: assign responsibility for the existing original ledger."
+      }
+    ],
+    [
+      "10-membership-status-history",
+      "10-membership-status-history",
+      "statusHistory",
+      1000,
+      {}
+    ],
+    [
+      "11-transfer-receiving-details",
+      "11-transfer-receiving-details",
+      "transferReceiving",
+      1000,
+      {
+        "member": 1,
+        "source_ledger": 1,
+        "district": 7,
+        "zonal_office": 2,
+        "lager": 2,
+        "school": 2,
+        "subdivision": "",
+        "maintenance_officer": 3,
+        "effective_date": "2026-11-26",
+        "reason": "Training workplace transfer; retain original history and carry linked balances."
+      }
+    ],
+    [
+      "12-transfer-awaiting-approval",
+      "12-transfer-awaiting-approval",
+      "top",
+      1050,
+      {}
+    ],
+    [
+      "13-transferred-original-ledger",
+      "13-transferred-original-ledger",
+      "top",
+      1050,
+      {}
+    ],
+    [
+      "14-active-receiving-ledger",
+      "14-active-receiving-ledger",
+      "top",
+      1000,
+      {}
+    ],
+    [
+      "15-carried-opening-balances",
+      "15-carried-opening-balances",
+      "openingBalances",
+      1000,
+      {}
+    ],
+    [
+      "16-include-linked-ledger-activity",
+      "16-include-linked-ledger-activity",
+      "ledgerActivity",
+      1100,
+      {}
+    ],
+    [
+      "17-change-officer",
+      "17-change-officer",
+      "officerForm",
+      1000,
+      {
+        "maintenance_officer": 4,
+        "reason": "Training responsibility handover; retain previous officer and EPF."
+      }
+    ],
+    [
+      "18-officer-responsibility-history",
+      "18-officer-responsibility-history",
+      "officerHistory",
+      1000,
+      {}
+    ],
+    [
+      "19-ledger-list-epf-comparison",
+      "19-ledger-list-epf-comparison",
+      "top",
+      1000,
+      {}
+    ],
+    [
+      "20-invalid-activity-dates",
+      "20-invalid-activity-dates",
+      "ledgerFilters",
+      1000,
+      {}
+    ]
+  ],
+  "checks": {
+    "unpaid_plan_not_added_to_balance": true,
+    "filtered_csv_rows": 2,
+    "initial_assignment_kept_existing_ledger": true,
+    "reactivation_kept_same_ledger": true,
+    "transfer_preserved_balances_accounts_and_transaction_counts": true,
+    "original_closing_equals_receiving_opening": true,
+    "post_transfer_entry_attached_to_receiving_page": true,
+    "csv_contains_original_and_receiving_references": true,
+    "page_officer_change_kept_lager_master_owner": true,
+    "historical_page_protected_and_current_access_follows_lager": true
+  },
+  "temporary_database_removed_on_exit": true,
+  "document_validation": {
+    "pdf_pages": 20,
+    "screenshots": 20,
+    "docx_embedded_images_including_logo": 21,
+    "all_docx_xml_valid": true,
+    "all_screenshot_files_verified": true,
+    "all_pdf_figure_captions_present_in_order": true,
+    "pdf_layout_visually_reviewed": true,
+    "transfer_and_ledger_access_tests_passed": 41,
+    "browser_receiving_officer_population_verified": true
+  }
+}

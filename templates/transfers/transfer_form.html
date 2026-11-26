@@ -81,5 +81,6 @@
       </section>
     </form>
     {{ initial_locations|json_script:'initial-locations' }}{{ district_provinces|json_script:'district-provinces' }}{{ district_province_short_names|json_script:'district-province-short-names' }}{{ member_schools|json_script:'member-schools' }}
+    {{ ledger_officers|json_script:'ledger-officers' }}
   {% endif %}
 {% endblock %}
