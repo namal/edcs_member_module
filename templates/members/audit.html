@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7">
+    <p class="eyebrow">Member directory</p>
+    <h1 class="page-title">Member audit history</h1>
+  </div>
+  <form method="get" class="mb-6 flex gap-3">
+    {% if request.GET.member %}<input type="hidden" name="member" value="{{ request.GET.member }}">{% endif %}
+    <input class="field-input"
+           name="q"
+           value="{{ request.GET.q }}"
+           aria-label="Search audit history"
+           placeholder="Member number, name or changed by">
+    <button class="btn btn-secondary">Search</button>
+  </form>
+  <section class="card">
+    {% include 'members/audit_events.html' with events=page_obj %}
+  </section>
+  {% include 'components/pagination.html' %}
+{% endblock %}

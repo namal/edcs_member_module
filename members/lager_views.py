@@ -76,7 +76,7 @@ def activity_csv(lager, events):
         yield writer.writerow(
             [
                 "Lager code",
-                "District",
+                "Branch",
                 "Zonal office",
                 "Date",
                 "Member no",

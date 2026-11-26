@@ -32,7 +32,7 @@
                 <p>
                   {{ month.date }}:
                   {% if month.balance != None %}
-                    {{ month.balance|floatformat:2 }}
+                    {{ month.balance|floatformat:'2g' }}
                   {% else %}
                     Pending
                   {% endif %}
@@ -41,7 +41,7 @@
             </td>
             <td>
               {% if quarter.complete %}
-                {{ quarter.minimum|floatformat:2 }}
+                {{ quarter.minimum|floatformat:'2g' }}
               {% else %}
                 Quarter incomplete
               {% endif %}
@@ -70,7 +70,7 @@
               {% if quarter.excluded and quarter.complete %}
                 0.00 (Excluded)
               {% elif quarter.complete %}
-                {{ quarter.interest|floatformat:2 }}
+                {{ quarter.interest|floatformat:'2g' }}
               {% else %}
                 Pending
               {% endif %}
@@ -81,7 +81,7 @@
       <tfoot>
         <tr>
           <th colspan="4">Total interest from eligible completed quarters</th>
-          <td class="font-semibold text-brand-700">{{ record.annual_interest|floatformat:2 }}</td>
+          <td class="font-semibold text-brand-700">{{ record.annual_interest|floatformat:'2g' }}</td>
         </tr>
       </tfoot>
     </table>

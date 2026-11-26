@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7">
+    <p class="eyebrow">Administration</p>
+    <h1 class="page-title">Financial year-end closing</h1>
+    <p class="muted mt-2">Review every account, approve closing balances, and retain each next-year opening separately.</p>
+  </div>
+  <form method="get" class="form-section">
+    <div class="form-grid">{% include 'components/field.html' with field=form.year %}</div>
+    <button class="btn btn-secondary mt-4">Preview financial year</button>
+  </form>
+  {% if form.errors %}<div class="alert message-error">{{ form.errors }}</div>{% endif %}
+  {% if preview %}
+    <section class="card mb-6">
+      <div class="card-heading">
+        <h2 class="section-title">{{ preview.start|date:'d M Y' }} – {{ preview.end|date:'d M Y' }}</h2>
+      </div>
+      <div class="p-6">
+        <p>{{ preview.rows|length }} accounts · {{ preview.pending_count }} awaiting posting</p>
+        <p class="mt-2">
+          Final closing total: LKR {{ preview.total_closing|floatformat:'2g' }} · Opening on {{ preview.next_start|date:'d M Y' }}: LKR {{ preview.total_closing|floatformat:'2g' }}
+        </p>
+      </div>
+      {% include 'year_end/accounts.html' with rows=preview.rows %}
+    </section>
+    {% if preview.can_close %}
+      <form method="post" class="form-section">
+        {% csrf_token %}{{ form.review_hash }}
+        <input type="hidden" name="year" value="{{ form.year.value }}">
+        {% include 'components/field.html' with field=form.reason %}
+        <label class="mt-5 flex gap-3">
+          {{ form.approve }}<span>{{ form.approve.label }}</span>
+        </label>
+        <p class="field-help mt-4">
+          This reuses annual interest posting. Principal carry-forwards are retained snapshots, not additional debit/credit entries. Previously posted accounts are skipped.
+        </p>
+        <button class="btn btn-primary mt-5"
+                name="intent"
+                value="close"
+                data-submit-label="Closing financial year…">Approve &amp; close financial year</button>
+      </form>
+    {% else %}
+      <p class="field-help mb-6">
+        Closing is available only after the financial year ends and has established accounts. Current-year figures are a preview through today.
+      </p>
+    {% endif %}
+  {% endif %}
+  <section class="card">
+    <div class="card-heading">
+      <h2 class="section-title">Approved closing history</h2>
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Financial year</th>
+          <th>Accounts</th>
+          <th>Closing / next opening (LKR)</th>
+          <th>Approved by</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for closing in page_obj %}
+          <tr>
+            <td>{{ closing.year_start|date:'d M Y' }} – {{ closing.year_end|date:'d M Y' }}</td>
+            <td>{{ closing.account_count }}</td>
+            <td>{{ closing.total_closing|floatformat:'2g' }}</td>
+            <td>{{ closing.approved_by }} · {{ closing.approved_at|date:'d M Y H:i' }}</td>
+            <td>
+              <a class="text-link"
+                 href="{% url 'financial_year_closing_detail' closing.pk %}">View balances</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5">No administrator-approved closing batches yet. Existing account-year postings are retained.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% include 'components/pagination.html' %}
+  </section>
+{% endblock %}

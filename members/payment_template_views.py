@@ -124,11 +124,16 @@ def payment_plan_template_options(request):
     )
     if template is None:
         return JsonResponse({"error": "Select a valid template."}, status=400)
-    amounts = list(
-        template.amounts.filter(payment_type__is_active=True).values(
-            "payment_type_id", "amount"
-        )
-    )
+    amounts = [
+        {
+            "payment_type_id": item.payment_type_id,
+            "amount": item.amount,
+            "is_fixed": item.is_fixed,
+        }
+        for item in template.amounts.filter(
+            payment_type__is_active=True
+        ).select_related("payment_type")
+    ]
     if not amounts:
         return JsonResponse(
             {"error": "This template has no active payment types."}, status=400

@@ -71,11 +71,17 @@ class TransactionFilterForm(forms.Form):
 
 
 class PaymentTransactionForm(StyledModelForm):
+    reverses = forms.ModelChoiceField(
+        queryset=PaymentTransaction.objects.none(),
+        required=False,
+        widget=forms.HiddenInput(),
+    )
     payment_type = PaymentTypeChoiceField(queryset=PaymentType.objects.none())
 
     class Meta:
         model = PaymentTransaction
         fields = [
+            "reverses",
             "member",
             "payment_type",
             "transaction_date",
@@ -95,7 +101,12 @@ class PaymentTransactionForm(StyledModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        correction = kwargs.pop("correction", None)
         super().__init__(*args, **kwargs)
+        self.fields["reverses"].queryset = district_records(
+            self.user, PaymentTransaction
+        )
+        self.fields["reverses"].disabled = bool(self.instance.pk)
         self.fields["member"].queryset = member_choices(self.user)
         self.fields["payment_type"].queryset = PaymentType.objects.filter(
             Q(is_active=True) | Q(pk=self.instance.payment_type_id)
@@ -107,11 +118,30 @@ class PaymentTransactionForm(StyledModelForm):
         if self.instance.pk:
             self.fields["member"].disabled = True
             self.fields["payment_type"].disabled = True
+            if self.instance.reverses_id or hasattr(self.instance, "correction"):
+                for name in ("transaction_date", "debit", "credit"):
+                    self.fields[name].disabled = True
         for name in ("debit", "credit"):
             self.fields[name].required = False
             self.fields[name].help_text = (
                 "Enter an amount on one side only. Leave the other side blank or zero."
             )
+        if correction and not self.instance.pk:
+            self.instance.reverses = correction
+            self.initial.update(
+                reverses=correction.pk,
+                member=correction.member_id,
+                payment_type=correction.payment_type_id,
+                debit=correction.credit,
+                credit=correction.debit,
+            )
+            self.fields["payment_type"].queryset = PaymentType.objects.filter(
+                Q(is_active=True) | Q(pk=correction.payment_type_id)
+            )
+            for name in ("member", "payment_type", "debit", "credit"):
+                self.fields[name].disabled = True
+            self.fields["description"].required = True
+            self.fields["description"].label = "Correction reason"
 
     def clean_debit(self):
         return self.cleaned_data["debit"] or Decimal("0.00")

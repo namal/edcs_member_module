@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <a class="text-link" href="{% url 'audit_log_list' %}">← Audit Logs</a>
+  <div class="my-6">
+    <p class="eyebrow">{{ event.module_label }} · {{ event.action_label }}</p>
+    <h1 class="page-title">{{ event.record_label }}</h1>
+    <p class="muted mt-2">
+      {{ event.occurred_at|date:'d M Y H:i:s' }} · {{ event.actor_name|default:event.actor_username|default:'System / actor not recorded' }}
+      {% if event.actor_epf %}· EPF {{ event.actor_epf }}{% endif %}
+    </p>
+  </div>
+  <section class="form-section">
+    <p>Record: {{ event.source_model }} #{{ event.source_id|default_if_none:'—' }}</p>
+    {% if event.request_path %}<p class="field-help">{{ event.request_method }} {{ event.request_path }}</p>{% endif %}
+    {% if event.origin != 'live' %}<p class="field-help">Retained from existing {{ event.origin }} history.</p>{% endif %}
+  </section>
+  <section class="card overflow-x-auto">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Before</th>
+          <th>After</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for change in event.changes %}
+          <tr>
+            <td>{{ change.label|capfirst }}</td>
+            <td>{{ change.before|default_if_none:'—'|linebreaksbr }}</td>
+            <td>{{ change.after|default_if_none:'—'|linebreaksbr }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="3">{{ event.action_label }} recorded. No field values were changed.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% endblock %}

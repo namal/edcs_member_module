@@ -1,0 +1,1616 @@
+{
+  "prepared_on": "2026-11-26",
+  "timezone": "Asia/Colombo",
+  "notice": "Current system screenshots with fictional training data in a separate disposable PostgreSQL database. No live master or user data changed.",
+  "masters": [
+    "Child Deposit Types",
+    "Branches",
+    "Zonal offices",
+    "Subdivisions",
+    "Departments",
+    "Lagers",
+    "Genders",
+    "Payment Plan Templates",
+    "Payment Types",
+    "Fix Deposit Rules"
+  ],
+  "created": [
+    {
+      "model": "members.district",
+      "route": "/districts/new/",
+      "label": "Training Master Branch"
+    },
+    {
+      "model": "members.officelocation",
+      "route": "/offices/new/",
+      "label": "Training Zonal Office \u00b7 Training Master Branch"
+    },
+    {
+      "model": "auth.group",
+      "route": "/admin/roles/new/",
+      "label": "Training Master Data Operator"
+    },
+    {
+      "model": "auth.user",
+      "route": "/admin/users/new/",
+      "label": "training.master.officer"
+    },
+    {
+      "model": "members.subdivision",
+      "route": "/subdivisions/new/",
+      "label": "Training Subdivision \u00b7 Training Zonal Office \u00b7 Training Master Branch"
+    },
+    {
+      "model": "members.school",
+      "route": "/schools/new/",
+      "label": "Training Department \u00b7 Western (WP) \u00b7 Training Master Branch \u00b7 Training Zonal Office \u00b7 Training Subdivision"
+    },
+    {
+      "model": "members.lager",
+      "route": "/lagers/new/",
+      "label": "Training Member Ledger \u00b7 Training Zonal Office \u00b7 Training Master Branch"
+    },
+    {
+      "model": "members.gender",
+      "route": "/genders/new/",
+      "label": "Training Gender Option"
+    },
+    {
+      "model": "members.paymenttype",
+      "route": "/payment-types/new/",
+      "label": "Training Savings"
+    },
+    {
+      "model": "members.paymenttype",
+      "route": "/payment-types/new/",
+      "label": "Training Fixed Deposit"
+    },
+    {
+      "model": "members.childdeposittype",
+      "route": "/child-deposit-types/new/",
+      "label": "Training Child Savings"
+    },
+    {
+      "model": "members.paymentplantemplate",
+      "route": "/payment-plan-templates/new/",
+      "label": "Training Monthly Plan"
+    },
+    {
+      "model": "members.fixdepositpolicy",
+      "route": "/fix-deposit-rules/new/",
+      "label": "Training 36-Month Rule"
+    },
+    {
+      "model": "members.approvalhierarchy",
+      "route": "/approval-hierarchies/new/",
+      "label": "Training master record edits"
+    }
+  ],
+  "fields": {
+    "03-add-branch": [
+      {
+        "name": "name",
+        "label": "Name",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 100
+      },
+      {
+        "name": "code",
+        "label": "Code",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 12
+      },
+      {
+        "name": "province",
+        "label": "Province full name",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 100
+      },
+      {
+        "name": "province_short_name",
+        "label": "Province short name",
+        "required": false,
+        "disabled": false,
+        "help": "For example: WP for Western or NCP for North Central.",
+        "max_length": 20
+      },
+      {
+        "name": "is_active",
+        "label": "Is active",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      }
+    ],
+    "04-add-zonal-office": [
+      {
+        "name": "district",
+        "label": "Branch",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "name",
+        "label": "Name",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 150
+      },
+      {
+        "name": "code",
+        "label": "Code",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 20
+      },
+      {
+        "name": "address",
+        "label": "Address",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "phone",
+        "label": "Phone",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": 22
+      },
+      {
+        "name": "is_active",
+        "label": "Is active",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      }
+    ],
+    "01-add-role": [
+      {
+        "name": "name",
+        "label": "Name",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 150
+      },
+      {
+        "name": "module_permissions",
+        "label": "Module permissions",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      }
+    ],
+    "05-add-user": [
+      {
+        "name": "username",
+        "label": "Username",
+        "required": true,
+        "disabled": false,
+        "help": "Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.",
+        "max_length": 150
+      },
+      {
+        "name": "first_name",
+        "label": "First name",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": 150
+      },
+      {
+        "name": "last_name",
+        "label": "Last name",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": 150
+      },
+      {
+        "name": "email",
+        "label": "Email address",
+        "required": false,
+        "disabled": false,
+        "help": "Optional. A welcome email is sent after a new account is saved when an email address is provided.",
+        "max_length": 254
+      },
+      {
+        "name": "is_active",
+        "label": "Active",
+        "required": false,
+        "disabled": false,
+        "help": "Designates whether this user should be treated as active. Unselect this instead of deleting accounts.",
+        "max_length": null
+      },
+      {
+        "name": "epf_number",
+        "label": "EPF number",
+        "required": false,
+        "disabled": false,
+        "help": "Required when this user is assigned as a Ledger Maintenance Officer.",
+        "max_length": 30
+      },
+      {
+        "name": "zonal_offices",
+        "label": "Assigned zonal offices",
+        "required": false,
+        "disabled": false,
+        "help": "Select one or more zonal offices in the assigned branches. Member access also requires an assigned ledger.",
+        "max_length": null
+      },
+      {
+        "name": "districts",
+        "label": "Assigned branches",
+        "required": false,
+        "disabled": false,
+        "help": "Choose one or more branches. Module permissions apply only within these branches. No selection means no branch record access. Administrators have access to every branch.",
+        "max_length": null
+      },
+      {
+        "name": "roles",
+        "label": "Roles",
+        "required": false,
+        "disabled": false,
+        "help": "Role permissions are added to the direct permissions below.",
+        "max_length": null
+      },
+      {
+        "name": "module_permissions",
+        "label": "Module permissions",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      }
+    ],
+    "06-officer-branch-access": [
+      {
+        "name": "username",
+        "label": "Username",
+        "required": true,
+        "disabled": false,
+        "help": "Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.",
+        "max_length": 150
+      },
+      {
+        "name": "first_name",
+        "label": "First name",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": 150
+      },
+      {
+        "name": "last_name",
+        "label": "Last name",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": 150
+      },
+      {
+        "name": "email",
+        "label": "Email address",
+        "required": false,
+        "disabled": false,
+        "help": "Optional. A welcome email is sent after a new account is saved when an email address is provided.",
+        "max_length": 254
+      },
+      {
+        "name": "is_active",
+        "label": "Active",
+        "required": false,
+        "disabled": false,
+        "help": "Designates whether this user should be treated as active. Unselect this instead of deleting accounts.",
+        "max_length": null
+      },
+      {
+        "name": "epf_number",
+        "label": "EPF number",
+        "required": false,
+        "disabled": false,
+        "help": "Required when this user is assigned as a Ledger Maintenance Officer.",
+        "max_length": 30
+      },
+      {
+        "name": "zonal_offices",
+        "label": "Assigned zonal offices",
+        "required": false,
+        "disabled": false,
+        "help": "Select one or more zonal offices in the assigned branches. Member access also requires an assigned ledger.",
+        "max_length": null
+      },
+      {
+        "name": "districts",
+        "label": "Assigned branches",
+        "required": false,
+        "disabled": false,
+        "help": "Choose one or more branches. Module permissions apply only within these branches. No selection means no branch record access. Administrators have access to every branch.",
+        "max_length": null
+      },
+      {
+        "name": "roles",
+        "label": "Roles",
+        "required": false,
+        "disabled": false,
+        "help": "Role permissions are added to the direct permissions below.",
+        "max_length": null
+      },
+      {
+        "name": "module_permissions",
+        "label": "Module permissions",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      }
+    ],
+    "07-add-subdivision": [
+      {
+        "name": "district",
+        "label": "Branch",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "zonal_office",
+        "label": "Zonal office",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "name",
+        "label": "Name",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 150
+      },
+      {
+        "name": "code",
+        "label": "Code",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 20
+      },
+      {
+        "name": "is_active",
+        "label": "Is active",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      }
+    ],
+    "08-add-department": [
+      {
+        "name": "district",
+        "label": "Branch",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "province",
+        "label": "Province full name",
+        "required": false,
+        "disabled": true,
+        "help": "Filled automatically from the selected branch.",
+        "max_length": null
+      },
+      {
+        "name": "province_short_name",
+        "label": "Province short name",
+        "required": false,
+        "disabled": true,
+        "help": "Filled automatically from the selected branch.",
+        "max_length": null
+      },
+      {
+        "name": "zonal_office",
+        "label": "Zonal office",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "subdivision",
+        "label": "Subdivision",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "name",
+        "label": "Name",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 200
+      },
+      {
+        "name": "code",
+        "label": "Code",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 20
+      },
+      {
+        "name": "address",
+        "label": "Address",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "is_active",
+        "label": "Is active",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      }
+    ],
+    "09-add-lager": [
+      {
+        "name": "district",
+        "label": "Branch",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "zonal_office",
+        "label": "Zonal office",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "name",
+        "label": "Name",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 150
+      },
+      {
+        "name": "code",
+        "label": "Code",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 20
+      },
+      {
+        "name": "maintenance_officer",
+        "label": "Ledger Maintenance Officer",
+        "required": true,
+        "disabled": false,
+        "help": "Choose any active officer with a recorded EPF. The EPF below is filled from the officer's user profile.",
+        "max_length": null
+      },
+      {
+        "name": "officer_epf",
+        "label": "Ledger Maintenance Officer EPF number",
+        "required": true,
+        "disabled": true,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "is_active",
+        "label": "Is active",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      }
+    ],
+    "11-add-gender": [
+      {
+        "name": "code",
+        "label": "Code",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 15
+      },
+      {
+        "name": "name",
+        "label": "Name",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 100
+      },
+      {
+        "name": "sort_order",
+        "label": "Sort order",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "is_active",
+        "label": "Is active",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      }
+    ],
+    "12-add-payment-type": [
+      {
+        "name": "name",
+        "label": "Name",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 120
+      },
+      {
+        "name": "interest_rate",
+        "label": "Interest rate (%)",
+        "required": false,
+        "disabled": false,
+        "help": "Configured percentage for this payment type. Interest is not automatically calculated or posted.",
+        "max_length": null
+      },
+      {
+        "name": "interest_frequency",
+        "label": "Interest calculation frequency",
+        "required": true,
+        "disabled": false,
+        "help": "Quarterly means every 3 months and is the default. The bank can choose another frequency or a custom period. Stored for reference; no automatic calculation or posting.",
+        "max_length": null
+      },
+      {
+        "name": "interest_period_type",
+        "label": "Custom period type",
+        "required": false,
+        "disabled": false,
+        "help": "For Custom period, choose a repeating interval or specific dates.",
+        "max_length": null
+      },
+      {
+        "name": "interest_interval_count",
+        "label": "Repeat every",
+        "required": false,
+        "disabled": false,
+        "help": "For a repeating custom period, enter a whole number of 1 or more.",
+        "max_length": null
+      },
+      {
+        "name": "interest_interval_unit",
+        "label": "Interval unit",
+        "required": false,
+        "disabled": false,
+        "help": "Days, months or years for the repeating interval.",
+        "max_length": null
+      },
+      {
+        "name": "interest_start_date",
+        "label": "Interest period start date",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "interest_end_date",
+        "label": "Interest period end date",
+        "required": false,
+        "disabled": false,
+        "help": "For a specific period, choose an end date on or after its start date.",
+        "max_length": null
+      },
+      {
+        "name": "sort_order",
+        "label": "Display order",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "is_active",
+        "label": "Is active",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      }
+    ],
+    "13-custom-interest-reference": [
+      {
+        "name": "name",
+        "label": "Name",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 120
+      },
+      {
+        "name": "interest_rate",
+        "label": "Interest rate (%)",
+        "required": false,
+        "disabled": false,
+        "help": "Configured percentage for this payment type. Interest is not automatically calculated or posted.",
+        "max_length": null
+      },
+      {
+        "name": "interest_frequency",
+        "label": "Interest calculation frequency",
+        "required": true,
+        "disabled": false,
+        "help": "Quarterly means every 3 months and is the default. The bank can choose another frequency or a custom period. Stored for reference; no automatic calculation or posting.",
+        "max_length": null
+      },
+      {
+        "name": "interest_period_type",
+        "label": "Custom period type",
+        "required": false,
+        "disabled": false,
+        "help": "For Custom period, choose a repeating interval or specific dates.",
+        "max_length": null
+      },
+      {
+        "name": "interest_interval_count",
+        "label": "Repeat every",
+        "required": false,
+        "disabled": false,
+        "help": "For a repeating custom period, enter a whole number of 1 or more.",
+        "max_length": null
+      },
+      {
+        "name": "interest_interval_unit",
+        "label": "Interval unit",
+        "required": false,
+        "disabled": false,
+        "help": "Days, months or years for the repeating interval.",
+        "max_length": null
+      },
+      {
+        "name": "interest_start_date",
+        "label": "Interest period start date",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "interest_end_date",
+        "label": "Interest period end date",
+        "required": false,
+        "disabled": false,
+        "help": "For a specific period, choose an end date on or after its start date.",
+        "max_length": null
+      },
+      {
+        "name": "sort_order",
+        "label": "Display order",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "is_active",
+        "label": "Is active",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      }
+    ],
+    "14-add-child-deposit-type": [
+      {
+        "name": "name",
+        "label": "Name",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 120
+      },
+      {
+        "name": "age_threshold",
+        "label": "Rate changes at age",
+        "required": true,
+        "disabled": false,
+        "help": "The second rate applies from this birthday. Default: age 18.",
+        "max_length": null
+      },
+      {
+        "name": "rate_below_threshold",
+        "label": "Rate below this age (%)",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "rate_from_threshold",
+        "label": "Rate from this age (%)",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "sort_order",
+        "label": "Display order",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "is_active",
+        "label": "Is active",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      }
+    ],
+    "15-add-plan-template": [
+      {
+        "name": "name",
+        "label": "Name",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 150
+      },
+      {
+        "name": "description",
+        "label": "Description",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "is_active",
+        "label": "Is active",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "amount_1",
+        "label": "Special Deposit",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_1",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_9",
+        "label": "Training Savings",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_9",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_2",
+        "label": "Fix Deposit",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_2",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_10",
+        "label": "Training Fixed Deposit",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_10",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_3",
+        "label": "Share",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_3",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_4",
+        "label": "Pension",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_4",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_5",
+        "label": "Scholarship",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_5",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_6",
+        "label": "Scholar",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_6",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_7",
+        "label": "Funeral",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_7",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_8",
+        "label": "Danaayojana",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_8",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      }
+    ],
+    "16-template-total-and-save": [
+      {
+        "name": "name",
+        "label": "Name",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 150
+      },
+      {
+        "name": "description",
+        "label": "Description",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "is_active",
+        "label": "Is active",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "amount_1",
+        "label": "Special Deposit",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_1",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_9",
+        "label": "Training Savings",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_9",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_2",
+        "label": "Fix Deposit",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_2",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_10",
+        "label": "Training Fixed Deposit",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_10",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_3",
+        "label": "Share",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_3",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_4",
+        "label": "Pension",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_4",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_5",
+        "label": "Scholarship",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_5",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_6",
+        "label": "Scholar",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_6",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_7",
+        "label": "Funeral",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_7",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      },
+      {
+        "name": "amount_8",
+        "label": "Danaayojana",
+        "required": false,
+        "disabled": false,
+        "help": "Monthly amount in LKR. Leave blank or enter 0 if unused.",
+        "max_length": null
+      },
+      {
+        "name": "fixed_8",
+        "label": "Fixed amount",
+        "required": false,
+        "disabled": false,
+        "help": "Lock this monthly amount in the member plan.",
+        "max_length": null
+      }
+    ],
+    "17-add-fixed-deposit-rule": [
+      {
+        "name": "name",
+        "label": "Name",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 120
+      },
+      {
+        "name": "payment_type",
+        "label": "Payment type",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "maturity_months",
+        "label": "Withdrawal cycle (months)",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "withdrawal_percent",
+        "label": "Maximum withdrawal (%)",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "loan_percent",
+        "label": "Maximum loan security (%)",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "loan_interval_months",
+        "label": "Months between loan issues",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "loan_interest_rate",
+        "label": "Annual loan interest rate (%)",
+        "required": false,
+        "disabled": false,
+        "help": "Set the bank's loan rate before issuing loans. Interest charges are assessed by the bank and recorded separately from principal repayments.",
+        "max_length": null
+      },
+      {
+        "name": "is_active",
+        "label": "Is active",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      }
+    ],
+    "18-create-edit-hierarchy": [
+      {
+        "name": "name",
+        "label": "Name",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": 150
+      },
+      {
+        "name": "module",
+        "label": "Module",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "action",
+        "label": "Action",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "is_active",
+        "label": "Is active",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "reason",
+        "label": "Reason for configuration",
+        "required": true,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "version",
+        "label": "Version",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      }
+    ],
+    "21-master-audit": [
+      {
+        "name": "q",
+        "label": "Record, user or reference",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "module",
+        "label": "Module",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "action",
+        "label": "Action",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "date_from",
+        "label": "Date from",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      },
+      {
+        "name": "date_to",
+        "label": "Date to",
+        "required": false,
+        "disabled": false,
+        "help": "",
+        "max_length": null
+      }
+    ]
+  },
+  "captures": [
+    [
+      "03-add-branch",
+      "03-add-branch",
+      "main",
+      1100,
+      {
+        "name": "Training Master Branch",
+        "code": "MD-BR",
+        "province": "Western",
+        "province_short_name": "WP",
+        "is_active": "on"
+      }
+    ],
+    [
+      "04-add-zonal-office",
+      "04-add-zonal-office",
+      "main",
+      1100,
+      {
+        "district": "26",
+        "name": "Training Zonal Office",
+        "code": "MD-Z01",
+        "address": "Training office address",
+        "phone": "0771234567",
+        "is_active": "on"
+      }
+    ],
+    [
+      "01-add-role",
+      "01-add-role",
+      "top",
+      1150,
+      {
+        "name": "Training Master Data Operator",
+        "module_permissions": [
+          "79",
+          "28",
+          "91",
+          "108",
+          "111",
+          "45",
+          "48",
+          "29",
+          "32",
+          "96",
+          "99",
+          "52",
+          "37",
+          "40",
+          "41",
+          "44"
+        ]
+      }
+    ],
+    [
+      "05-add-user",
+      "05-add-user",
+      "top",
+      1110,
+      {
+        "username": "training.master.officer",
+        "first_name": "Training",
+        "last_name": "Master Officer",
+        "email": "",
+        "epf_number": "MD-EPF-001",
+        "roles": [
+          "1"
+        ],
+        "districts": [
+          "26"
+        ],
+        "zonal_offices": [
+          "1"
+        ],
+        "is_active": "on",
+        "module_permissions": []
+      }
+    ],
+    [
+      "06-officer-branch-access",
+      "06-officer-branch-access",
+      "officeAccess",
+      1100,
+      {}
+    ],
+    [
+      "07-add-subdivision",
+      "07-add-subdivision",
+      "main",
+      1100,
+      {
+        "district": "26",
+        "zonal_office": "1",
+        "name": "Training Subdivision",
+        "code": "MD-S01",
+        "is_active": "on"
+      }
+    ],
+    [
+      "08-add-department",
+      "08-add-department",
+      "main",
+      1100,
+      {
+        "district": "26",
+        "zonal_office": "1",
+        "subdivision": "1",
+        "name": "Training Department",
+        "code": "MD-D01",
+        "address": "Training department address",
+        "is_active": "on"
+      }
+    ],
+    [
+      "09-add-lager",
+      "09-add-lager",
+      "main",
+      1100,
+      {
+        "district": "26",
+        "zonal_office": "1",
+        "name": "Training Member Ledger",
+        "code": "MD-L01",
+        "maintenance_officer": "2",
+        "is_active": "on"
+      }
+    ],
+    [
+      "10-saved-lager",
+      "10-saved-lager",
+      "main",
+      1100,
+      {}
+    ],
+    [
+      "11-add-gender",
+      "11-add-gender",
+      "main",
+      1100,
+      {
+        "code": "training",
+        "name": "Training Gender Option",
+        "sort_order": "90",
+        "is_active": "on"
+      }
+    ],
+    [
+      "12-add-payment-type",
+      "12-add-payment-type",
+      "main",
+      1100,
+      {
+        "name": "Training Savings",
+        "interest_rate": "8.00",
+        "interest_frequency": "quarterly",
+        "sort_order": "1",
+        "is_active": "on"
+      }
+    ],
+    [
+      "13-custom-interest-reference",
+      "13-custom-interest-reference",
+      "main",
+      1100,
+      {
+        "name": "Training Custom Reference",
+        "interest_rate": "8.00",
+        "interest_frequency": "custom",
+        "sort_order": "1",
+        "is_active": "on",
+        "interest_period_type": "repeating",
+        "interest_interval_count": "6",
+        "interest_interval_unit": "months"
+      }
+    ],
+    [
+      "14-add-child-deposit-type",
+      "14-add-child-deposit-type",
+      "main",
+      1100,
+      {
+        "name": "Training Child Savings",
+        "age_threshold": "18",
+        "rate_below_threshold": "8.00",
+        "rate_from_threshold": "5.00",
+        "sort_order": "1",
+        "is_active": "on"
+      }
+    ],
+    [
+      "15-add-plan-template",
+      "15-add-plan-template",
+      "top",
+      1130,
+      {
+        "name": "Training Monthly Plan",
+        "description": "Training example only: agreed monthly contributions.",
+        "is_active": "on",
+        "amount_9": "500",
+        "amount_10": "200",
+        "fixed_10": "on",
+        "amount_4": "200",
+        "amount_7": "100"
+      }
+    ],
+    [
+      "16-template-total-and-save",
+      "16-template-total-and-save",
+      "templateTotal",
+      1100,
+      {
+        "name": "Training Monthly Plan",
+        "description": "Training example only: agreed monthly contributions.",
+        "is_active": "on",
+        "amount_9": "500",
+        "amount_10": "200",
+        "fixed_10": "on",
+        "amount_4": "200",
+        "amount_7": "100"
+      }
+    ],
+    [
+      "17-add-fixed-deposit-rule",
+      "17-add-fixed-deposit-rule",
+      "main",
+      1100,
+      {
+        "name": "Training 36-Month Rule",
+        "payment_type": "10",
+        "maturity_months": "36",
+        "withdrawal_percent": "75",
+        "loan_percent": "90",
+        "loan_interval_months": "12",
+        "loan_interest_rate": "12.00",
+        "is_active": "on"
+      }
+    ],
+    [
+      "18-create-edit-hierarchy",
+      "18-create-edit-hierarchy",
+      "top",
+      1100,
+      {
+        "name": "Training master record edits",
+        "module": "all_modules",
+        "action": "change",
+        "is_active": "on",
+        "reason": "Training: review changes to existing master records.",
+        "levels-TOTAL_FORMS": "1",
+        "levels-INITIAL_FORMS": "0",
+        "levels-MIN_NUM_FORMS": "0",
+        "levels-MAX_NUM_FORMS": "20",
+        "levels-0-position": "1",
+        "levels-0-name": "Master data review",
+        "levels-0-approvers": [
+          "1"
+        ],
+        "levels-0-allow_rejection": "on"
+      }
+    ],
+    [
+      "19-duplicate-branch",
+      "19-duplicate-branch",
+      "main",
+      1100,
+      {}
+    ],
+    [
+      "20-master-data-menu",
+      "20-master-data-menu",
+      "sidebar",
+      1100,
+      {}
+    ],
+    [
+      "21-master-audit",
+      "21-master-audit",
+      "top",
+      1100,
+      {}
+    ],
+    [
+      "22-duplicate-validation",
+      "22-duplicate-validation",
+      "top",
+      1000,
+      {}
+    ]
+  ],
+  "restricted_create_status": {
+    "district_create": 403,
+    "payment_type_create": 403,
+    "child_deposit_type_create": 403,
+    "fix_deposit_policy_create": 403
+  },
+  "verified_template_total": "1000.00",
+  "ledger_officer_epf": "MD-EPF-001",
+  "temporary_database_removed_on_exit": true
+}

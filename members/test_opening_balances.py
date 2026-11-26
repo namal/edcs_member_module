@@ -124,7 +124,7 @@ class OpeningBalanceTests(TestCase):
         response = self.client.get(
             reverse("opening_balance_list"), {"member": self.member.pk}
         )
-        self.assertContains(response, "12345.67")
+        self.assertContains(response, "12,345.67")
         self.assertContains(response, "Opening balances by payment type")
         self.assertContains(
             response, reverse("opening_balance_edit", args=[balance.pk])
@@ -157,7 +157,7 @@ class OpeningBalanceTests(TestCase):
         self.grant("add_openingbalance")
         response = self.client.get(reverse("opening_balance_create"))
         self.assertContains(response, "Already recorded")
-        self.assertNotContains(response, "76543.21")
+        self.assertNotContains(response, "76,543.21")
         self.assertNotContains(response, "Opening balances by payment type")
 
     def test_save_member_balances_and_exact_total(self):
@@ -437,7 +437,7 @@ class OpeningBalanceTests(TestCase):
         for url in urls[:3]:
             response = self.client.get(url)
             self.assertContains(response, "Opening balances by payment type")
-            self.assertContains(response, "8123.45")
+            self.assertContains(response, "8,123.45")
             self.assertContains(
                 response, reverse("opening_balance_detail", args=[balance.pk])
             )
@@ -447,7 +447,7 @@ class OpeningBalanceTests(TestCase):
         for url in urls:
             response = self.client.get(url)
             self.assertEqual(response.status_code, 200)
-            self.assertNotContains(response, "8123.45")
+            self.assertNotContains(response, "8,123.45")
             self.assertNotContains(response, "Opening balances by payment type")
 
     def test_selecting_member_for_new_payment_plan_shows_their_balances(self):
@@ -455,7 +455,7 @@ class OpeningBalanceTests(TestCase):
         response = self.client.get(
             reverse("payment_plan_create"), {"member": self.member.pk}
         )
-        self.assertContains(response, "8123.45")
+        self.assertContains(response, "8,123.45")
 
     def test_member_renaming_updates_balances_and_details(self):
         balance = self.create_balance()

@@ -8,6 +8,8 @@ from django.db import models, transaction
 from django.db.models.deletion import ProtectedError
 from django.utils import timezone
 from .ledger_tracking import LedgerTrackedModel
+from .member_audit import AuditQuerySet, MemberQuerySet
+from .posting_policies import PostingQuerySet
 
 phone_validator = RegexValidator(
     r"^\+?[\d\s()\-]{7,22}$", "Enter a valid phone number (7–15 digits)."
@@ -41,6 +43,8 @@ class District(models.Model):
 
     class Meta:
         ordering = ["name"]
+        verbose_name = "Branch"
+        verbose_name_plural = "Branches"
 
     def __str__(self):
         return self.name
@@ -60,7 +64,10 @@ class District(models.Model):
 
 class OfficeLocation(models.Model):
     district = models.ForeignKey(
-        District, on_delete=models.PROTECT, related_name="offices"
+        District,
+        verbose_name="Branch",
+        on_delete=models.PROTECT,
+        related_name="offices",
     )
     name = models.CharField(max_length=150)
     code = models.CharField(max_length=20, unique=True)
@@ -100,7 +107,7 @@ class OfficeLocation(models.Model):
             ):
                 raise ValidationError(
                     {
-                        "district": "This zonal office has linked records. Its district cannot be changed."
+                        "district": "This zonal office has linked records. Its branch cannot be changed."
                     }
                 )
 
@@ -151,7 +158,10 @@ class Subdivision(models.Model):
 
 class School(models.Model):
     district = models.ForeignKey(
-        District, on_delete=models.PROTECT, related_name="schools"
+        District,
+        verbose_name="Branch",
+        on_delete=models.PROTECT,
+        related_name="schools",
     )
     zonal_office = models.ForeignKey(
         OfficeLocation, on_delete=models.PROTECT, related_name="schools"
@@ -192,7 +202,7 @@ class School(models.Model):
             and self.district_id
             and self.zonal_office.district_id != self.district_id
         ):
-            errors["zonal_office"] = "Choose a zonal office in the selected district."
+            errors["zonal_office"] = "Choose a zonal office in the selected branch."
         if (
             self.subdivision_id
             and self.subdivision.zonal_office_id != self.zonal_office_id
@@ -287,7 +297,76 @@ class Lager(models.Model):
             return super().save(*args, **kwargs)
 
 
+class Gender(models.Model):
+    code = models.SlugField(max_length=15, unique=True)
+    name = models.CharField(max_length=100, unique=True)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["sort_order", "name", "pk"]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        super().clean()
+        self.code = self.code.strip().lower()
+        if (
+            self.pk
+            and type(self).objects.filter(pk=self.pk).exclude(code=self.code).exists()
+        ):
+            raise ValidationError(
+                {"code": "Gender codes cannot be changed. Edit the name instead."}
+            )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        return super().save(*args, **kwargs)
+
+
+class MemberAuditEvent(models.Model):
+    class Action(models.TextChoices):
+        CREATED = "created", "Added"
+        UPDATED = "updated", "Edited"
+        DELETED = "deleted", "Deleted"
+
+    # Keep the member's identity even when its source record is deleted.
+    member_pk = models.PositiveBigIntegerField(db_index=True)
+    member_no = models.CharField(max_length=30)
+    member_name = models.CharField(max_length=200)
+    district = models.ForeignKey(
+        District, verbose_name="Branch", on_delete=models.PROTECT
+    )
+    lager = models.ForeignKey(Lager, on_delete=models.PROTECT, null=True, blank=True)
+    action = models.CharField(max_length=10, choices=Action.choices)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True
+    )
+    actor_name = models.CharField(max_length=300, blank=True)
+    actor_epf = models.CharField(max_length=30, blank=True)
+    occurred_at = models.DateTimeField(auto_now_add=True)
+    before = models.JSONField(default=dict)
+    after = models.JSONField(default=dict)
+    changes = models.JSONField(default=list)
+    objects = AuditQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["-occurred_at", "-pk"]
+        default_permissions = ("view",)
+
+    def save(self, *args, **kwargs):
+        if self.pk and type(self).objects.filter(pk=self.pk).exists():
+            raise ValidationError("Member audit history cannot be changed.")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ProtectedError("Member audit history must be retained.", [self])
+
+
 class Member(models.Model):
+    objects = MemberQuerySet.as_manager()
+
     class Title(models.TextChoices):
         MR = "Mr.", "Mr."
         MISS = "Miss", "Miss"
@@ -307,7 +386,10 @@ class Member(models.Model):
         RETIRED = "retired", "Retired"
 
     district = models.ForeignKey(
-        District, on_delete=models.PROTECT, related_name="members"
+        District,
+        verbose_name="Branch",
+        on_delete=models.PROTECT,
+        related_name="members",
     )
     lager = models.ForeignKey(
         Lager, on_delete=models.PROTECT, related_name="members", null=True
@@ -334,22 +416,22 @@ class Member(models.Model):
     )
     member_no = models.CharField("Member number", max_length=30, unique=True)
     computer_no = models.CharField(
-        "Computer number", max_length=30, unique=True, blank=True, null=True
+        "Computer number", max_length=30, unique=True, null=True
     )
-    title = models.CharField(
-        "Title / Salutation", max_length=5, choices=Title.choices, blank=True
-    )
+    title = models.CharField("Title / Salutation", max_length=5, choices=Title.choices)
     full_name = models.CharField(max_length=200)
     short_name = models.CharField(
         "Short Name", max_length=600, blank=True, editable=False
     )
-    date_of_birth = models.DateField("Date of birth", null=True, blank=True)
+    date_of_birth = models.DateField("Date of birth", null=True)
     retirement_age = models.PositiveSmallIntegerField(default=60, editable=False)
     expected_retirement_date = models.DateField(null=True, blank=True, editable=False)
     salary = models.DecimalField(
         "Monthly salary (LKR)",
         max_digits=12,
         decimal_places=2,
+        null=True,
+        blank=True,
         validators=[MinValueValidator(Decimal("0"))],
     )
     office_address = models.TextField()
@@ -364,7 +446,7 @@ class Member(models.Model):
         "Home phone", max_length=22, blank=True, validators=[phone_validator]
     )
     admit_date = models.DateField("Admission date", default=timezone.localdate)
-    gender = models.CharField(max_length=15, choices=Gender.choices)
+    gender = models.CharField(max_length=15)
     nic_no = models.CharField(
         "NIC number", max_length=12, unique=True, validators=[nic_validator]
     )
@@ -394,6 +476,14 @@ class Member(models.Model):
 
     def __str__(self):
         return f"{self.member_no} · {self.full_name}"
+
+    def get_gender_display(self):
+        return (
+            Gender.objects.filter(code=self.gender)
+            .values_list("name", flat=True)
+            .first()
+            or self.gender
+        )
 
     @property
     def initials(self):
@@ -435,6 +525,20 @@ class Member(models.Model):
 
         guard_member_pension(self)
         errors = {}
+        if self.gender:
+            previous_gender = (
+                type(self)
+                .objects.filter(pk=self.pk)
+                .values_list("gender", flat=True)
+                .first()
+                if self.pk
+                else None
+            )
+            genders = Gender.objects.filter(code=self.gender)
+            if self.gender != previous_gender:
+                genders = genders.filter(is_active=True)
+            if not genders.exists():
+                errors["gender"] = "Choose an active gender from master data."
         self.nic_no = self.nic_no.strip().upper()
         self.member_no = self.member_no.strip().upper()
         self.computer_no = (
@@ -443,7 +547,7 @@ class Member(models.Model):
         if self.office_location_id and self.district_id:
             if self.office_location.district_id != self.district_id:
                 errors["office_location"] = (
-                    "Choose a zonal office in the selected district."
+                    "Choose a zonal office in the selected branch."
                 )
             if not self.office_location.is_active and (
                 not self.pk
@@ -459,10 +563,10 @@ class Member(models.Model):
                 or type(self).objects.get(pk=self.pk).district_id != self.district_id
             )
         ):
-            errors["district"] = "Choose an active district."
+            errors["district"] = "Choose an active branch."
         if self.lager_id:
             if self.lager.district_id != self.district_id:
-                errors["lager"] = "Choose a lager in the selected district."
+                errors["lager"] = "Choose a lager in the selected branch."
             elif self.lager.zonal_office_id != self.office_location_id:
                 errors["lager"] = "Choose a lager in the selected zonal office."
             if not self.lager.is_active and (
@@ -491,7 +595,7 @@ class Member(models.Model):
                 )
             ):
                 errors["school"] = (
-                    "Choose a department matching the selected district, zonal office and subdivision."
+                    "Choose a department matching the selected branch, zonal office and subdivision."
                 )
             if not self.school.is_active and (
                 not self.pk
@@ -523,8 +627,15 @@ class Member(models.Model):
                 fields.add("expected_retirement_date")
             kwargs["update_fields"] = fields
         with transaction.atomic():
+            from .member_audit import record_member_change, snapshot
+
+            before = {}
             if self.pk:
-                type(self).objects.select_for_update().filter(pk=self.pk).first()
+                previous = (
+                    type(self).objects.select_for_update().filter(pk=self.pk).first()
+                )
+                if previous:
+                    before = snapshot(previous)
             from .permissions import guard_member_actor
 
             guard_member_actor(self, locking=True)
@@ -536,9 +647,7 @@ class Member(models.Model):
                 or self.lager.zonal_office_id != self.office_location_id
             ):
                 raise ValidationError(
-                    {
-                        "lager": "Choose a lager in the member's district and zonal office."
-                    }
+                    {"lager": "Choose a lager in the member's branch and zonal office."}
                 )
             result = super().save(*args, **kwargs)
             if created:
@@ -549,6 +658,11 @@ class Member(models.Model):
                     officer=getattr(self, "_maintenance_officer", None),
                     actor=ledger_actor.get(),
                 )
+            record_member_change(
+                type(self).objects.get(pk=self.pk),
+                before,
+                "created" if created else "updated",
+            )
             return result
 
 
@@ -743,6 +857,15 @@ class PaymentType(models.Model):
 
 
 class PaymentTransaction(LedgerTrackedModel):
+    objects = PostingQuerySet.as_manager()
+    reverses = models.OneToOneField(
+        "self",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="correction",
+        verbose_name="Corrects entry",
+    )
     member = models.ForeignKey(
         Member, on_delete=models.PROTECT, related_name="payment_transactions"
     )
@@ -779,6 +902,7 @@ class PaymentTransaction(LedgerTrackedModel):
 
     class Meta:
         verbose_name = "debit / credit entry"
+        default_permissions = ("view", "add", "change")
         verbose_name_plural = "debit / credit entries"
         ordering = ["transaction_date", "pk"]
         indexes = [models.Index(fields=["member", "payment_type", "transaction_date"])]
@@ -796,6 +920,9 @@ class PaymentTransaction(LedgerTrackedModel):
 
     def clean(self):
         super().clean()
+        from .posting_policies import validate_correction
+
+        validate_correction(self)
         if (
             self.debit is not None
             and self.credit is not None
@@ -816,10 +943,13 @@ class PaymentTransaction(LedgerTrackedModel):
 
     def save(self, *args, **kwargs):
         from .fix_deposit_services import guard_transaction
+        from .posting_policies import guard_posting_edit, validate_correction
 
         with transaction.atomic():
             if self.member_id:
                 Member.objects.select_for_update().filter(pk=self.member_id).first()
+            guard_posting_edit(self)
+            validate_correction(self)
             from .contribution_services import guard_receipt_transaction
 
             guard_receipt_transaction(self)
@@ -868,7 +998,43 @@ class PaymentPlanTemplate(models.Model):
         return sum((item.amount for item in self.amounts.all()), Decimal("0.00"))
 
 
-class PaymentPlanTemplateAmount(models.Model):
+class FixedContributionMixin:
+    """Keep saved fixed amounts immutable in templates and member plans."""
+
+    def validate_fixed_amount(self):
+        previous = (
+            type(self).objects.select_related("payment_type").filter(pk=self.pk).first()
+            if self.pk
+            else None
+        )
+        if (
+            previous
+            and previous.is_fixed
+            and (
+                (Decimal(self.amount) if self.amount is not None else None)
+                != previous.amount
+                or self.payment_type_id != previous.payment_type_id
+                or getattr(self, self._fixed_owner_field)
+                != getattr(previous, self._fixed_owner_field)
+                or not self.is_fixed
+            )
+        ):
+            raise ValidationError("This saved fixed monthly amount cannot be changed.")
+
+    def clean(self):
+        super().clean()
+        self.validate_fixed_amount()
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            if self.pk:
+                type(self).objects.select_for_update().filter(pk=self.pk).first()
+            self.validate_fixed_amount()
+            return super().save(*args, **kwargs)
+
+
+class PaymentPlanTemplateAmount(FixedContributionMixin, models.Model):
+    _fixed_owner_field = "template_id"
     template = models.ForeignKey(
         PaymentPlanTemplate, on_delete=models.CASCADE, related_name="amounts"
     )
@@ -877,6 +1043,11 @@ class PaymentPlanTemplateAmount(models.Model):
     )
     amount = models.DecimalField(
         max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0"))]
+    )
+    is_fixed = models.BooleanField(
+        "Fixed amount",
+        default=False,
+        help_text="Lock this monthly amount when copied to a member plan.",
     )
 
     class Meta:
@@ -889,7 +1060,16 @@ class PaymentPlanTemplateAmount(models.Model):
             models.CheckConstraint(
                 condition=models.Q(amount__gte=0), name="template_amount_nonnegative"
             ),
+            models.CheckConstraint(
+                condition=models.Q(is_fixed=False) | models.Q(amount__gt=0),
+                name="template_fixed_amount_positive",
+            ),
         ]
+
+    def clean(self):
+        super().clean()
+        if self.is_fixed and self.amount is not None and self.amount <= 0:
+            raise ValidationError({"amount": "Enter a positive fixed monthly amount."})
 
 
 class PaymentPlan(LedgerTrackedModel):
@@ -923,7 +1103,8 @@ class PaymentPlan(LedgerTrackedModel):
         return sum((item.amount for item in self.amounts.all()), Decimal("0.00"))
 
 
-class PaymentPlanAmount(LedgerTrackedModel):
+class PaymentPlanAmount(FixedContributionMixin, LedgerTrackedModel):
+    _fixed_owner_field = "plan_id"
     plan = models.ForeignKey(
         PaymentPlan, on_delete=models.CASCADE, related_name="amounts"
     )
@@ -937,6 +1118,11 @@ class PaymentPlanAmount(LedgerTrackedModel):
         default=Decimal("0.00"),
         validators=[MinValueValidator(Decimal("0"))],
     )
+    is_fixed = models.BooleanField(
+        "Fixed amount",
+        default=False,
+        help_text="This member's agreed monthly amount is locked.",
+    )
 
     class Meta:
         ordering = ["payment_type__sort_order", "payment_type__name", "pk"]
@@ -947,6 +1133,10 @@ class PaymentPlanAmount(LedgerTrackedModel):
             models.CheckConstraint(
                 condition=models.Q(amount__gte=0),
                 name="payment_plan_amount_nonnegative",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(is_fixed=False) | models.Q(amount__gt=0),
+                name="plan_fixed_amount_positive",
             ),
         ]
 
@@ -1096,6 +1286,16 @@ class OpeningBalanceAmount(LedgerTrackedModel):
 
 
 class DepositInterestYear(LedgerTrackedModel):
+    year_opening_balance = models.DecimalField(
+        max_digits=24, decimal_places=2, null=True, blank=True
+    )
+    opening_effective_on = models.DateField(null=True, blank=True)
+    period_debit = models.DecimalField(
+        max_digits=24, decimal_places=2, null=True, blank=True
+    )
+    period_credit = models.DecimalField(
+        max_digits=24, decimal_places=2, null=True, blank=True
+    )
     member = models.ForeignKey(
         Member, on_delete=models.PROTECT, related_name="interest_years"
     )
@@ -1160,6 +1360,10 @@ class DepositInterestYear(LedgerTrackedModel):
 
     def __str__(self):
         return f"{self.member} · {self.payment_type} · {self.year_start.year}"
+
+    @property
+    def final_closing_balance(self):
+        return self.next_opening_balance
 
     def save(self, *args, **kwargs):
         if self.pk:
@@ -1411,6 +1615,15 @@ class ChildDeposit(LedgerTrackedModel):
 
 
 class ChildDepositTransaction(LedgerTrackedModel):
+    objects = PostingQuerySet.as_manager()
+    reverses = models.OneToOneField(
+        "self",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="correction",
+        verbose_name="Corrects entry",
+    )
     deposit = models.ForeignKey(
         ChildDeposit, on_delete=models.PROTECT, related_name="transactions"
     )
@@ -1470,6 +1683,12 @@ class ChildDepositTransaction(LedgerTrackedModel):
 
     def clean(self):
         super().clean()
+        from .contribution_services import guard_child_receipt_transaction
+
+        guard_child_receipt_transaction(self)
+        from .posting_policies import validate_correction
+
+        validate_correction(self)
         from .child_interest import guard_child_transaction
 
         guard_child_transaction(self)
@@ -1520,23 +1739,30 @@ class ChildDepositTransaction(LedgerTrackedModel):
 
     def save(self, *args, **kwargs):
         from .child_interest import guard_child_transaction
+        from .contribution_services import guard_child_receipt_transaction
+        from .posting_policies import guard_posting_edit, validate_correction
 
         with transaction.atomic():
             if self.deposit_id:
                 Member.objects.select_for_update().filter(
                     pk=self.deposit.child.member_id
                 ).first()
+            guard_posting_edit(self)
+            guard_child_receipt_transaction(self)
+            validate_correction(self)
             guard_child_transaction(self)
             return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         from .child_interest import guard_child_transaction
+        from .contribution_services import guard_child_receipt_transaction
 
         with transaction.atomic():
             Member.objects.select_for_update().filter(
                 pk=self.deposit.child.member_id
             ).first()
             try:
+                guard_child_receipt_transaction(self)
                 guard_child_transaction(self, deleting=True)
             except ValidationError as error:
                 raise ProtectedError(" ".join(error.messages), [self])
@@ -1544,6 +1770,16 @@ class ChildDepositTransaction(LedgerTrackedModel):
 
 
 class ChildDepositInterestYear(LedgerTrackedModel):
+    year_opening_balance = models.DecimalField(
+        max_digits=24, decimal_places=2, null=True, blank=True
+    )
+    opening_effective_on = models.DateField(null=True, blank=True)
+    period_debit = models.DecimalField(
+        max_digits=24, decimal_places=2, null=True, blank=True
+    )
+    period_credit = models.DecimalField(
+        max_digits=24, decimal_places=2, null=True, blank=True
+    )
     deposit = models.ForeignKey(
         ChildDeposit, on_delete=models.PROTECT, related_name="interest_years"
     )
@@ -1625,6 +1861,10 @@ class ChildDepositInterestYear(LedgerTrackedModel):
 
     def __str__(self):
         return f"{self.deposit} · {self.year_start.year}"
+
+    @property
+    def final_closing_balance(self):
+        return self.next_opening_balance
 
     def save(self, *args, **kwargs):
         if self.pk:
@@ -2067,3 +2307,5 @@ from .approval_models import (
 )
 
 from .contribution_models import PaymentReceipt, PaymentReceiptAllocation
+from .audit_models import AuditLog
+from .year_end_models import FinancialYearClosing

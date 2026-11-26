@@ -2,25 +2,25 @@
   <section class="card p-6">
     <h2 class="detail-label">Deposit balance</h2>
     <p class="detail-value">
-      LKR <output data-fix-balance>{{ deposit_balance|floatformat:2 }}</output>
+      LKR <output data-fix-balance>{{ deposit_balance|floatformat:'2g' }}</output>
     </p>
   </section>
   <section class="card p-6">
     <h2 class="detail-label">Additional loan limit</h2>
     <p class="detail-value">
-      LKR <output data-fix-loan-limit>{{ loan_limit|floatformat:2 }}</output>
+      LKR <output data-fix-loan-limit>{{ loan_limit|floatformat:'2g' }}</output>
     </p>
   </section>
   <section class="card p-6">
     <h2 class="detail-label">Withdrawal limit</h2>
     <p class="detail-value">
-      LKR <output data-fix-withdrawal-limit>{{ withdrawal_limit|floatformat:2 }}</output>
+      LKR <output data-fix-withdrawal-limit>{{ withdrawal_limit|floatformat:'2g' }}</output>
     </p>
   </section>
   <section class="card p-6">
     <h2 class="detail-label">Retained at maximum withdrawal</h2>
     <p class="detail-value">
-      LKR <output data-fix-held>{{ minimum_held|floatformat:2 }}</output>
+      LKR <output data-fix-held>{{ minimum_held|floatformat:'2g' }}</output>
     </p>
   </section>
 </div>

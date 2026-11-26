@@ -26,10 +26,8 @@ class LedgerOfficerProfile(models.Model):
     epf_number = models.CharField(
         "EPF number", max_length=30, unique=True, null=True, blank=True
     )
-    zonal_office = models.ForeignKey(
+    zonal_offices = models.ManyToManyField(
         "members.OfficeLocation",
-        on_delete=models.PROTECT,
-        null=True,
         blank=True,
         related_name="ledger_officers",
     )
@@ -49,25 +47,57 @@ class LedgerOfficerProfile(models.Model):
                     "epf_number": "Reassign this user's ledger masters before removing their EPF number."
                 }
             )
-        if (
-            self.pk
-            and type(self)
-            .objects.filter(pk=self.pk)
-            .exclude(zonal_office_id=self.zonal_office_id)
-            .exists()
-            and self.user.responsible_ledgers.filter(status="active")
-            .exclude(zonal_office_id=self.zonal_office_id)
-            .exists()
-        ):
-            raise ValidationError(
-                {
-                    "zonal_office": "Reassign this officer's active ledgers before changing their zonal office."
-                }
-            )
 
     def save(self, *args, **kwargs):
         self.clean()
         return super().save(*args, **kwargs)
+
+
+def validate_zonal_office_assignments(
+    sender, instance, action, reverse, pk_set, using, **kwargs
+):
+    if action not in ("pre_add", "pre_remove", "pre_clear"):
+        return
+    profiles = (
+        LedgerOfficerProfile.objects.using(using).filter(pk__in=pk_set)
+        if reverse and pk_set is not None
+        else (
+            instance.ledger_officers.using(using).all()
+            if reverse
+            else LedgerOfficerProfile.objects.using(using).filter(pk=instance.pk)
+        )
+    )
+    for profile in profiles.select_for_update().select_related("user"):
+        if profile.user.is_superuser:
+            continue
+        office_ids = {instance.pk} if reverse else pk_set
+        if action == "pre_add":
+            from .models import OfficeLocation
+
+            if (
+                OfficeLocation.objects.using(using)
+                .filter(pk__in=office_ids)
+                .exclude(
+                    district__in=profile.user.assigned_districts.using(using).all()
+                )
+                .exists()
+            ):
+                raise ValidationError(
+                    "Choose zonal offices belonging to the user's assigned branches."
+                )
+        else:
+            if office_ids is None:
+                office_ids = profile.zonal_offices.using(using).values_list(
+                    "pk", flat=True
+                )
+            if (
+                profile.user.responsible_ledgers.using(using)
+                .filter(status="active", zonal_office_id__in=office_ids)
+                .exists()
+            ):
+                raise ValidationError(
+                    "Reassign active ledgers before removing their zonal office from this officer."
+                )
 
 
 class PermanentHistory(models.Model):
@@ -95,7 +125,10 @@ class MemberLedger(models.Model):
         max_length=20, unique=True, default=ledger_reference, editable=False
     )
     district = models.ForeignKey(
-        "members.District", on_delete=models.PROTECT, related_name="member_ledgers"
+        "members.District",
+        verbose_name="Branch",
+        on_delete=models.PROTECT,
+        related_name="member_ledgers",
     )
     zonal_office = models.ForeignKey(
         "members.OfficeLocation",

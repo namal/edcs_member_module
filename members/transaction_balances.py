@@ -14,6 +14,77 @@ from .models import (
 ZERO = Decimal("0.00")
 
 
+def child_account_summary(user, member, as_of, *, selected=None):
+    """Authorized child balances and recent entries; member totals stay separate."""
+    from django.urls import reverse
+    from .child_services import child_statement, deposits_with_balances
+    from .models import ChildDeposit
+    from .permissions import has_module_permission
+
+    if not any(
+        has_module_permission(user, ChildDeposit, action)
+        for action in ("view", "add", "change")
+    ):
+        return {}
+    can_view = has_module_permission(user, ChildDeposit, "view")
+    accounts = []
+    selected_account = None
+    deposits = deposits_with_balances(user, as_of).filter(child__member=member)
+    for deposit in deposits:
+        rate = deposit.rate_on(as_of)
+        row = {
+            "id": deposit.pk,
+            "deposit_type_id": deposit.deposit_type_id,
+            "name": str(deposit),
+            "child_name": deposit.child.name,
+            "account_no": deposit.account_no,
+            "type_name": deposit.deposit_type.name,
+            "balance": format(deposit.as_of_balance, ".2f"),
+            "is_active": bool(
+                deposit.is_active
+                and deposit.child.is_active
+                and deposit.deposit_type.is_active
+            ),
+            "opened_on": deposit.opened_on.isoformat(),
+            "rate": format(rate, ".2f") if rate is not None else None,
+            "statement_url": (
+                reverse("child_deposit_detail", args=[deposit.pk])
+                + f"?date_to={as_of.isoformat()}"
+                if can_view
+                else None
+            ),
+        }
+        accounts.append(row)
+        if str(deposit.pk) == str(selected):
+            selected_account = row
+            if can_view:
+                statement = child_statement(deposit, None, as_of)
+                row["total_credit"] = format(statement["total_credit"], ".2f")
+                row["total_debit"] = format(statement["total_debit"], ".2f")
+                row["opening_amount"] = format(statement["brought_forward"], ".2f")
+                row["transactions"] = [
+                    {
+                        "date": entry.transaction_date.isoformat(),
+                        "reference": entry.reference,
+                        "description": entry.description,
+                        "debit": format(entry.debit, ".2f"),
+                        "credit": format(entry.credit, ".2f"),
+                        "balance": format(entry.running_balance, ".2f"),
+                    }
+                    for entry in statement["entries"].order_by(
+                        "-transaction_date", "-pk"
+                    )[:10]
+                ]
+    return {
+        "child_accounts": accounts,
+        "child_total": format(
+            sum((Decimal(row["balance"]) for row in accounts), ZERO), ".2f"
+        ),
+        "selected_child_account": selected_account,
+        "can_view_child_transactions": can_view,
+    }
+
+
 def account_statement(member, payment_type, start, end):
     """Return a statement starting at the saved opening amount, when effective."""
     opening = (
@@ -230,6 +301,31 @@ def member_balances(member, as_of, *, exclude_entry=None):
                 "balance": format(amount, ".2f"),
             }
         )
+    remaining_credits = []
+    for receipt in member.payment_receipts.filter(received_on__lte=as_of):
+        saved = receipt.plan_snapshot
+        if saved.get("remaining_allocations"):
+            remaining_credits.extend(
+                {
+                    "receipt": receipt.receipt_number,
+                    "received_on": receipt.received_on.isoformat(),
+                    "amount": row["amount"],
+                    "payment_type": row["name"],
+                }
+                for row in saved["remaining_allocations"]
+                if not row.get("child_deposit_id")
+            )
+            continue
+        remaining = Decimal(saved.get("remaining_amount", "0"))
+        if remaining > ZERO and saved.get("remaining_payment_type_id"):
+            remaining_credits.append(
+                {
+                    "receipt": receipt.receipt_number,
+                    "received_on": receipt.received_on.isoformat(),
+                    "amount": format(remaining, ".2f"),
+                    "payment_type": saved["remaining_payment_type_name"],
+                }
+            )
     return {
         "member_id": member.pk,
         "as_of": as_of.isoformat(),
@@ -237,4 +333,8 @@ def member_balances(member, as_of, *, exclude_entry=None):
         "total": format(total, ".2f"),
         "has_records": bool(opening_amounts or movements),
         "balances": rows,
+        "remaining_contribution_credits": remaining_credits,
+        "remaining_contribution_total": format(
+            sum((Decimal(row["amount"]) for row in remaining_credits), ZERO), ".2f"
+        ),
     }

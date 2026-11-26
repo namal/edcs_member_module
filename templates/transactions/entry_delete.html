@@ -5,7 +5,7 @@
     <h1 class="section-title">Delete debit / credit entry?</h1>
     <p class="muted mt-4">{{ entry.member }} · {{ entry.payment_type }}</p>
     <p class="muted mt-3">
-      {{ entry.transaction_date|date:'d M Y' }} · Debit LKR {{ entry.debit|floatformat:2 }} · Credit LKR {{ entry.credit|floatformat:2 }}
+      {{ entry.transaction_date|date:'d M Y' }} · Debit LKR {{ entry.debit|floatformat:'2g' }} · Credit LKR {{ entry.credit|floatformat:'2g' }}
     </p>
     <p class="muted mt-3">This permanently removes this entry and changes the debit / credit totals.</p>
     <form method="post" class="mt-7 flex justify-end gap-3">

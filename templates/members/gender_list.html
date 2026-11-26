@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7 flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <p class="eyebrow">Master data</p>
+      <h1 class="page-title">Genders</h1>
+    </div>
+    {% if perms.members.add_gender %}
+      <a class="btn btn-primary" href="{% url 'gender_create' %}">Add gender</a>
+    {% endif %}
+  </div>
+  <form method="get" class="mb-6 flex gap-3">
+    <input class="field-input"
+           name="q"
+           value="{{ request.GET.q }}"
+           aria-label="Search genders"
+           placeholder="Search genders">
+    <button class="btn btn-secondary">Search</button>
+  </form>
+  <section class="card overflow-x-auto">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Code</th>
+          <th>Order</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for gender in page_obj %}
+          <tr>
+            <td>{{ gender.name }}</td>
+            <td>{{ gender.code }}</td>
+            <td>{{ gender.sort_order }}</td>
+            <td>{{ gender.is_active|yesno:'Active,Inactive' }}</td>
+            <td>
+              {% if perms.members.change_gender %}
+                <a class="text-link" href="{% url 'gender_edit' gender.pk %}">Edit</a>
+              {% endif %}
+              {% if perms.members.delete_gender %}
+                <a class="text-link" href="{% url 'gender_delete' gender.pk %}">Delete</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5">No genders found.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% include 'components/pagination.html' %}
+{% endblock %}

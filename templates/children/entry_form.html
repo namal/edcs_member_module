@@ -11,18 +11,23 @@
     </p>
   </div>
   {% include 'children/nav.html' %}
+  {% if correction %}
+    <div class="alert mb-6">
+      Correcting entry #{{ correction.pk }} ({{ correction.transaction_date|date:'d M Y' }}). The opposite amount is fixed. Enter a correction reason; the original entry is retained.
+    </div>
+  {% endif %}
   <form method="post"
         data-child-entry-form
         data-status-url="{% url 'child_deposit_status' deposit.pk %}"
         {% if entry %}data-entry-id="{{ entry.pk }}"{% endif %}>
-    {% csrf_token %}
+    {% csrf_token %}{{ form.reverses }}
     {% if form.errors %}
       <div class="alert message-error" role="alert">Please check the entry below. {{ form.non_field_errors }}</div>
     {% endif %}
     <section class="form-section">
       <h2 class="section-title mb-5">Balance before this entry</h2>
       <p class="detail-value text-brand-700">
-        LKR <output data-child-entry-balance>{{ saved_balance|floatformat:2|default:'—' }}</output>
+        LKR <output data-child-entry-balance>{{ saved_balance|floatformat:'2g'|default:'—' }}</output>
       </p>
       <p class="field-help">
         Configured rate for the transaction date: <output data-child-entry-rate>

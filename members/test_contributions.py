@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -112,7 +112,7 @@ class ContributionTests(TestCase):
         self.client.force_login(self.operator)
 
     def payload(self, amount="3500.00", **overrides):
-        return {
+        data = {
             "member": self.member.pk,
             "received_on": self.today.isoformat(),
             "amount": amount,
@@ -122,6 +122,36 @@ class ContributionTests(TestCase):
             "operation_key": str(uuid4()),
             **overrides,
         }
+        configured = {
+            "Fix Deposit": "200",
+            "Special Deposit": "500",
+            "Pension": "400",
+            "Funeral": "100",
+            "Scholarship": "300",
+        }
+        try:
+            total = Decimal(data["amount"])
+            if total == Decimal("750"):
+                configured = {
+                    name: str(Decimal(value) / 2) for name, value in configured.items()
+                }
+            elif total == Decimal("0.01"):
+                configured = {
+                    name: "0.01" if name == "Special Deposit" else "0"
+                    for name in configured
+                }
+            elif total.is_finite() and total >= 1500:
+                configured["Special Deposit"] = str(total - 1000)
+        except (InvalidOperation, ValueError, TypeError):
+            pass
+        category = data.get("payment_type")
+        data.setdefault("allocation_context", f"{data['member']}:{category or ''}")
+        if category:
+            data.setdefault(f"allocated_{category}", data["amount"])
+        else:
+            for name, value in configured.items():
+                data.setdefault(f"allocated_{self.types[name].pk}", value)
+        return data
 
     def preview(self, data):
         result = self.client.post(
@@ -129,8 +159,18 @@ class ContributionTests(TestCase):
         )
         self.assertEqual(result.status_code, 200)
         self.assertFalse(result.context["form"].errors, result.context["form"].errors)
+        form = result.context["form"]
         return {
-            **data,
+            **{
+                key: value
+                for key, value in data.items()
+                if not key.startswith("allocated_")
+            },
+            **{
+                name: form[name].value()
+                for name in form.fields
+                if name.startswith("allocated_") or name == "allocation_context"
+            },
             "intent": "post",
             "review_hash": result.context["form"]["review_hash"].value(),
         }
@@ -171,7 +211,7 @@ class ContributionTests(TestCase):
         data = self.payload("250")
         data["payment_type"] = self.types["Pension"].pk
         page = self.client.post(reverse("contribution_create"), data)
-        self.assertContains(page, "Post contribution")
+        self.assertContains(page, "Save contribution")
         self.assertNotContains(page, "Submit for approval")
         response = self.post(data)
         self.assertEqual(response.status_code, 302)
@@ -199,7 +239,7 @@ class ContributionTests(TestCase):
         decide(self.admin, record.pk, "approve", "First level payment review")
         return decide(self.admin, record.pk, "approve", "Second level payment review")
 
-    def test_example_3500_is_exact_and_uses_unrounded_ratios(self):
+    def test_example_3500_posts_exactly_the_entered_allocations(self):
         response = self.post()
         self.assertEqual(response.status_code, 302)
         receipt = m.PaymentReceipt.objects.get()
@@ -207,11 +247,11 @@ class ContributionTests(TestCase):
         self.assertEqual(
             amounts,
             {
-                "Fix Deposit": Decimal("466.67"),
-                "Special Deposit": Decimal("1166.67"),
-                "Pension": Decimal("933.33"),
-                "Funeral": Decimal("233.33"),
-                "Scholarship": Decimal("700.00"),
+                "Fix Deposit": Decimal("200"),
+                "Special Deposit": Decimal("2500"),
+                "Pension": Decimal("400"),
+                "Funeral": Decimal("100"),
+                "Scholarship": Decimal("300"),
             },
         )
         self.assertEqual(sum(amounts.values()), Decimal("3500.00"))
@@ -227,6 +267,126 @@ class ContributionTests(TestCase):
             5,
         )
 
+    def test_equal_total_automatically_uses_plan_amounts_without_ratios(self):
+        response = self.client.post(
+            reverse("contribution_create"),
+            {**self.payload("1500"), "intent": "preview"},
+        )
+        self.assertFalse(response.context["form"].errors)
+        preview = response.context["preview"]
+        self.assertFalse(preview["manual_allocation"])
+        self.assertTrue(preview["is_balanced"])
+        self.assertTrue(all("ratio" not in row for row in preview["rows"]))
+        self.assertNotContains(response, "<th>Ratio</th>")
+        for name, field in response.context["form"].fields.items():
+            if name.startswith("allocated_"):
+                self.assertTrue(field.widget.attrs["readonly"])
+
+    def test_first_higher_or_lower_preview_keeps_plan_defaults_for_manual_entry(self):
+        for received in ["3500", "750"]:
+            data = {
+                key: value
+                for key, value in self.payload(received).items()
+                if not key.startswith("allocated_") and key != "allocation_context"
+            }
+            response = self.client.post(
+                reverse("contribution_create"), {**data, "intent": "preview"}
+            )
+            self.assertFalse(response.context["form"].errors)
+            preview = response.context["preview"]
+            self.assertTrue(preview["manual_allocation"])
+            self.assertFalse(preview["is_balanced"])
+            self.assertEqual(preview["allocated_total"], Decimal("1500"))
+            self.assertNotContains(response, "data-post-contribution")
+            self.assertContains(response, "allocated amounts manually")
+        self.assertFalse(m.PaymentReceipt.objects.exists())
+
+    def test_unbalanced_and_invalid_manual_amounts_cannot_post(self):
+        pension = f"allocated_{self.types['Pension'].pk}"
+        for value in [
+            "399",
+            "401",
+            "-1",
+            "0.001",
+            "NaN",
+            "Infinity",
+            "10000000000",
+            "",
+        ]:
+            data = self.payload(**{pension: value})
+            response = self.client.post(
+                reverse("contribution_create"), {**data, "intent": "preview"}
+            )
+            self.assertTrue(response.context["form"].errors, value)
+        self.assertFalse(m.PaymentReceipt.objects.exists())
+        self.assertFalse(m.PaymentTransaction.objects.exists())
+
+    def test_unknown_missing_and_duplicate_allocation_categories_are_rejected(self):
+        from django.http import QueryDict
+
+        unknown = self.payload(allocated_999999="0")
+        response = self.client.post(reverse("contribution_create"), unknown)
+        self.assertContains(response, "not in this member")
+        missing = self.payload()
+        key = f"allocated_{self.types['Pension'].pk}"
+        del missing[key]
+        self.assertFalse(ContributionForm(missing, user=self.operator).is_valid())
+        duplicate = QueryDict("", mutable=True)
+        duplicate.update(self.payload())
+        duplicate.appendlist(key, "400")
+        self.assertFalse(ContributionForm(duplicate, user=self.operator).is_valid())
+        self.assertFalse(m.PaymentReceipt.objects.exists())
+
+    def test_matching_plan_total_rejects_forged_redistribution(self):
+        data = self.preview(self.payload("1500"))
+        data[f"allocated_{self.types['Special Deposit'].pk}"] = "400"
+        data[f"allocated_{self.types['Pension'].pk}"] = "500"
+        response = self.client.post(reverse("contribution_create"), data)
+        self.assertContains(response, "use the configured plan amounts")
+        self.assertFalse(m.PaymentReceipt.objects.exists())
+
+    def test_editing_manual_allocations_requires_fresh_preview_even_if_total_matches(
+        self,
+    ):
+        data = self.preview(self.payload())
+        data[f"allocated_{self.types['Special Deposit'].pk}"] = "2400"
+        data[f"allocated_{self.types['Pension'].pk}"] = "500"
+        response = self.client.post(reverse("contribution_create"), data)
+        self.assertContains(response, "Preview the allocation again")
+        self.assertFalse(m.PaymentReceipt.objects.exists())
+        response = self.client.post(reverse("contribution_create"), self.preview(data))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            m.PaymentReceiptAllocation.objects.get(
+                payment_type=self.types["Pension"]
+            ).amount,
+            Decimal("500"),
+        )
+
+    def test_reusing_receipt_key_with_different_manual_allocations_is_rejected(self):
+        data = self.payload()
+        self.post(data)
+        data[f"allocated_{self.types['Special Deposit'].pk}"] = "2400"
+        data[f"allocated_{self.types['Pension'].pk}"] = "500"
+        response = self.post(data)
+        self.assertContains(response, "already used")
+        self.assertEqual(m.PaymentReceipt.objects.count(), 1)
+
+    def test_changing_category_resets_manual_fields_and_requires_new_preview(self):
+        data = self.preview(self.payload())
+        data["payment_type"] = self.types["Pension"].pk
+        response = self.client.post(reverse("contribution_create"), data)
+        self.assertContains(response, "selection changed")
+        self.assertFalse(m.PaymentReceipt.objects.exists())
+        response = self.client.post(
+            reverse("contribution_create"), {**data, "intent": "preview"}
+        )
+        self.assertFalse(response.context["form"].errors)
+        self.assertEqual(len(response.context["preview"]["rows"]), 1)
+        self.assertEqual(
+            Decimal(response.context["preview"]["rows"][0]["amount"]), Decimal("3500")
+        )
+
     def test_equal_plan_posts_without_exception_or_global_edit_approval(self):
         self.policy()
         m.ApprovalHierarchy.objects.create(
@@ -235,6 +395,32 @@ class ContributionTests(TestCase):
         self.assertEqual(self.post(self.payload("1500")).status_code, 302)
         self.assertEqual(m.PaymentReceipt.objects.get().amount, Decimal("1500"))
         self.assertFalse(m.ApprovalRequest.objects.exists())
+
+    def test_higher_receipt_with_one_below_plan_manual_allocation_waits_for_approval(
+        self,
+    ):
+        self.policy()
+        row = self.plan.amounts.get(payment_type=self.types["Pension"])
+        row.is_fixed = True
+        row.save()
+        data = self.payload(
+            **{
+                f"allocated_{self.types['Pension'].pk}": "100",
+                f"allocated_{self.types['Special Deposit'].pk}": "2800",
+            }
+        )
+        self.assertEqual(self.post(data).status_code, 302)
+        self.assertFalse(m.PaymentReceipt.objects.exists())
+        record = m.ApprovalRequest.objects.get()
+        self.assertEqual(self.approve(record).status, "approved")
+        receipt = m.PaymentReceipt.objects.get()
+        self.assertEqual(
+            receipt.allocations.get(payment_type=self.types["Pension"]).amount,
+            Decimal("100"),
+        )
+        row.refresh_from_db()
+        self.assertEqual(row.amount, Decimal("400"))
+        self.assertTrue(row.is_fixed)
 
     def test_preview_has_no_financial_writes_and_excludes_zero_categories(self):
         self.preview(self.payload())
@@ -368,7 +554,7 @@ class ContributionTests(TestCase):
     def test_conflicting_operation_key_cannot_reuse_a_receipt(self):
         data = self.payload()
         self.post(data)
-        response = self.post({**data, "amount": "4000"})
+        response = self.post(self.payload("4000", operation_key=data["operation_key"]))
         self.assertContains(response, "already used")
         self.assertEqual(m.PaymentReceipt.objects.count(), 1)
 
@@ -377,7 +563,7 @@ class ContributionTests(TestCase):
         response = self.client.post(
             reverse("contribution_create"), {**data, "amount": "4000"}
         )
-        self.assertContains(response, "Preview the allocation again")
+        self.assertContains(response, "allocated total must equal")
         self.assertFalse(m.PaymentReceipt.objects.exists())
         row = self.plan.amounts.get(payment_type=self.types["Pension"])
         row.amount = 450
@@ -595,14 +781,14 @@ class ContributionTests(TestCase):
         receipt = m.PaymentReceipt.objects.get()
         self.assertContains(
             self.client.get(reverse("contribution_detail", args=[receipt.pk])),
-            "3500.00",
+            "3,500.00",
         )
         self.assertContains(self.client.get(reverse("contribution_list")), "SALARY-001")
         response = self.client.get(
             reverse("payment_transaction_list"),
             {"member": self.member.pk, "payment_type": self.types["Pension"].pk},
         )
-        self.assertEqual(response.context["final_balance"], Decimal("933.33"))
+        self.assertEqual(response.context["final_balance"], Decimal("400.00"))
         self.assertNotContains(
             response,
             reverse(
@@ -655,7 +841,15 @@ class ConcurrentContributionTests(TransactionTestCase):
             "description": "",
             "operation_key": uuid4(),
         }
-        fingerprint = allocation_preview(self.member, self.today, "3500")["fingerprint"]
+        allocations = {
+            str(row.payment_type_id): row.amount
+            for row in self.plan.amounts.filter(amount__gt=0)
+        }
+        allocations[str(self.types["Special Deposit"].pk)] = Decimal("2500")
+        data.update({f"allocated_{key}": value for key, value in allocations.items()})
+        fingerprint = allocation_preview(
+            self.member, self.today, "3500", allocations=allocations
+        )["fingerprint"]
 
         def post():
             close_old_connections()

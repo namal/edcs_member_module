@@ -20,7 +20,7 @@
         —
       {% endif %}
     </td>
-    <td class="font-semibold">{{ deposit.balance|floatformat:2 }}</td>
+    <td class="font-semibold">{{ deposit.balance|floatformat:'2g' }}</td>
     <td>
       <div class="flex gap-3">
         {% if perms.members.change_childdeposit %}

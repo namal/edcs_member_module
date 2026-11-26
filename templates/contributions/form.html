@@ -15,8 +15,11 @@
       <a class="btn btn-secondary" href="{% url 'contribution_list' %}">Receipt history</a>
     {% endif %}
   </div>
-  <form method="post">
-    {% csrf_token %}{{ form.operation_key }}{{ form.review_hash }}
+  <form method="post"
+        data-contribution-form
+        {% if perms.members.add_childdeposit %}data-child-accounts-url="{% url 'contribution_child_accounts' %}"{% endif %}>
+    {% csrf_token %}{{ form.operation_key }}{{ form.review_hash }}{{ form.allocation_context }}
+    {% if form.remaining_payment_type.value %}{{ form.remaining_payment_type.as_hidden }}{% endif %}
     {% if form.errors %}
       <div class="alert message-error" role="alert">Please review the contribution. {{ form.non_field_errors }}</div>
     {% endif %}
@@ -30,35 +33,37 @@
         {% include 'components/field.html' with field=form.description wide=True %}
       </div>
       <p class="field-help mt-4">
-        Positive amounts in the current payment plan define the ratios. Blank or zero plan categories are excluded. This records received money; it does not deduct salary from an external payroll.
+        When the received amount equals the plan total, the plan amounts are allocated automatically. Otherwise, enter the actual category amounts. Allocate any remaining balance to the accounts below.
       </p>
     </section>
-    {% if preview %}
-      <section class="card mb-6" aria-label="Allocation preview">
+    {% if form.allocation_rows %}
+      <section class="card mb-6"
+               aria-label="Allocation preview"
+               data-allocation-plan-total="{{ form.plan_total }}">
         <div class="card-heading">
           <h2 class="section-title">Allocation preview</h2>
           <span class="badge bg-brand-50 text-brand-700">LKR</span>
         </div>
         <div class="overflow-x-auto">
-          <table class="data-table">
+          <table class="data-table allocation-table">
             <thead>
               <tr>
                 <th>Payment category</th>
                 <th>Plan amount</th>
-                <th>Ratio</th>
                 <th>Allocated amount</th>
                 <th>Approval</th>
               </tr>
             </thead>
             <tbody>
-              {% for row in preview.rows %}
+              {% for row, field in form.allocation_rows %}
                 <tr>
                   <td>{{ row.name }}</td>
-                  <td>{{ row.configured|floatformat:2 }}</td>
-                  <td>{{ row.ratio }}%</td>
-                  <td>{{ row.amount|floatformat:2 }}</td>
-                  <td>
-                    {% if row.below %}
+                  <td data-label="Plan amount (LKR)">{{ row.configured|floatformat:'2g' }}</td>
+                  <td>{% include 'components/field.html' with field=field %}</td>
+                  <td data-label="Approval">
+                    {% if not preview %}
+                      Preview to check
+                    {% elif row.below %}
                       {% if user.is_superuser %}
                         Below plan — administrator may post
                       {% else %}
@@ -74,45 +79,115 @@
             <tfoot>
               <tr>
                 <th>Total</th>
-                <td>{{ preview.plan_total|floatformat:2 }}</td>
-                <td>100%</td>
-                <td>{{ preview.total|floatformat:2 }}</td>
+                <td data-label="Plan total (LKR)">{{ form.plan_total|floatformat:'2g' }}</td>
+                <td data-label="Allocated total (LKR)">
+                  <output data-allocated-total>{{ preview.allocated_total|default:0|floatformat:'2g' }}</output>
+                </td>
                 <td></td>
               </tr>
             </tfoot>
           </table>
         </div>
         <div class="p-6">
-          {% if preview.requires_approval and not user.is_superuser %}
+          <p class="field-help mb-3" data-allocation-mode>
+            {% if form.manual_allocation %}
+              The received amount differs from the plan total. Enter the allocated amounts manually.
+            {% else %}
+              The received amount matches the plan total. Plan amounts are allocated automatically.
+            {% endif %}
+          </p>
+          <p class="font-semibold text-brand-700"
+             data-allocation-balance
+             role="status"
+             aria-live="polite">
+            {% if preview and not preview.is_balanced %}
+              Allocate the remaining balance to accounts below. The combined allocations must equal the amount received.
+            {% endif %}
+          </p>
+          {% if preview.remaining_payment_type and preview.difference > 0 %}
+            <p class="field-help mt-3">
+              Remaining balance: LKR {{ preview.difference|floatformat:'2g' }}
+              {% if preview.remaining_payment_type %}· Credit to {{ preview.remaining_payment_type.name }} when saved{% endif %}
+            </p>
+          {% endif %}
+          <p class="field-help mt-2"
+             data-allocation-review
+             role="status"
+             aria-live="polite">Review the allocated amounts, then preview before posting.</p>
+          {% if preview and preview.is_balanced and preview.requires_approval and not user.is_superuser %}
             <p class="font-semibold text-brand-700">
               This entire receipt will wait for Payment exceptions approval. No categories are credited until final approval.
             </p>
-          {% elif preview.requires_approval %}
+          {% elif preview and preview.is_balanced and preview.requires_approval %}
             <p class="font-semibold text-brand-700">
               System administrator: this contribution will post immediately without an approval request.
             </p>
-          {% else %}
+          {% elif preview and preview.is_balanced %}
             <p class="font-semibold text-brand-700">
               All applicable amounts meet or exceed the plan. The receipt will post without additional approval.
             </p>
           {% endif %}
-          <p class="field-help mt-2">
-            Ratios are displayed rounded. Allocation uses exact plan proportions and distributes any remaining cents so the credits total the amount received.
-          </p>
         </div>
       </section>
     {% endif %}
+    <section class="form-section" data-remaining-allocations>
+      <h2 class="section-title">Allocate remaining balance</h2>
+      <p class="field-help mt-2">
+        Select member accounts or child deposit types and enter the amounts to credit. For a child deposit type, select the child's registered deposit account. Child allocations appear in Child Deposits.
+      </p>
+      {{ form.remaining_formset.management_form }}
+      {% if form.remaining_formset.non_form_errors %}
+        <div class="alert message-error">{{ form.remaining_formset.non_form_errors }}</div>
+      {% endif %}
+      <div class="mt-5 grid gap-4 sm:grid-cols-3" aria-live="polite">
+        <p>
+          Available after standard allocation: LKR <output data-remaining-available>{{ preview.difference|default:0|floatformat:'2g' }}</output>
+        </p>
+        <p>
+          Allocated to accounts: LKR <output data-remaining-total>{{ preview.remaining_total|default:0|floatformat:'2g' }}</output>
+        </p>
+        <p class="font-semibold">
+          Remaining balance: LKR <output data-remaining-balance>{{ preview.remaining_balance|default:0|floatformat:'2g' }}</output>
+        </p>
+      </div>
+      <div class="mt-5 overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Allocated amount (LKR)</th>
+              <th>Remaining balance (LKR)</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody data-remaining-rows>
+            {% for allocation in form.remaining_formset %}
+              {% include 'contributions/remaining_row.html' %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <button class="btn btn-secondary mt-4" type="button" data-add-remaining>Add Another Account</button>
+      <p class="field-help mt-3"
+         data-remaining-status
+         role="status"
+         aria-live="polite">Complete the account allocations and preview before saving.</p>
+      <template data-remaining-template>
+        {% include 'contributions/remaining_row.html' with allocation=form.remaining_formset.empty_form %}
+      </template>
+    </section>
     <div class="flex flex-wrap justify-end gap-3">
       <button class="btn btn-secondary" name="intent" value="preview">Preview allocation</button>
-      {% if preview and not form.errors %}
+      {% if preview and preview.is_balanced and not form.errors %}
         <button class="btn btn-primary"
                 name="intent"
                 value="post"
+                data-post-contribution
                 data-submit-label="Processing…">
           {% if preview.requires_approval and not user.is_superuser %}
             Submit for approval
           {% else %}
-            Post contribution
+            Save contribution
           {% endif %}
         </button>
       {% endif %}

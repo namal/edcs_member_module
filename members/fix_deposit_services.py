@@ -219,7 +219,7 @@ def issue_loan(actor, account_pk, day, principal, notes=""):
         raise ValidationError(status["loan_reasons"])
     if principal > status["loan_limit"]:
         raise ValidationError(
-            f"The maximum additional loan is LKR {status['loan_limit']:.2f}."
+            f"The maximum additional loan is LKR {status['loan_limit']:,.2f}."
         )
     loan = FixDepositLoan(
         account=account,
@@ -332,7 +332,7 @@ def request_withdrawal(actor, account_pk, day, amount, notes=""):
         raise ValidationError("This account already has a pending withdrawal request.")
     if amount > status["withdrawal_limit"]:
         raise ValidationError(
-            f"The maximum withdrawal is LKR {status['withdrawal_limit']:.2f}."
+            f"The maximum withdrawal is LKR {status['withdrawal_limit']:,.2f}."
         )
     withdrawal = FixDepositWithdrawal(
         account=account,
@@ -423,6 +423,20 @@ def guard_transaction(entry, *, deleting=False):
     original = (
         PaymentTransaction.objects.filter(pk=entry.pk).first() if entry.pk else None
     )
+    if entry.reverses_id and original is None:
+        from .posting_policies import validate_correction
+
+        validate_correction(entry)
+        if (
+            entry.payment_type_id in locked_payment_types(entry.member_id)
+            or FixDepositWithdrawal.objects.filter(
+                ledger_transaction_id=entry.reverses_id
+            ).exists()
+        ):
+            raise ValidationError(
+                "This Fix Deposit has loan or withdrawal activity. Review the correction through Fix Deposit servicing."
+            )
+        return
     unchanged = original is not None and all(
         getattr(original, field) == getattr(entry, field)
         for field in (

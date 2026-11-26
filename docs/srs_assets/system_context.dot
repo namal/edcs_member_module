@@ -1,0 +1,16 @@
+digraph EDCS {
+  graph [rankdir=TB, bgcolor="white", pad="0.25", nodesep="0.45", ranksep="0.55", fontname="Noto Sans"];
+  node [shape=box, style="rounded,filled", fillcolor="#F7F3F4", color="#6B2138", fontname="Noto Sans", fontsize=13, margin="0.16,0.12"];
+  edge [color="#6B2138", fontname="Noto Sans", fontsize=10];
+  staff [label="Authorized staff\nAdministrators, operators, approvers and readers"];
+  browser [label="Web browser\nHTML forms, local CSS and JavaScript"];
+  app [label="EDCS Django application\nPermissions • validation • approvals\nFinancial services • reports • audit", fillcolor="#6B2138", fontcolor="white"];
+  database [label="PostgreSQL\nMembers, account movements,\nsnapshots and audit history"];
+  mail [label="Optional SMTP service\nNew-account welcome message"];
+  jobs [label="Trusted host scheduler / CLI\nCalculate interest and optionally\npost ended account-years", fillcolor="#FFF5DB"];
+  staff -> browser [label="operates"];
+  browser -> app [label="session-authenticated requests"];
+  app -> database [label="validated transactions"];
+  app -> mail [label="after account commit"];
+  jobs -> app [label="domain service calls"];
+}

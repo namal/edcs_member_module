@@ -45,7 +45,9 @@ class MemberWorkflowTests(TestCase):
             "district": self.district.pk,
             "office_location": self.office.pk,
             "member_no": "m-001",
-            "computer_no": "",
+            "computer_no": "COMP-M-001",
+            "title": "Ms.",
+            "date_of_birth": "1990-01-01",
             "full_name": "Test Member",
             "salary": "85000.50",
             "private_address": "2 Test Lane",
@@ -60,6 +62,8 @@ class MemberWorkflowTests(TestCase):
             "subdivision": "",
         }
         data.update(overrides)
+        if "computer_no" not in overrides:
+            data["computer_no"] = f"COMP-{data['member_no']}"
         district_id = data["district"]
         school = (
             School.objects.filter(pk=data["school"]).first()
@@ -136,7 +140,7 @@ class MemberWorkflowTests(TestCase):
         self.assertRedirects(response, reverse("member_detail", args=[member.pk]))
         self.assertEqual(member.member_no, "M-001")
         self.assertEqual(member.salary, Decimal("85000.50"))
-        self.assertIsNone(member.computer_no)
+        self.assertEqual(member.computer_no, "COMP-M-001")
 
     def test_posted_office_is_derived_from_selected_school(self):
         form = MemberForm(self.payload(office_location=self.other_office.pk))
@@ -167,10 +171,10 @@ class MemberWorkflowTests(TestCase):
         for field in ["member_no", "computer_no", "nic_no"]:
             self.assertIn(field, form.errors)
 
-    def test_multiple_blank_computer_numbers_allowed(self):
-        self.create_member()
-        self.create_member(member_no="M-002", nic_no="199012345679")
-        self.assertEqual(Member.objects.filter(computer_no__isnull=True).count(), 2)
+    def test_blank_computer_number_is_required(self):
+        form = MemberForm(self.payload(computer_no=""))
+        self.assertFalse(form.is_valid())
+        self.assertIn("computer_no", form.errors)
 
     def test_inactive_office_not_available_for_registration(self):
         self.office.is_active = False

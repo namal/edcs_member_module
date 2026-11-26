@@ -1,0 +1,914 @@
+{
+  "prepared_on": "2026-11-26",
+  "timezone": "Asia/Colombo",
+  "notice": "Current application screens with fictional training data, all writes confined to a unique disposable test database.",
+  "captures": [
+    [
+      "04-register-location",
+      "04-register-location",
+      "memberLocation",
+      1100,
+      {
+        "school": "1",
+        "district": "5",
+        "office_location": "1",
+        "lager": "1",
+        "subdivision": "1",
+        "maintenance_officer": "2",
+        "member_no": "DIR-001",
+        "computer_no": "DIR-C001",
+        "title": "Mr.",
+        "full_name": "Training Directory Member Silva",
+        "date_of_birth": "1985-05-12",
+        "nic_no": "198512345678",
+        "gender": "male",
+        "admit_date": "2026-01-01",
+        "salary": "50000.00",
+        "status": "active",
+        "pension_date": "",
+        "phone_mobile": "0771234567",
+        "phone_office": "0112345678",
+        "phone_home": "",
+        "office_address": "Training member office address",
+        "private_address": "Training private address"
+      }
+    ],
+    [
+      "05-register-identity",
+      "05-register-identity",
+      "memberIdentity",
+      1100,
+      {
+        "school": "1",
+        "district": "5",
+        "office_location": "1",
+        "lager": "1",
+        "subdivision": "1",
+        "maintenance_officer": "2",
+        "member_no": "DIR-001",
+        "computer_no": "DIR-C001",
+        "title": "Mr.",
+        "full_name": "Training Directory Member Silva",
+        "date_of_birth": "1985-05-12",
+        "nic_no": "198512345678",
+        "gender": "male",
+        "admit_date": "2026-01-01",
+        "salary": "50000.00",
+        "status": "active",
+        "pension_date": "",
+        "phone_mobile": "0771234567",
+        "phone_office": "0112345678",
+        "phone_home": "",
+        "office_address": "Training member office address",
+        "private_address": "Training private address"
+      }
+    ],
+    [
+      "06-register-contacts-save",
+      "06-register-contacts-save",
+      "memberContacts",
+      1100,
+      {
+        "school": "1",
+        "district": "5",
+        "office_location": "1",
+        "lager": "1",
+        "subdivision": "1",
+        "maintenance_officer": "2",
+        "member_no": "DIR-001",
+        "computer_no": "DIR-C001",
+        "title": "Mr.",
+        "full_name": "Training Directory Member Silva",
+        "date_of_birth": "1985-05-12",
+        "nic_no": "198512345678",
+        "gender": "male",
+        "admit_date": "2026-01-01",
+        "salary": "50000.00",
+        "status": "active",
+        "pension_date": "",
+        "phone_mobile": "0771234567",
+        "phone_office": "0112345678",
+        "phone_home": "",
+        "office_address": "Training member office address",
+        "private_address": "Training private address"
+      }
+    ],
+    [
+      "01-directory",
+      "01-directory",
+      "top",
+      1100,
+      {}
+    ],
+    [
+      "02-search-and-filters",
+      "02-search-and-filters",
+      "top",
+      1100,
+      {}
+    ],
+    [
+      "03-directory-page-two",
+      "03-directory-page-two",
+      "top",
+      1100,
+      {}
+    ],
+    [
+      "07-new-member-profile-actions",
+      "07-new-member-profile-actions",
+      "top",
+      860,
+      {}
+    ],
+    [
+      "08-set-payment-plan",
+      "08-set-payment-plan",
+      "top",
+      1050,
+      {
+        "member": "1",
+        "agreement_date": "2026-01-01",
+        "amount_1": "500",
+        "amount_2": "200",
+        "amount_4": "200",
+        "amount_7": "100"
+      }
+    ],
+    [
+      "09-set-opening-balances",
+      "09-set-opening-balances",
+      "top",
+      1000,
+      {
+        "member": "1",
+        "balance_date": "2026-01-01",
+        "amount_1": "10000",
+        "amount_2": "15000"
+      }
+    ],
+    [
+      "19-add-child",
+      "19-add-child",
+      "top",
+      1100,
+      {
+        "member": "1",
+        "name": "Training Child Silva",
+        "date_of_birth": "2015-04-12",
+        "is_active": "on"
+      }
+    ],
+    [
+      "16-receive-contribution",
+      "16-receive-contribution",
+      "top",
+      1050,
+      {}
+    ],
+    [
+      "16-receive-contribution",
+      "16b-child-remaining-allocation",
+      "remaining",
+      1000,
+      {}
+    ],
+    [
+      "17-contribution-receipt",
+      "17-contribution-receipt",
+      "top",
+      1050,
+      {}
+    ],
+    [
+      "18-member-debit-credit",
+      "18-member-debit-credit",
+      "entryDetails",
+      1100,
+      {
+        "member": "1",
+        "payment_type": "1",
+        "transaction_date": "2026-11-26",
+        "debit": "50",
+        "credit": "",
+        "reference": "DIR-TRAINING-DEBIT",
+        "description": "Training member account debit"
+      }
+    ],
+    [
+      "18b-child-account-entry",
+      "18b-child-account-entry",
+      "childPanel",
+      1100,
+      {}
+    ],
+    [
+      "20-child-account-statement",
+      "20-child-account-statement",
+      "top",
+      1100,
+      {}
+    ],
+    [
+      "15-current-balance",
+      "15-current-balance",
+      "top",
+      1150,
+      {}
+    ],
+    [
+      "15b-member-balance-report",
+      "15b-member-balance-report",
+      "top",
+      1100,
+      {}
+    ],
+    [
+      "18c-account-statement",
+      "18c-account-statement",
+      "top",
+      1150,
+      {}
+    ],
+    [
+      "21-quarterly-interest",
+      "21-quarterly-interest",
+      "top",
+      1100,
+      {}
+    ],
+    [
+      "22-fixed-deposit-options",
+      "22-fixed-deposit-options",
+      "top",
+      1100,
+      {}
+    ],
+    [
+      "10-member-profile-actions",
+      "10-member-profile-actions",
+      "top",
+      1050,
+      {}
+    ],
+    [
+      "11-member-profile-details",
+      "11-member-profile-details",
+      "profileDetails",
+      1100,
+      {}
+    ],
+    [
+      "34-print-profile",
+      "34-print-profile",
+      "printProfile",
+      1200,
+      {}
+    ],
+    [
+      "33-lager-activity",
+      "33-lager-activity",
+      "top",
+      1100,
+      {}
+    ],
+    [
+      "12-edit-member",
+      "12-edit-member",
+      "memberContacts",
+      1100,
+      {
+        "school": "1",
+        "district": "5",
+        "office_location": "1",
+        "lager": "1",
+        "subdivision": "1",
+        "maintenance_officer": "2",
+        "member_no": "DIR-001",
+        "computer_no": "DIR-C001",
+        "title": "Mr.",
+        "full_name": "Training Directory Member Silva",
+        "date_of_birth": "1985-05-12",
+        "nic_no": "198512345678",
+        "gender": "male",
+        "admit_date": "2026-01-01",
+        "salary": "50000.00",
+        "status": "active",
+        "pension_date": "",
+        "phone_mobile": "0777654321",
+        "phone_office": "0112345678",
+        "phone_home": "",
+        "office_address": "Training member office address",
+        "private_address": "Updated training private address"
+      }
+    ],
+    [
+      "13-member-edit-approval",
+      "13-member-edit-approval",
+      "top",
+      1050,
+      {}
+    ],
+    [
+      "14-member-audit",
+      "14-member-audit",
+      "top",
+      1100,
+      {}
+    ],
+    [
+      "35-duplicate-validation",
+      "35-duplicate-validation",
+      "memberIdentity",
+      1000,
+      {}
+    ],
+    [
+      "23-transfer-form",
+      "23-transfer-form",
+      "transferReceiving",
+      1100,
+      {
+        "member": "1",
+        "source_ledger": "1",
+        "district": "7",
+        "zonal_office": "2",
+        "lager": "2",
+        "subdivision": "2",
+        "school": "2",
+        "maintenance_officer": "3",
+        "effective_date": "2026-11-26",
+        "reason": "Training: member moves to the receiving office; preserve accounts and original ledger."
+      }
+    ],
+    [
+      "23b-transfer-review-and-submit",
+      "23b-transfer-review-and-submit",
+      "transferSubmit",
+      1100,
+      {
+        "member": "1",
+        "source_ledger": "1",
+        "district": "7",
+        "zonal_office": "2",
+        "lager": "2",
+        "subdivision": "2",
+        "school": "2",
+        "maintenance_officer": "3",
+        "effective_date": "2026-11-26",
+        "reason": "Training: member moves to the receiving office; preserve accounts and original ledger."
+      }
+    ],
+    [
+      "24-transfer-approval",
+      "24-transfer-approval",
+      "top",
+      1100,
+      {}
+    ],
+    [
+      "25-completed-transfer",
+      "25-completed-transfer",
+      "top",
+      1100,
+      {}
+    ],
+    [
+      "26-original-ledger-retained",
+      "26-original-ledger-retained",
+      "top",
+      1150,
+      {}
+    ],
+    [
+      "27-receiving-ledger",
+      "27-receiving-ledger",
+      "top",
+      1150,
+      {}
+    ],
+    [
+      "27b-carried-balances",
+      "27b-carried-balances",
+      "ledgerBalances",
+      1100,
+      {}
+    ],
+    [
+      "28-change-ledger-officer",
+      "28-change-ledger-officer",
+      "top",
+      1100,
+      {
+        "maintenance_officer": "4",
+        "reason": "Training responsibility change on the active ledger; current Lager ownership remains separately configured."
+      }
+    ],
+    [
+      "29-process-retirement",
+      "29-process-retirement",
+      "top",
+      1100,
+      {
+        "retirement_date": "2026-11-26"
+      }
+    ],
+    [
+      "30-retired-member-profile",
+      "30-retired-member-profile",
+      "top",
+      1050,
+      {}
+    ],
+    [
+      "31-delete-confirmation",
+      "31-delete-confirmation",
+      "top",
+      1100,
+      {}
+    ],
+    [
+      "32-member-delete-protected",
+      "32-member-delete-protected",
+      "top",
+      900,
+      {}
+    ]
+  ],
+  "fields": {
+    "04-register-location": [
+      {
+        "name": "district",
+        "required": true,
+        "disabled": false,
+        "label": "Branch"
+      },
+      {
+        "name": "province",
+        "required": false,
+        "disabled": true,
+        "label": "Province full name"
+      },
+      {
+        "name": "province_short_name",
+        "required": false,
+        "disabled": true,
+        "label": "Province short name"
+      },
+      {
+        "name": "lager",
+        "required": true,
+        "disabled": false,
+        "label": "Lager"
+      },
+      {
+        "name": "office_location",
+        "required": true,
+        "disabled": false,
+        "label": "Zonal office"
+      },
+      {
+        "name": "subdivision",
+        "required": false,
+        "disabled": false,
+        "label": "Subdivision"
+      },
+      {
+        "name": "school",
+        "required": true,
+        "disabled": false,
+        "label": "Department"
+      },
+      {
+        "name": "member_no",
+        "required": true,
+        "disabled": false,
+        "label": "Member number"
+      },
+      {
+        "name": "computer_no",
+        "required": true,
+        "disabled": false,
+        "label": "Computer number"
+      },
+      {
+        "name": "title",
+        "required": true,
+        "disabled": false,
+        "label": "Title / Salutation"
+      },
+      {
+        "name": "full_name",
+        "required": true,
+        "disabled": false,
+        "label": "Full name"
+      },
+      {
+        "name": "date_of_birth",
+        "required": true,
+        "disabled": false,
+        "label": "Date of birth"
+      },
+      {
+        "name": "salary",
+        "required": false,
+        "disabled": false,
+        "label": "Monthly salary (LKR)"
+      },
+      {
+        "name": "office_address",
+        "required": true,
+        "disabled": false,
+        "label": "Office address"
+      },
+      {
+        "name": "private_address",
+        "required": true,
+        "disabled": false,
+        "label": "Private address"
+      },
+      {
+        "name": "phone_office",
+        "required": false,
+        "disabled": false,
+        "label": "Office phone"
+      },
+      {
+        "name": "phone_mobile",
+        "required": true,
+        "disabled": false,
+        "label": "Mobile phone"
+      },
+      {
+        "name": "phone_home",
+        "required": false,
+        "disabled": false,
+        "label": "Home phone"
+      },
+      {
+        "name": "admit_date",
+        "required": true,
+        "disabled": false,
+        "label": "Admission date"
+      },
+      {
+        "name": "gender",
+        "required": true,
+        "disabled": false,
+        "label": "gender"
+      },
+      {
+        "name": "nic_no",
+        "required": true,
+        "disabled": false,
+        "label": "NIC number"
+      },
+      {
+        "name": "status",
+        "required": true,
+        "disabled": false,
+        "label": "Status"
+      },
+      {
+        "name": "pension_date",
+        "required": false,
+        "disabled": false,
+        "label": "Recorded retirement / pension date"
+      },
+      {
+        "name": "maintenance_officer",
+        "required": true,
+        "disabled": false,
+        "label": "Ledger Maintenance Officer"
+      },
+      {
+        "name": "officer_epf",
+        "required": true,
+        "disabled": true,
+        "label": "Ledger Maintenance Officer EPF number"
+      },
+      {
+        "name": "short_name",
+        "required": false,
+        "disabled": true,
+        "label": "Short Name"
+      },
+      {
+        "name": "retirement_age",
+        "required": false,
+        "disabled": true,
+        "label": "retirement_age"
+      },
+      {
+        "name": "expected_retirement_date",
+        "required": false,
+        "disabled": true,
+        "label": "expected_retirement_date"
+      }
+    ],
+    "12-edit-member": [
+      {
+        "name": "district",
+        "required": true,
+        "disabled": false,
+        "label": "Branch"
+      },
+      {
+        "name": "province",
+        "required": false,
+        "disabled": true,
+        "label": "Province full name"
+      },
+      {
+        "name": "province_short_name",
+        "required": false,
+        "disabled": true,
+        "label": "Province short name"
+      },
+      {
+        "name": "lager",
+        "required": true,
+        "disabled": false,
+        "label": "Lager"
+      },
+      {
+        "name": "office_location",
+        "required": true,
+        "disabled": false,
+        "label": "Zonal office"
+      },
+      {
+        "name": "subdivision",
+        "required": false,
+        "disabled": false,
+        "label": "Subdivision"
+      },
+      {
+        "name": "school",
+        "required": true,
+        "disabled": false,
+        "label": "Department"
+      },
+      {
+        "name": "member_no",
+        "required": true,
+        "disabled": false,
+        "label": "Member number"
+      },
+      {
+        "name": "computer_no",
+        "required": true,
+        "disabled": false,
+        "label": "Computer number"
+      },
+      {
+        "name": "title",
+        "required": true,
+        "disabled": false,
+        "label": "Title / Salutation"
+      },
+      {
+        "name": "full_name",
+        "required": true,
+        "disabled": false,
+        "label": "Full name"
+      },
+      {
+        "name": "date_of_birth",
+        "required": true,
+        "disabled": false,
+        "label": "Date of birth"
+      },
+      {
+        "name": "salary",
+        "required": false,
+        "disabled": false,
+        "label": "Monthly salary (LKR)"
+      },
+      {
+        "name": "office_address",
+        "required": true,
+        "disabled": false,
+        "label": "Office address"
+      },
+      {
+        "name": "private_address",
+        "required": true,
+        "disabled": false,
+        "label": "Private address"
+      },
+      {
+        "name": "phone_office",
+        "required": false,
+        "disabled": false,
+        "label": "Office phone"
+      },
+      {
+        "name": "phone_mobile",
+        "required": true,
+        "disabled": false,
+        "label": "Mobile phone"
+      },
+      {
+        "name": "phone_home",
+        "required": false,
+        "disabled": false,
+        "label": "Home phone"
+      },
+      {
+        "name": "admit_date",
+        "required": true,
+        "disabled": false,
+        "label": "Admission date"
+      },
+      {
+        "name": "gender",
+        "required": true,
+        "disabled": false,
+        "label": "gender"
+      },
+      {
+        "name": "nic_no",
+        "required": true,
+        "disabled": false,
+        "label": "NIC number"
+      },
+      {
+        "name": "status",
+        "required": true,
+        "disabled": false,
+        "label": "Status"
+      },
+      {
+        "name": "pension_date",
+        "required": false,
+        "disabled": false,
+        "label": "Recorded retirement / pension date"
+      },
+      {
+        "name": "short_name",
+        "required": false,
+        "disabled": true,
+        "label": "Short Name"
+      },
+      {
+        "name": "retirement_age",
+        "required": false,
+        "disabled": true,
+        "label": "retirement_age"
+      },
+      {
+        "name": "expected_retirement_date",
+        "required": false,
+        "disabled": true,
+        "label": "expected_retirement_date"
+      }
+    ],
+    "23-transfer-form": [
+      {
+        "name": "member",
+        "required": true,
+        "disabled": false,
+        "label": "member"
+      },
+      {
+        "name": "source_ledger",
+        "required": true,
+        "disabled": false,
+        "label": "source_ledger"
+      },
+      {
+        "name": "district",
+        "required": true,
+        "disabled": false,
+        "label": "Receiving branch"
+      },
+      {
+        "name": "zonal_office",
+        "required": true,
+        "disabled": false,
+        "label": "Receiving zonal office"
+      },
+      {
+        "name": "subdivision",
+        "required": false,
+        "disabled": false,
+        "label": "subdivision"
+      },
+      {
+        "name": "school",
+        "required": true,
+        "disabled": false,
+        "label": "Receiving department / school"
+      },
+      {
+        "name": "lager",
+        "required": true,
+        "disabled": false,
+        "label": "Receiving lager"
+      },
+      {
+        "name": "maintenance_officer",
+        "required": true,
+        "disabled": false,
+        "label": "Receiving Ledger Maintenance Officer"
+      },
+      {
+        "name": "effective_date",
+        "required": true,
+        "disabled": false,
+        "label": "effective_date"
+      },
+      {
+        "name": "reason",
+        "required": true,
+        "disabled": false,
+        "label": "Reason for transfer"
+      }
+    ],
+    "29-process-retirement": [
+      {
+        "name": "retirement_date",
+        "required": true,
+        "disabled": false,
+        "label": "retirement_date"
+      }
+    ]
+  },
+  "checks": {
+    "registration_created_original_ledger": "ML-6F5B1BD1E4AD",
+    "filtered_csv_rows_excluding_header": 1,
+    "computer_number_required": true,
+    "transfer_before": {
+      "member_balance": "25950.00",
+      "child_balance": "5400.00",
+      "member_entries": 5,
+      "child_entries": 2,
+      "plan_id": 1,
+      "child_account_id": 1,
+      "member_id": 1
+    },
+    "transfer_after": {
+      "member_balance": "25950.00",
+      "child_balance": "5400.00",
+      "member_entries": 5,
+      "child_entries": 2,
+      "plan_id": 1,
+      "child_account_id": 1,
+      "member_id": 1
+    },
+    "original_officer_current_profile_status_after_transfer": 404,
+    "receiving_officer_current_profile_status_after_transfer": 200,
+    "page_officer_change_preserves_lager_owner": true,
+    "delete_protected_member_retained": true
+  },
+  "example_member": "DIR-001",
+  "example_member_balance": "25950.00",
+  "example_child_balance": "5400.00",
+  "filtered_csv_header": [
+    "Member No",
+    "Computer No",
+    "Full Name",
+    "Monthly Salary (LKR)",
+    "Branch",
+    "Zonal Office",
+    "Office Address",
+    "Private Address",
+    "Office Phone",
+    "Mobile Phone",
+    "Home Phone",
+    "Admission Date",
+    "Gender",
+    "NIC No",
+    "Status",
+    "Province",
+    "Subdivision",
+    "Department",
+    "Lager Code",
+    "Lager",
+    "Province Short Name",
+    "Title",
+    "Short Name",
+    "Date of Birth",
+    "Retirement Age",
+    "Expected Retirement Date",
+    "Recorded Retirement Date"
+  ],
+  "directory_count": 12,
+  "template_monthly_total": "1000.00",
+  "total_receipt": "1500.00",
+  "temporary_database_removed_on_exit": true,
+  "observed_browser_limitation": {
+    "module": "Member Transfers",
+    "issue": "Receiving-officer dropdown empty: transfer template lacks ledger-officers JSON expected by the shared location script.",
+    "documentation": "Figure 29 and sections 12 and 16; completed transfer verified through real server views in isolated database."
+  },
+  "document_validation": {
+    "pdf_pages": 45,
+    "screenshots": 41,
+    "docx_embedded_images_including_logo": 42,
+    "all_docx_xml_parts_valid": true,
+    "all_figure_captions_present_in_pdf": true,
+    "workflow_checks_passed": true
+  }
+}

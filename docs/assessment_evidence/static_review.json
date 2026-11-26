@@ -1,0 +1,11 @@
+{
+  "production_top_level_python_files": 68,
+  "python_functions_and_methods": 595,
+  "review_aids_not_exhaustive_scanner": {
+    "csrf_exempt": [],
+    "mark_safe": [],
+    "eval_exec": [],
+    "raw_sql": [],
+    "shell_true": []
+  }
+}

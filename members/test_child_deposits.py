@@ -296,7 +296,7 @@ class ChildDepositTests(TestCase):
         self.assertEqual(
             response.context["page_obj"][0].running_balance, Decimal("2500.00")
         )
-        self.assertContains(response, "data-final-balance>2500.00</output>")
+        self.assertContains(response, "data-final-balance>2,500.00</output>")
         saved = self.deposit.transactions.first()
         self.assertEqual(saved.created_by, self.user)
         self.assertEqual(saved.interest_rate, Decimal("8.00"))
@@ -549,7 +549,7 @@ class ChildDepositTests(TestCase):
         self.grant("view_child")
         response = self.client.get(reverse("child_detail", args=[self.child.pk]))
         self.assertNotContains(response, self.deposit.account_no)
-        self.assertNotContains(response, "1000.00")
+        self.assertNotContains(response, "1,000.00")
 
     def test_member_permissions_do_not_grant_child_deposit_access(self):
         self.grant("view_member", "add_member", "view_paymenttransaction")
@@ -587,12 +587,12 @@ class ChildDepositTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertTrue(ChildDeposit.objects.filter(pk=self.deposit.pk).exists())
         url = reverse("child_entry_delete", args=[entry.pk])
-        self.assertEqual(self.client.get(url).status_code, 200)
+        self.assertEqual(self.client.get(url).status_code, 403)
         self.assertTrue(ChildDepositTransaction.objects.filter(pk=entry.pk).exists())
-        self.assertEqual(self.client.post(url).status_code, 302)
-        self.assertFalse(ChildDepositTransaction.objects.filter(pk=entry.pk).exists())
+        self.assertEqual(self.client.post(url).status_code, 403)
+        self.assertTrue(ChildDepositTransaction.objects.filter(pk=entry.pk).exists())
         self.assertEqual(
-            deposit_balance(self.deposit, date(2026, 1, 15)), Decimal("1000.00")
+            deposit_balance(self.deposit, date(2026, 1, 15)), Decimal("1100.00")
         )
 
     def test_permissions_navigation_and_admin_include_the_new_modules(self):

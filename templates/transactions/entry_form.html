@@ -6,7 +6,7 @@
     <h1 class="page-title">
       {{ title }}<span class="text-brand-600">.</span>
     </h1>
-    <p class="muted mt-2">Record one debit or credit for a member and payment type.</p>
+    <p class="muted mt-2">Record one debit or credit for a member account or a child's registered deposit account.</p>
     {% if perms.members.add_paymenttransaction %}
       <a class="btn btn-secondary mt-4" href="{% url 'contribution_create' %}">Receive and allocate a salary contribution</a>
     {% endif %}
@@ -21,11 +21,16 @@
       Fix Deposit monthly top-ups are credits. Fix Deposit withdrawals must be requested and released through Fix Deposit Loans &amp; Withdrawals.
     </p>
   </div>
+  {% if correction %}
+    <div class="alert mb-6">
+      Correcting entry #{{ correction.pk }} ({{ correction.transaction_date|date:'d M Y' }}). The opposite amount is fixed. Enter a correction reason; the original entry is retained.
+    </div>
+  {% endif %}
   <form method="post"
         data-transaction-form
         data-balances-url="{% url 'payment_transaction_balances' %}"
         {% if entry %}data-entry-id="{{ entry.pk }}"{% endif %}>
-    {% csrf_token %}
+    {% csrf_token %}{{ form.reverses }}
     {% if form.errors %}
       <div class="alert message-error" role="alert">Please check the entry below. {{ form.non_field_errors }}</div>
     {% endif %}
@@ -34,6 +39,9 @@
       <div class="form-grid">
         {% include 'components/field.html' with field=form.member %}
         {% include 'components/field.html' with field=form.payment_type %}
+        {% if form.child_deposit %}
+          <div data-child-deposit-field>{% include 'components/field.html' with field=form.child_deposit %}</div>
+        {% endif %}
       </div>
       {% if entry %}<p class="field-help mt-4">The member and payment type stay fixed on saved entries.</p>{% endif %}
       <p class="field-help mt-4" aria-live="polite">
@@ -55,17 +63,33 @@
         {% endif %}
       </p>
       <div data-balance-content {% if not balance_summary %}hidden{% endif %}>
+        <div class="mt-5 rounded-lg border border-brand-100 bg-brand-50 p-4">
+          <h3 class="detail-label">Remaining contribution amounts credited</h3>
+          <p class="detail-value">
+            LKR <output data-contribution-remaining>{{ balance_summary.remaining_contribution_total|default:'0.00'|floatformat:'2g' }}</output>
+          </p>
+          <p class="field-help">
+            These amounts were left after the receipt allocations and are already included in the saved balances below.
+          </p>
+          <ul class="mt-3 text-sm" data-contribution-credit-rows>
+            {% for credit in balance_summary.remaining_contribution_credits %}
+              <li>
+                {{ credit.received_on }} · {{ credit.payment_type }} · LKR {{ credit.amount|floatformat:'2g' }} · {{ credit.receipt }}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
         <div class="mt-5 grid gap-5 sm:grid-cols-2">
           <div>
             <h3 class="detail-label">Total member balance (all payment types)</h3>
             <p class="detail-value text-brand-700">
-              LKR <output data-member-balance>{{ balance_summary.total|default:'—' }}</output>
+              LKR <output data-member-balance>{{ balance_summary.total|floatformat:'2g'|default:'—' }}</output>
             </p>
           </div>
           <div>
             <h3 class="detail-label">Selected payment type balance</h3>
             <p class="detail-value">
-              LKR <output data-payment-type-balance>{{ selected_type_balance|default:'—' }}</output>
+              LKR <output data-payment-type-balance>{{ selected_type_balance|floatformat:'2g'|default:'—' }}</output>
             </p>
           </div>
         </div>
@@ -84,7 +108,7 @@
                     {{ row.name }}
                     {% if not row.is_active %}(inactive){% endif %}
                   </td>
-                  <td>{{ row.balance }}</td>
+                  <td>{{ row.balance|floatformat:'2g' }}</td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -95,6 +119,9 @@
         </p>
       </div>
     </section>
+    {% if perms.members.view_childdeposit or perms.members.add_childdeposit or perms.members.change_childdeposit %}
+      {% include 'components/child_account_balances.html' %}
+    {% endif %}
     <section class="form-section">
       <h2 class="section-title mb-5">Entry details</h2>
       <div class="form-grid">

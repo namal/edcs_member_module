@@ -16,15 +16,15 @@
   <div class="mb-6 grid gap-4 sm:grid-cols-3">
     <section class="card p-6">
       <h2 class="detail-label">Loan principal</h2>
-      <p class="detail-value">LKR {{ loan.principal|floatformat:2 }}</p>
+      <p class="detail-value">LKR {{ loan.principal|floatformat:'2g' }}</p>
     </section>
     <section class="card p-6">
       <h2 class="detail-label">Principal still due</h2>
-      <p class="detail-value">LKR {{ principal_due|floatformat:2 }}</p>
+      <p class="detail-value">LKR {{ principal_due|floatformat:'2g' }}</p>
     </section>
     <section class="card p-6">
       <h2 class="detail-label">Assessed interest still due</h2>
-      <p class="detail-value">LKR {{ interest_due|floatformat:2 }}</p>
+      <p class="detail-value">LKR {{ interest_due|floatformat:'2g' }}</p>
     </section>
   </div>
   <section class="form-section">
@@ -36,7 +36,7 @@
       {% endif %}
     </p>
     <p class="field-help">
-      Deposit balance at issue: LKR {{ loan.deposit_balance_at_issue|floatformat:2 }}. Principal paid: {{ principal_paid|floatformat:2 }}. Interest assessed: {{ interest_charged|floatformat:2 }}. Interest paid: {{ interest_paid|floatformat:2 }}.
+      Deposit balance at issue: LKR {{ loan.deposit_balance_at_issue|floatformat:'2g' }}. Principal paid: {{ principal_paid|floatformat:'2g' }}. Interest assessed: {{ interest_charged|floatformat:'2g' }}. Interest paid: {{ interest_paid|floatformat:'2g' }}.
     </p>
     <p class="field-help">
       The bank assesses interest and records it as an interest charge. Record repayments with separate principal and interest amounts. Then explicitly settle the loan after confirming all interest through settlement has been assessed and paid.
@@ -67,8 +67,8 @@
                 {% include 'components/ledger_reference.html' %}
               </td>
               <td>{{ entry.get_kind_display }}</td>
-              <td>{{ entry.principal_amount|floatformat:2 }}</td>
-              <td>{{ entry.interest_amount|floatformat:2 }}</td>
+              <td>{{ entry.principal_amount|floatformat:'2g' }}</td>
+              <td>{{ entry.interest_amount|floatformat:'2g' }}</td>
               <td>
                 {{ entry.reference|default:'—' }}
                 <br>

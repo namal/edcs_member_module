@@ -18,14 +18,22 @@
         Choose payment types by entering their monthly amounts. A blank or zero amount leaves a type out. Editing this template does not change any assigned member plan.
       </p>
       <div class="form-grid">
-        {% for field in form.amount_fields %}
-          {% include 'components/field.html' with field=field %}
+        {% for field, fixed in form.contribution_rows %}
+          <div class="rounded-lg border border-slate-200 p-4" data-contribution-row>
+            {% include 'components/field.html' with field=field %}
+            <label class="mt-3 flex items-center gap-3 text-sm font-medium text-slate-700"
+                   for="{{ fixed.id_for_label }}">{{ fixed }} {{ fixed.label }}</label>
+            <p class="field-help">
+              Set the amount here. A fixed amount is locked after saving and remains locked in assigned member plans.
+            </p>
+            {% for error in fixed.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+          </div>
         {% empty %}
           <p>Add an active payment type first.</p>
         {% endfor %}
       </div>
       <p class="detail-value mt-5">
-        Total monthly deposit: LKR <output id="monthly-plan-total">{{ form.instance.monthly_total|floatformat:2 }}</output>
+        Total monthly deposit: LKR <output id="monthly-plan-total">{{ form.instance.monthly_total|floatformat:'2g' }}</output>
       </p>
     </section>
     <div class="flex gap-3">

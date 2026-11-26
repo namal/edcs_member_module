@@ -57,7 +57,7 @@
         </p>
       {% elif withdrawal %}
         <p class="field-help mt-5">
-          Requested LKR {{ withdrawal.amount|floatformat:2 }} on {{ withdrawal.requested_on|date:'d M Y' }}. Release rechecks maturity, all loan settlements and the current limit, posts one debit to the deposit ledger, and restarts the withdrawal cycle.
+          Requested LKR {{ withdrawal.amount|floatformat:'2g' }} on {{ withdrawal.requested_on|date:'d M Y' }}. Release rechecks maturity, all loan settlements and the current limit, posts one debit to the deposit ledger, and restarts the withdrawal cycle.
         </p>
       {% else %}
         <p class="field-help mt-5">

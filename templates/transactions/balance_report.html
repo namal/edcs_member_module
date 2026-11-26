@@ -10,6 +10,7 @@
       <p class="muted mt-2">Final amounts for each member and payment type, including saved opening balances.</p>
     </div>
     <div class="flex flex-wrap gap-3">
+      <a class="btn btn-secondary" href="{% url 'member_balance' %}">Member balance inquiry</a>
       {% if perms.members.view_depositinterestyear %}
         <a class="btn btn-secondary" href="{% url 'deposit_interest_list' %}">Quarterly interest</a>
       {% endif %}
@@ -55,20 +56,20 @@
     <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <section class="card p-6">
         <h3 class="detail-label">Starting balances / brought forward</h3>
-        <p class="detail-value">LKR {{ total_brought_forward|floatformat:2 }}</p>
+        <p class="detail-value">LKR {{ total_brought_forward|floatformat:'2g' }}</p>
       </section>
       <section class="card p-6">
         <h3 class="detail-label">Total debit</h3>
-        <p class="detail-value">LKR {{ total_debit|floatformat:2 }}</p>
+        <p class="detail-value">LKR {{ total_debit|floatformat:'2g' }}</p>
       </section>
       <section class="card p-6">
         <h3 class="detail-label">Total credit</h3>
-        <p class="detail-value">LKR {{ total_credit|floatformat:2 }}</p>
+        <p class="detail-value">LKR {{ total_credit|floatformat:'2g' }}</p>
       </section>
       <section class="card p-6">
         <h3 class="detail-label">Final balance</h3>
         <p class="detail-value text-brand-700">
-          LKR <output data-final-balance>{{ final_balance|floatformat:2 }}</output>
+          LKR <output data-final-balance>{{ final_balance|floatformat:'2g' }}</output>
         </p>
       </section>
     </div>
@@ -103,12 +104,12 @@
                   {% if not row.is_active %}(inactive){% endif %}
                 </td>
                 <td>
-                  {{ row.brought_forward|floatformat:2 }}
+                  {{ row.brought_forward|floatformat:'2g' }}
                   {% if row.effective_date_from %}<p class="field-help">From {{ row.effective_date_from|date:'d M Y' }}</p>{% endif %}
                 </td>
-                <td>{{ row.total_debit|floatformat:2 }}</td>
-                <td>{{ row.total_credit|floatformat:2 }}</td>
-                <td class="font-semibold text-brand-700">{{ row.final_balance|floatformat:2 }}</td>
+                <td>{{ row.total_debit|floatformat:'2g' }}</td>
+                <td>{{ row.total_credit|floatformat:'2g' }}</td>
+                <td class="font-semibold text-brand-700">{{ row.final_balance|floatformat:'2g' }}</td>
                 <td>
                   <a class="text-link" href="{{ row.statement_url }}">View statement</a>
                 </td>
@@ -124,10 +125,10 @@
           <tfoot>
             <tr>
               <th colspan="2">Report totals (all pages)</th>
-              <td>{{ total_brought_forward|floatformat:2 }}</td>
-              <td>{{ total_debit|floatformat:2 }}</td>
-              <td>{{ total_credit|floatformat:2 }}</td>
-              <td class="font-semibold">{{ final_balance|floatformat:2 }}</td>
+              <td>{{ total_brought_forward|floatformat:'2g' }}</td>
+              <td>{{ total_debit|floatformat:'2g' }}</td>
+              <td>{{ total_credit|floatformat:'2g' }}</td>
+              <td class="font-semibold">{{ final_balance|floatformat:'2g' }}</td>
               <td></td>
             </tr>
           </tfoot>

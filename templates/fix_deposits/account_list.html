@@ -42,15 +42,15 @@
                 <br>
                 {{ account.member.full_name }}
               </td>
-              <td>{{ account.summary.deposit_balance|floatformat:2 }}</td>
-              <td>{{ account.summary.principal_due|floatformat:2 }}</td>
-              <td>{{ account.summary.interest_due|floatformat:2 }}</td>
+              <td>{{ account.summary.deposit_balance|floatformat:'2g' }}</td>
+              <td>{{ account.summary.principal_due|floatformat:'2g' }}</td>
+              <td>{{ account.summary.interest_due|floatformat:'2g' }}</td>
               <td>
-                {{ account.summary.loan_limit|floatformat:2 }}
+                {{ account.summary.loan_limit|floatformat:'2g' }}
                 {% if not account.summary.can_borrow %}<p class="field-help">Not currently eligible</p>{% endif %}
               </td>
               <td>
-                {{ account.summary.withdrawal_limit|floatformat:2 }}
+                {{ account.summary.withdrawal_limit|floatformat:'2g' }}
                 {% if not account.summary.can_withdraw %}<p class="field-help">Not currently eligible</p>{% endif %}
               </td>
               <td>{{ account.summary.maturity_date|date:'d M Y' }}</td>

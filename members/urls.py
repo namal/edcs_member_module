@@ -1,5 +1,8 @@
 from django.urls import path
 from . import (
+    balance_views,
+    year_end_views,
+    audit_views,
     approval_views,
     contribution_views,
     child_views,
@@ -16,6 +19,42 @@ from . import (
 )
 
 urlpatterns = [
+    path(
+        "api/contributions/child-accounts/",
+        contribution_views.contribution_child_accounts,
+        name="contribution_child_accounts",
+    ),
+    path("member-balance/", balance_views.member_balance, name="member_balance"),
+    path(
+        "year-end-closing/",
+        year_end_views.financial_year_closing_list,
+        name="financial_year_closing_list",
+    ),
+    path(
+        "year-end-closing/<int:pk>/",
+        year_end_views.financial_year_closing_detail,
+        name="financial_year_closing_detail",
+    ),
+    path("audit-logs/", audit_views.audit_log_list, name="audit_log_list"),
+    path(
+        "audit-logs/new/", audit_views.audit_log_write_disabled, name="audit_log_create"
+    ),
+    path("audit-logs/<int:pk>/", audit_views.audit_log_detail, name="audit_log_detail"),
+    path(
+        "audit-logs/<int:pk>/edit/",
+        audit_views.audit_log_write_disabled,
+        name="audit_log_edit",
+    ),
+    path(
+        "audit-logs/<int:pk>/delete/",
+        audit_views.audit_log_write_disabled,
+        name="audit_log_delete",
+    ),
+    path("members/audit/", views.member_audit, name="member_audit"),
+    path("genders/", views.gender_list, name="gender_list"),
+    path("genders/new/", views.gender_form, name="gender_create"),
+    path("genders/<int:pk>/edit/", views.gender_form, name="gender_edit"),
+    path("genders/<int:pk>/delete/", views.gender_delete, name="gender_delete"),
     path(
         "contributions/", contribution_views.contribution_list, name="contribution_list"
     ),

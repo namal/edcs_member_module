@@ -143,7 +143,7 @@ class TransactionTests(TestCase):
         self.assertEqual(
             response.context["page_obj"][0].running_balance, Decimal("12000.00")
         )
-        self.assertContains(response, "data-final-balance>12000.00</output>")
+        self.assertContains(response, "data-final-balance>12,000.00</output>")
         self.assertContains(response, reverse("payment_transaction_report"))
 
     def test_final_balance_keeps_earlier_movements_when_date_range_changes(self):
@@ -210,7 +210,7 @@ class TransactionTests(TestCase):
         response = self.ledger(date="2026-01-15")
         self.assertEqual(response.context["page_obj"].paginator.count, 0)
         self.assertEqual(response.context["final_balance"], Decimal("10000.00"))
-        self.assertContains(response, "data-final-balance>10000.00</output>")
+        self.assertContains(response, "data-final-balance>10,000.00</output>")
         response = self.report(
             member=self.member.pk, payment_type=self.payment_type.pk, date="2026-01-15"
         )
@@ -463,7 +463,7 @@ class TransactionTests(TestCase):
         )
         self.assertEqual(response.context["balance_summary"]["total"], "1100.00")
         self.assertEqual(response.context["selected_type_balance"], "1100.00")
-        self.assertContains(response, "data-member-balance>1100.00</output>")
+        self.assertContains(response, "data-member-balance>1,100.00</output>")
         response = self.client.get(reverse("payment_transaction_edit", args=[entry.pk]))
         self.assertEqual(response.context["balance_summary"]["total"], "1000.00")
         self.assertEqual(self.balances(entry=entry.pk).json()["total"], "1000.00")
@@ -779,13 +779,13 @@ class TransactionTests(TestCase):
                 403,
             )
 
-    def test_delete_requires_post_and_preserves_member(self):
+    def test_delete_is_disabled_and_preserves_entry_and_member(self):
         entry = self.entry()
         url = reverse("payment_transaction_delete", args=[entry.pk])
-        self.assertEqual(self.client.get(url).status_code, 200)
+        self.assertEqual(self.client.get(url).status_code, 403)
         self.assertTrue(PaymentTransaction.objects.filter(pk=entry.pk).exists())
-        self.assertEqual(self.client.post(url).status_code, 302)
-        self.assertFalse(PaymentTransaction.objects.filter(pk=entry.pk).exists())
+        self.assertEqual(self.client.post(url).status_code, 403)
+        self.assertTrue(PaymentTransaction.objects.filter(pk=entry.pk).exists())
         self.assertTrue(Member.objects.filter(pk=self.member.pk).exists())
 
     def test_recorded_entries_protect_member_and_payment_type(self):

@@ -5,12 +5,19 @@
       <div>
         <a href="{% url 'access_user_edit' account.pk %}" class="table-link">{{ account.get_full_name|default:account.username }}</a>
         <p class="mt-1 text-xs text-slate-500">@{{ account.username }}</p>
-        <p class="mt-1 text-xs text-slate-500">
-          EPF {{ account.ledger_profile.epf_number|default:'Not entered' }}
-          {% if account.ledger_profile.zonal_office_id %}· {{ account.ledger_profile.zonal_office.name }}{% endif %}
-        </p>
+        <p class="mt-1 text-xs text-slate-500">EPF {{ account.ledger_profile.epf_number|default:'Not entered' }}</p>
       </div>
     </div>
+  </td>
+  <td class="text-xs text-slate-600">
+    {% if account.is_superuser %}
+      All zonal offices
+    {% else %}
+      {% for office in account.ledger_profile.zonal_offices.all %}
+        <p>{{ office.name }} · {{ office.district.name }}</p>
+        {% empty %}<span class="text-brand-700">No zonal offices assigned</span>
+      {% endfor %}
+    {% endif %}
   </td>
   <td>
     {% if account.is_superuser %}
@@ -23,12 +30,12 @@
   </td>
   <td class="text-xs text-slate-600">
     {% if account.is_superuser %}
-      All districts
+      All branches
     {% else %}
       {% for district in account.assigned_districts.all %}
         {{ district.name }}
         {% if not forloop.last %},{% endif %}
-        {% empty %}<span class="text-brand-700">No districts assigned</span>
+        {% empty %}<span class="text-brand-700">No branches assigned</span>
       {% endfor %}
     {% endif %}
   </td>

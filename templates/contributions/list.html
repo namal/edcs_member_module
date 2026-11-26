@@ -47,7 +47,24 @@
               </td>
               <td>{{ receipt.member }}</td>
               <td>{{ receipt.reference|default:receipt.receipt_number }}</td>
-              <td>{{ receipt.amount|floatformat:2 }}</td>
+              <td>
+                {{ receipt.amount|floatformat:'2g' }}
+                <details class="mt-2">
+                  <summary class="text-link cursor-pointer">View allocation breakdown</summary>
+                  <ul class="mt-2 space-y-2">
+                    {% for row in receipt.plan_snapshot.rows %}
+                      <li>
+                        {{ row.name }} · LKR {{ row.amount|floatformat:'2g' }}
+                        {% if row.kind == 'remaining' %}
+                          · Remaining balance: LKR {{ row.remaining_balance|floatformat:'2g' }}
+                        {% else %}
+                          · Standard contribution
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </details>
+              </td>
               <td>
                 {% if receipt.approval_request_id %}
                   Approved exception

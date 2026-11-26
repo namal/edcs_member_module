@@ -96,35 +96,87 @@ class PaymentTypeForm(StyledModelForm):
 
 
 class ContributionFields:
-    def add_contribution_fields(self, existing):
+    def add_contribution_fields(
+        self, existing, *, locked=None, fixed=None, template=False
+    ):
+        self.locked_amounts = locked or {}
+        self.fixed_flags = fixed or {}
         self.payment_types = list(
             PaymentType.objects.filter(Q(is_active=True) | Q(pk__in=existing))
         )
         for payment_type in self.payment_types:
-            self.fields[f"amount_{payment_type.pk}"] = forms.DecimalField(
+            key = f"amount_{payment_type.pk}"
+            locked_amount = self.locked_amounts.get(payment_type.pk)
+            attrs = {
+                "class": "field-input",
+                "min": "0",
+                "step": "0.01",
+                "max": "9999999999.99",
+                "inputmode": "decimal",
+                "data-monthly-amount": "",
+            }
+            widget = forms.NumberInput(attrs=attrs)
+            help_text = "Monthly amount in LKR. Leave blank or enter 0 if unused."
+            initial = existing.get(payment_type.pk, Decimal("0.00"))
+            if locked_amount is not None:
+                initial = locked_amount
+                widget.attrs.update(
+                    {"readonly": True, "data-locked-amount": str(initial)}
+                )
+                help_text = "Fixed monthly amount. The saved amount cannot be changed."
+                if self.is_bound:
+                    self.data = self.data.copy()
+                    self.data.setdefault(self.add_prefix(key), str(initial))
+            self.fields[key] = forms.DecimalField(
                 label=payment_type.name
                 + (" (inactive)" if not payment_type.is_active else ""),
                 required=False,
                 min_value=Decimal("0"),
                 max_digits=12,
                 decimal_places=2,
-                initial=existing.get(payment_type.pk, Decimal("0.00")),
-                help_text="Monthly amount in LKR. Leave blank or enter 0 if unused.",
-                widget=forms.NumberInput(
-                    attrs={
-                        "class": "field-input",
-                        "min": "0",
-                        "step": "0.01",
-                        "max": "9999999999.99",
-                        "inputmode": "decimal",
-                        "data-monthly-amount": "",
-                    }
-                ),
+                initial=initial,
+                help_text=help_text,
+                widget=widget,
             )
+            if template:
+                self.fields[f"fixed_{payment_type.pk}"] = forms.BooleanField(
+                    label="Fixed amount",
+                    required=False,
+                    initial=self.fixed_flags.get(payment_type.pk, False)
+                    or locked_amount is not None,
+                    disabled=locked_amount is not None,
+                    help_text="Lock this monthly amount in the member plan.",
+                    widget=forms.CheckboxInput(
+                        attrs={"class": "field-check", "data-fixed-toggle": ""}
+                    ),
+                )
+
+    def clean_contribution_amounts(self, data):
+        for payment_type in self.payment_types:
+            key = f"amount_{payment_type.pk}"
+            if key not in data:
+                continue
+            amount = data[key] or Decimal("0.00")
+            expected = self.locked_amounts.get(payment_type.pk)
+            if expected is not None:
+                if amount != expected:
+                    self.add_error(key, f"This amount is fixed at LKR {expected:,.2f}.")
+            fixed_key = f"fixed_{payment_type.pk}"
+            if data.get(fixed_key) and not amount:
+                self.add_error(
+                    key, "Enter a positive amount before marking this row as fixed."
+                )
 
     @property
     def amount_fields(self):
         return [self[f"amount_{item.pk}"] for item in self.payment_types]
+
+    @property
+    def contribution_rows(self):
+        return [
+            (self[f"amount_{item.pk}"], self[f"fixed_{item.pk}"])
+            for item in self.payment_types
+        ]
 
 
 class PaymentPlanTemplateForm(ContributionFields, StyledModelForm):
@@ -134,12 +186,16 @@ class PaymentPlanTemplateForm(ContributionFields, StyledModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        existing = (
-            {item.payment_type_id: item.amount for item in self.instance.amounts.all()}
-            if self.instance.pk
-            else {}
+        rows = list(self.instance.amounts.all()) if self.instance.pk else []
+        existing = {item.payment_type_id: item.amount for item in rows}
+        self.add_contribution_fields(
+            existing,
+            template=True,
+            locked={
+                item.payment_type_id: item.amount for item in rows if item.is_fixed
+            },
+            fixed={item.payment_type_id: item.is_fixed for item in rows},
         )
-        self.add_contribution_fields(existing)
 
     def clean_name(self):
         value = self.cleaned_data["name"].strip()
@@ -153,6 +209,7 @@ class PaymentPlanTemplateForm(ContributionFields, StyledModelForm):
 
     def clean(self):
         data = super().clean()
+        self.clean_contribution_amounts(data)
         if not any(
             data.get(f"amount_{item.pk}", Decimal("0")) for item in self.payment_types
         ):
@@ -170,7 +227,10 @@ class PaymentPlanTemplateForm(ContributionFields, StyledModelForm):
                 PaymentPlanTemplateAmount.objects.update_or_create(
                     template=template,
                     payment_type=payment_type,
-                    defaults={"amount": amount},
+                    defaults={
+                        "amount": amount,
+                        "is_fixed": self.cleaned_data[f"fixed_{payment_type.pk}"],
+                    },
                 )
             else:
                 template.amounts.filter(payment_type=payment_type).delete()
@@ -193,11 +253,14 @@ class PaymentPlanForm(ContributionFields, StyledModelForm):
     def __init__(self, *args, member, **kwargs):
         super().__init__(*args, **kwargs)
         self.instance.member = member
-        existing = (
-            {item.payment_type_id: item.amount for item in self.instance.amounts.all()}
+        rows = (
+            list(self.instance.amounts.select_related("payment_type"))
             if self.instance.pk
-            else {}
+            else []
         )
+        existing = {item.payment_type_id: item.amount for item in rows}
+        locked = {item.payment_type_id: item.amount for item in rows if item.is_fixed}
+        saved_locked = dict(locked)
         templates = PaymentPlanTemplate.objects.filter(is_active=True)
         self.fields["apply_template"].queryset = templates
         selected = (
@@ -222,19 +285,27 @@ class PaymentPlanForm(ContributionFields, StyledModelForm):
             else {}
         )
         if template:
+            for item in template.amounts.all():
+                if item.payment_type.is_active and item.is_fixed:
+                    locked.setdefault(item.payment_type_id, item.amount)
             if self.is_bound:
                 self.data = self.data.copy()
                 for item in PaymentType.objects.filter(is_active=True):
                     self.data.setdefault(
                         self.add_prefix(f"amount_{item.pk}"),
-                        copied.get(item.pk, Decimal("0.00")),
+                        locked.get(item.pk, copied.get(item.pk, Decimal("0.00"))),
                     )
             else:
                 existing = {**{key: Decimal("0.00") for key in existing}, **copied}
-        self.add_contribution_fields(existing)
+        self.add_contribution_fields(existing, locked=locked)
+        for payment_type_id, amount in saved_locked.items():
+            self.fields[f"amount_{payment_type_id}"].widget.attrs[
+                "data-saved-fixed-amount"
+            ] = str(amount)
 
     def clean(self):
         data = super().clean()
+        self.clean_contribution_amounts(data)
         template = data.get("apply_template")
         if (
             template
@@ -253,7 +324,7 @@ class PaymentPlanForm(ContributionFields, StyledModelForm):
             .exists()
         ):
             raise forms.ValidationError(
-                "This member is outside your assigned districts."
+                "This member is outside your assigned branches."
             )
         if not self.payment_types:
             raise forms.ValidationError(
@@ -283,7 +354,8 @@ class PaymentPlanForm(ContributionFields, StyledModelForm):
                 payment_type=payment_type,
                 defaults={
                     "amount": self.cleaned_data[f"amount_{payment_type.pk}"]
-                    or Decimal("0.00")
+                    or Decimal("0.00"),
+                    "is_fixed": payment_type.pk in self.locked_amounts,
                 },
             )
         return plan

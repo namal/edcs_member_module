@@ -41,7 +41,7 @@ def current_financial_year(today=None):
 
 
 def interest_report(members, start, *, payment_type=None, as_of=None):
-    """Read-only bulk calculation. Callers supply a district-scoped member queryset.
+    """Read-only bulk calculation. Callers supply a branch-scoped member queryset.
 
     A missing month-end before the account exists is zero. Negative balances earn
     zero interest. Only fully completed quarters contribute to annual interest.
@@ -71,10 +71,12 @@ def interest_report(members, start, *, payment_type=None, as_of=None):
                 identities[key] = item
         monthly.append(values)
     closing = {}
-    for item in balance_report(members, None, through, payment_type=payment_type):
+    account_totals = {}
+    for item in balance_report(members, start, through, payment_type=payment_type):
         key = (item["member_id"], item["payment_type_id"])
         identities[key] = item
         closing[key] = item["final_balance"]
+        account_totals[key] = item
     saved = DepositInterestYear.objects.filter(
         member__in=members, year_start=start
     ).select_related("member", "payment_type")
@@ -162,10 +164,15 @@ def interest_report(members, start, *, payment_type=None, as_of=None):
                     }
                 )
             principal = closing.get(key, ZERO)
+            totals = account_totals.get(key, {})
             record = previous or DepositInterestYear(
                 member_id=key[0], payment_type_id=key[1], year_start=start
             )
             for name, value in {
+                "year_opening_balance": totals.get("brought_forward", ZERO),
+                "opening_effective_on": totals.get("effective_date_from") or start,
+                "period_debit": totals.get("total_debit", ZERO),
+                "period_credit": totals.get("total_credit", ZERO),
                 "year_end": end,
                 "annual_rate": rate,
                 "quarters": quarters,
@@ -236,6 +243,10 @@ def calculation_fingerprint(record):
             "annual_interest",
             "closing_balance",
             "next_opening_balance",
+            "year_opening_balance",
+            "opening_effective_on",
+            "period_credit",
+            "period_debit",
         )
     }
     values["quarters"] = record.quarters
@@ -275,9 +286,13 @@ def post_interest_year(pk, *, actor=None, today=None, expected_fingerprint=None)
         raise ValidationError(
             "Post or remove earlier draft interest years before closing this year."
         )
+    from .year_end_services import validate_previous_close, validate_account_year
+
     record = save_interest_year(
         record.member, record.payment_type, record.year_start, today=today
     )
+    validate_account_year(record)
+    validate_previous_close(record, others)
     if (
         expected_fingerprint is not None
         and calculation_fingerprint(record) != expected_fingerprint

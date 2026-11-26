@@ -20,16 +20,36 @@
   {% include 'interest/quarters.html' %}
   <section class="card mt-6 p-6">
     <dl class="grid gap-5 sm:grid-cols-3">
+      {% if record.year_opening_balance != None %}
+        <div>
+          <dt class="detail-label">Year opening balance ({{ record.opening_effective_on|date:'d M Y' }})</dt>
+          <dd class="detail-value">
+            LKR {{ record.year_opening_balance|floatformat:'2g' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="detail-label">Credits before annual interest</dt>
+          <dd class="detail-value">
+            LKR {{ record.period_credit|floatformat:'2g' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="detail-label">Debits during the year</dt>
+          <dd class="detail-value">
+            LKR {{ record.period_debit|floatformat:'2g' }}
+          </dd>
+        </div>
+      {% endif %}
       <div>
         <dt class="detail-label">Balance before annual interest</dt>
         <dd class="detail-value">
-          LKR {{ record.closing_balance|floatformat:2 }}
+          LKR {{ record.closing_balance|floatformat:'2g' }}
         </dd>
       </div>
       <div>
         <dt class="detail-label">Annual interest</dt>
         <dd class="detail-value">
-          LKR {{ record.annual_interest|floatformat:2 }}
+          LKR {{ record.annual_interest|floatformat:'2g' }}
         </dd>
       </div>
       <div>
@@ -41,12 +61,13 @@
           {% endif %}
         </dt>
         <dd class="detail-value text-brand-700">
-          LKR {{ record.next_opening_balance|floatformat:2 }}
+          LKR {{ record.next_opening_balance|floatformat:'2g' }}
         </dd>
       </div>
     </dl>
     {% if record.posted_at %}
       <p class="muted mt-5">
+        Final closing balance: LKR {{ record.final_closing_balance|floatformat:'2g' }}.
         Posted {{ record.posted_at|date:'d M Y, H:i' }}. This amount carries into next year's opening balance. The original opening balance and the year's transactions are preserved.
       </p>
     {% elif posting %}

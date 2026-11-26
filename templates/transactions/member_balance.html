@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7 flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <p class="eyebrow mb-2">Member accounts</p>
+      <h1 class="page-title">
+        Member balance<span class="text-brand-600">.</span>
+      </h1>
+      <p class="muted mt-2">Check a member's posted balance, paid contributions and detailed transactions.</p>
+    </div>
+    {% if perms.members.add_paymenttransaction %}
+      <a class="btn btn-primary"
+         href="{% url 'contribution_create' %}{% if selected_member %}?member={{ selected_member.pk }}{% endif %}">Receive contribution</a>
+    {% endif %}
+  </div>
+  <section class="form-section">
+    <h2 class="section-title mb-5">Check balance</h2>
+    <form method="get">
+      {% if form.non_field_errors %}
+        <div class="alert message-error" role="alert">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div class="form-grid">
+        {% include 'components/field.html' with field=form.member %}
+        {% include 'components/field.html' with field=form.month %}
+        {% include 'components/field.html' with field=form.history %}
+      </div>
+      <p class="field-help mt-4">The current month ends today. Earlier months show the balance at month-end.</p>
+      <div class="mt-5 flex flex-wrap gap-3">
+        <button class="btn btn-primary">Check balance</button>
+        <a class="btn btn-secondary" href="{% url 'member_balance' %}">Reset</a>
+      </div>
+    </form>
+  </section>
+  {% if selected_member %}
+    <div class="mb-5">
+      <h2 class="section-title">{{ selected_member.member_no }} · {{ selected_member.full_name }}</h2>
+      <p class="muted mt-2">Balance as of {{ as_of|date:'d M Y' }} · Monthly movement from {{ month_start|date:'d M Y' }}</p>
+    </div>
+    <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <section class="card p-6">
+        <h3 class="detail-label">Opening / brought forward</h3>
+        <p class="detail-value">LKR {{ totals.brought_forward|floatformat:'2g' }}</p>
+      </section>
+      <section class="card p-6">
+        <h3 class="detail-label">Paid contributions this month</h3>
+        <p class="detail-value">LKR {{ totals.contribution|floatformat:'2g' }}</p>
+      </section>
+      <section class="card p-6">
+        <h3 class="detail-label">Other credits this month</h3>
+        <p class="detail-value">LKR {{ totals.other_credit|floatformat:'2g' }}</p>
+      </section>
+      <section class="card p-6">
+        <h3 class="detail-label">Posted quarterly interest this month</h3>
+        <p class="detail-value">LKR {{ totals.interest|floatformat:'2g' }}</p>
+      </section>
+      <section class="card p-6">
+        <h3 class="detail-label">Debits this month</h3>
+        <p class="detail-value">LKR {{ totals.total_debit|floatformat:'2g' }}</p>
+      </section>
+      <section class="card p-6">
+        <h3 class="detail-label">Current bank balance (posted)</h3>
+        <p class="detail-value text-brand-700">
+          LKR <output data-member-balance>{{ totals.final_balance|floatformat:'2g' }}</output>
+        </p>
+        <p class="field-help mt-2">As of {{ as_of|date:'d M Y' }}, across the member's payment accounts.</p>
+      </section>
+    </div>
+    <p class="field-help mb-6">
+      Bank balance = opening / brought forward + paid contributions + other credits + posted quarterly interest − debits. Paid contributions follow the receipt's payment-plan allocation. Unpaid scheduled contributions are excluded. Child deposits and outstanding loans have their own balances.
+    </p>
+    {% if child_balance_summary %}
+      {% include 'components/child_account_balances.html' with balance_summary=child_balance_summary %}
+    {% endif %}
+    <section class="card mb-6">
+      <div class="card-heading">
+        <h2 class="section-title">Balance by account</h2>
+        <span class="badge bg-brand-50 text-brand-700">LKR</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Payment type</th>
+              <th>Opening / brought forward</th>
+              <th>Paid contributions</th>
+              <th>Other credits</th>
+              <th>Posted interest</th>
+              <th>Debits</th>
+              <th>Bank balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in accounts %}
+              <tr>
+                <td>
+                  {{ row.payment_type_name }}
+                  {% if not row.is_active %}(inactive){% endif %}
+                </td>
+                <td>
+                  {{ row.brought_forward|floatformat:'2g' }}
+                  {% if row.effective_date_from %}<p class="field-help">From {{ row.effective_date_from|date:'d M Y' }}</p>{% endif %}
+                </td>
+                <td>{{ row.contribution|floatformat:'2g' }}</td>
+                <td>{{ row.other_credit|floatformat:'2g' }}</td>
+                <td>{{ row.interest|floatformat:'2g' }}</td>
+                <td>{{ row.total_debit|floatformat:'2g' }}</td>
+                <td class="font-semibold text-brand-700">{{ row.final_balance|floatformat:'2g' }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="py-10 text-center text-slate-600">
+                  No opening balances or posted transactions as of this date.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th>Total</th>
+              <td>{{ totals.brought_forward|floatformat:'2g' }}</td>
+              <td>{{ totals.contribution|floatformat:'2g' }}</td>
+              <td>{{ totals.other_credit|floatformat:'2g' }}</td>
+              <td>{{ totals.interest|floatformat:'2g' }}</td>
+              <td>{{ totals.total_debit|floatformat:'2g' }}</td>
+              <td class="font-semibold">{{ totals.final_balance|floatformat:'2g' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+    <section class="card member-plan mb-6" aria-labelledby="member-plan-heading">
+      <div class="card-heading member-plan-heading">
+        <div class="flex items-center gap-3">
+          <span class="stat-icon h-10 w-10 bg-brand-50 text-brand-700"
+                aria-hidden="true">
+            <svg class="icon">
+              <use href="#i-wallet" />
+            </svg>
+          </span>
+          <div>
+            <h2 id="member-plan-heading" class="section-title">Current payment plan</h2>
+            <p class="field-help mt-1">Agreed monthly contributions</p>
+          </div>
+        </div>
+        {% if plan %}
+          <span class="member-plan-agreement">Agreement from {{ plan.agreement_date|date:'d M Y' }}</span>
+        {% endif %}
+      </div>
+      {% if plan %}
+        <div class="member-plan-content">
+          <dl class="member-plan-total">
+            <dt>Monthly plan total</dt>
+            <dd>
+              <span class="member-plan-currency">LKR / month</span>
+              <span class="member-plan-total-amount">{{ plan.monthly_total|floatformat:'2g' }}</span>
+            </dd>
+            <dd class="member-plan-total-caption">
+              Scheduled contribution across all plan accounts
+            </dd>
+          </dl>
+          <dl class="member-plan-breakdown">
+            {% for amount in plan.amounts.all %}
+              <div class="member-plan-account{% if amount.amount == 0 %} member-plan-account-zero{% endif %}">
+                <dt>{{ amount.payment_type.name }}</dt>
+                <dd>
+                  <span>LKR</span> {{ amount.amount|floatformat:'2g' }}
+                </dd>
+              </div>
+            {% endfor %}
+          </dl>
+        </div>
+        <p class="member-plan-note">
+          <svg class="icon" aria-hidden="true">
+            <use href="#i-info" />
+          </svg>
+          <span>Only posted payments increase the bank balance. Unpaid scheduled contributions are excluded.</span>
+        </p>
+      {% else %}
+        <p class="muted p-6">No payment plan has been assigned to this member.</p>
+      {% endif %}
+    </section>
+    <section class="card mb-6">
+      <div class="card-heading">
+        <h2 class="section-title">Quarterly interest · Financial year from {{ interest_year_start|date:'d M Y' }}</h2>
+      </div>
+      <div class="p-6">
+        <p class="muted">
+          Completed quarters use the lowest month-end balance × annual rate ÷ 4, with the existing pension-quarter exclusions. Interest is credited at financial year-end.
+        </p>
+        <p class="mt-4">
+          Unposted interest for this financial year: <strong>LKR {{ accrued_interest|floatformat:'2g' }}</strong>
+        </p>
+        <p class="mt-2">
+          Balance including this year's unposted interest: <strong>LKR {{ balance_with_accrued_interest|floatformat:'2g' }}</strong>
+        </p>
+        <p class="field-help mt-2">
+          This includes only completed quarters in the displayed financial year. Unposted interest is excluded from the current bank balance above.
+        </p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Payment type</th>
+              <th>Quarter</th>
+              <th>Quarter ending</th>
+              <th>Minimum balance</th>
+              <th>Annual rate</th>
+              <th>Interest (LKR)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in quarter_rows %}
+              <tr>
+                <td>{{ row.payment_type }}</td>
+                <td>Q{{ row.number }}</td>
+                <td>{{ row.end }}</td>
+                <td>{{ row.minimum|floatformat:'2g' }}</td>
+                <td>{{ row.rate|floatformat:2 }}%</td>
+                <td>{{ row.amount|floatformat:'2g' }}</td>
+                <td>
+                  {{ row.status }}
+                  {% if row.exclusion_reason %}<p class="field-help">{{ row.exclusion_reason }}</p>{% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="py-10 text-center text-slate-600">No completed quarters for this selection.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="card">
+      <div class="card-heading">
+        <h2 class="section-title">
+          Detailed transactions ·
+          {% if history == 'month' %}
+            Selected month
+          {% else %}
+            All history through {{ as_of|date:'d M Y' }}
+          {% endif %}
+        </h2>
+      </div>
+      <p class="field-help p-6">
+        History opening balance: LKR {{ history_opening|floatformat:'2g' }}. Saved openings appear as credits below; monthly totals above list openings separately. Transactions before an account's saved opening date are already represented by its opening amount.
+      </p>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Payment type</th>
+              <th>Transaction</th>
+              <th>Reference / description</th>
+              <th>Debit (LKR)</th>
+              <th>Credit (LKR)</th>
+              <th>Running balance (LKR)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in page_obj %}
+              <tr>
+                <td>{{ row.date|date:'d M Y' }}</td>
+                <td>{{ row.payment_type }}</td>
+                <td>{{ row.kind }}</td>
+                <td>
+                  {{ row.reference }}
+                  {% if row.description %}<p class="field-help">{{ row.description }}</p>{% endif %}
+                </td>
+                <td>{{ row.debit|floatformat:'2g' }}</td>
+                <td>{{ row.credit|floatformat:'2g' }}</td>
+                <td class="font-semibold">{{ row.balance|floatformat:'2g' }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="py-10 text-center text-slate-600">No transactions in the selected history period.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="6">Final bank balance as of {{ as_of|date:'d M Y' }}</th>
+              <td class="font-semibold">{{ totals.final_balance|floatformat:'2g' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {% include 'components/pagination.html' %}
+    </section>
+  {% else %}
+    <section class="card p-6">
+      <p class="muted">Select a member to see their current bank balance and transaction history.</p>
+    </section>
+  {% endif %}
+{% endblock %}

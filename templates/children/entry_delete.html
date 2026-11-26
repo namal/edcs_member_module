@@ -5,7 +5,7 @@
     <h1 class="section-title">Delete child deposit entry?</h1>
     <p class="muted mt-4">{{ entry.deposit }} · {{ entry.transaction_date|date:'d M Y' }}</p>
     <p class="muted mt-3">
-      Debit LKR {{ entry.debit|floatformat:2 }} · Credit LKR {{ entry.credit|floatformat:2 }}. Deleting this entry changes the deposit's balance.
+      Debit LKR {{ entry.debit|floatformat:'2g' }} · Credit LKR {{ entry.credit|floatformat:'2g' }}. Deleting this entry changes the deposit's balance.
     </p>
     <form method="post" class="mt-7 flex justify-end gap-3">
       {% csrf_token %}<a class="btn btn-secondary"

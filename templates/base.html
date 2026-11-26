@@ -12,8 +12,9 @@
       {% block title %}{{ title }}{% endblock %}
     · EDCS</title>
     <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
-    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=edcs-11">
-    <script src="{% static 'js/app.js' %}?v=20" defer></script>
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=edcs-16">
+    <script src="{% static 'js/contribution-balances.js' %}?v=1" defer></script>
+    <script src="{% static 'js/app.js' %}?v=28" defer></script>
     {% include 'components/session_security.html' %}
   </head>
   <body>
@@ -97,6 +98,16 @@
           </a>
         {% endif %}
         {% if transaction_module.visible %}
+          {% if transaction_module.view %}
+            <a class="nav-link {% if section == 'member_balance' %}active{% endif %}"
+               href="{% url 'member_balance' %}"
+               {% if section == 'member_balance' %}aria-current="page"{% endif %}>
+              <svg class="icon">
+                <use href="#i-wallet" />
+              </svg>
+              Member Balance
+            </a>
+          {% endif %}
           <a class="nav-link {% if section == 'payment_transactions' %}active{% endif %}"
              href="{% url transaction_module.url %}"
              {% if section == 'payment_transactions' %}aria-current="page"{% endif %}>
@@ -177,7 +188,33 @@
         {% endif %}
         {% if request.user.is_authenticated %}
           <p class="nav-caption mt-7">Administration</p>
+          {% if perms.members.view_auditlog %}
+            <a class="nav-link {% if section == 'audit_logs' %}active{% endif %}"
+               href="{% url 'audit_log_list' %}"
+               {% if section == 'audit_logs' %}aria-current="page"{% endif %}>
+              <svg class="icon">
+                <use href="#i-shield" />
+              </svg>
+            Audit Logs</a>
+          {% endif %}
+          {% if perms.members.view_member %}
+            <a class="nav-link {% if section == 'member_audit' %}active{% endif %}"
+               href="{% url 'member_audit' %}"
+               {% if section == 'member_audit' %}aria-current="page"{% endif %}>
+              <svg class="icon">
+                <use href="#i-users" />
+              </svg>
+            Member audit history</a>
+          {% endif %}
           {% if request.user.is_superuser %}
+            <a class="nav-link {% if section == 'financial_year_closing' %}active{% endif %}"
+               href="{% url 'financial_year_closing_list' %}"
+               {% if section == 'financial_year_closing' %}aria-current="page"{% endif %}>
+              <svg class="icon">
+                <use href="#i-wallet" />
+              </svg>
+              Year-end closing
+            </a>
             <a class="nav-link {% if section == 'administration' %}active{% endif %}"
                href="{% url 'administration' %}"
                {% if section == 'administration' %}aria-current="page"{% endif %}>
@@ -321,7 +358,7 @@
         {% if request.user.is_authenticated and not request.user.is_superuser and not has_district_access %}
           <p class="alert border-accent-100 bg-accent-50 text-accent-700"
              role="status">
-            No districts are assigned to your account. Ask an administrator to assign districts before working with district records.
+            No branches are assigned to your account. Ask an administrator to assign branches before working with branch records.
           </p>
         {% elif request.user.is_authenticated and not request.user.is_superuser and uses_member_records and not has_ledger_access %}
           <p class="alert border-accent-100 bg-accent-50 text-accent-700"
@@ -335,7 +372,18 @@
             <svg class="icon h-3 w-3">
               <use href="#i-lock" />
             </svg>
-          Fully Owned by Namal Spencer EDCS.</span>
+          Fully Owned by 
+          <a href="mailto:namal.spencer@gmail.com" class="hover:text-blue-600 hover:underline transition-colors">
+              Namal Spencer
+          </a> 
+          EDCS.
+
+          <span>
+              Contact : 
+              <a href="tel:+94777555532" class="hover:text-blue-600 hover:underline transition-colors">
+                  077 7555 532
+              </a>
+          </span>
         </footer>
       </main>
     </div>

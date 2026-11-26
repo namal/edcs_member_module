@@ -59,8 +59,9 @@ class LedgerAccessTests(TestCase):
                 Permission.objects.filter(content_type__app_label="members")
             )
             profile = m.LedgerOfficerProfile.objects.create(
-                user=user, epf_number=f"LEDGER-EPF-{index}", zonal_office=cls.office
+                user=user, epf_number=f"LEDGER-EPF-{index}"
             )
+            profile.zonal_offices.add(cls.office)
             lager = m.Lager.objects.create(
                 zonal_office=cls.office,
                 name=f"Assigned master {index}",
@@ -351,7 +352,11 @@ class LedgerAccessTests(TestCase):
             maintenance_officer=user
         )
         self.assertFalse(accessible_members(user).exists())
-        m.LedgerOfficerProfile.objects.create(user=user, epf_number="VALID-NEW-EPF")
+        profile = m.LedgerOfficerProfile.objects.create(
+            user=user, epf_number="VALID-NEW-EPF"
+        )
+        self.assertFalse(accessible_members(user).exists())
+        profile.zonal_offices.add(self.office)
         self.assertEqual(set(accessible_members(user)), {self.other["member"]})
         user.assigned_districts.clear()
         self.assertFalse(accessible_members(user).exists())
@@ -404,7 +409,7 @@ class LedgerAccessTests(TestCase):
                 "is_active": "on",
                 "districts": [self.district.pk],
                 "epf_number": "",
-                "ledger_office": "",
+                "zonal_offices": [self.office.pk],
             },
             actor=self.admin,
             instance=self.user,
@@ -551,6 +556,9 @@ class LedgerAccessTests(TestCase):
             "school": self.school.pk,
             "lager": self.other["lager"].pk,
             "member_no": "ACL-NEW-MEMBER",
+            "computer_no": "COMP-ACL-NEW-MEMBER",
+            "title": "Ms.",
+            "date_of_birth": "1990-01-01",
             "full_name": "New ledger member",
             "nic_no": "199012345699",
             "salary": "1000",

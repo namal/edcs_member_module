@@ -77,8 +77,8 @@ class LagerActivityTests(TestCase):
                 credit="100",
                 reference=f"CREDIT-{member.pk}",
             )
-        # Imported historical movements are fixtures for this read-only report.
-        m.PaymentTransaction.objects.bulk_create(
+        # Historical import fixtures deliberately use the base manager; live postings use audited saves.
+        m.PaymentTransaction._base_manager.bulk_create(
             [
                 m.PaymentTransaction(
                     member=cls.member,
@@ -132,7 +132,7 @@ class LagerActivityTests(TestCase):
             principal_amount="20",
             interest_amount="2",
         )
-        debit = m.PaymentTransaction.objects.bulk_create(
+        debit = m.PaymentTransaction._base_manager.bulk_create(
             [
                 m.PaymentTransaction(
                     member=cls.member,
@@ -375,7 +375,7 @@ class LagerActivityTests(TestCase):
 
     def test_export_covers_all_pages_and_escapes_spreadsheet_formulas(self):
         for index in range(30):
-            m.PaymentTransaction.objects.bulk_create(
+            m.PaymentTransaction._base_manager.bulk_create(
                 [
                     m.PaymentTransaction(
                         member=self.member,

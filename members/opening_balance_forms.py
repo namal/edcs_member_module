@@ -101,7 +101,7 @@ class OpeningBalanceForm(StyledModelForm):
             .exists()
         ):
             raise forms.ValidationError(
-                "This member is outside your assigned districts."
+                "This member is outside your assigned branches."
             )
         if not self.payment_types:
             raise forms.ValidationError(

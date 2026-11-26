@@ -30,6 +30,7 @@ class ApprovalWorkflowTests(TestCase):
         from .test_support import assign_member_ledgers
 
         assign_member_ledgers(cls.requester, [cls.member])
+        cls.requester.ledger_profile.zonal_offices.add(*cls.offices)
         cls.first = get_user_model().objects.create_user(
             "first-approver", password="test-only-pass", first_name="First Approver"
         )
@@ -287,7 +288,7 @@ class ApprovalWorkflowTests(TestCase):
         specific = self.hierarchy()
         self.assertEqual(self.submit_entry().hierarchy_id, specific.pk)
 
-    def test_creates_and_deletes_skip_global_and_legacy_wildcard_hierarchies(self):
+    def test_creates_skip_hierarchies_and_entry_deletion_is_disabled(self):
         self.hierarchy(module="all_modules")
         self.hierarchy(action="*")
         self.client.post(reverse("payment_transaction_create"), self.entry_payload())
@@ -296,8 +297,8 @@ class ApprovalWorkflowTests(TestCase):
         response = self.client.post(
             reverse("payment_transaction_delete", args=[entry.pk])
         )
-        self.assertEqual(response.status_code, 302)
-        self.assertFalse(m.PaymentTransaction.objects.filter(pk=entry.pk).exists())
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(m.PaymentTransaction.objects.filter(pk=entry.pk).exists())
         self.assertFalse(m.ApprovalRequest.objects.exists())
 
     def test_pending_assignment_snapshot_survives_configuration_change(self):
@@ -456,14 +457,14 @@ class ApprovalWorkflowTests(TestCase):
             opening.amounts.get(payment_type=self.payment_type).amount, Decimal("1500")
         )
 
-    def test_deletion_remains_immediate_even_with_a_legacy_delete_policy(self):
+    def test_deletion_stays_disabled_even_with_a_legacy_delete_policy(self):
         self.hierarchy(action="delete")
         response = self.client.post(
             reverse("payment_transaction_delete", args=[self.old_entry.pk])
         )
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 403)
         self.assertFalse(m.ApprovalRequest.objects.exists())
-        self.assertFalse(
+        self.assertTrue(
             m.PaymentTransaction.objects.filter(pk=self.old_entry.pk).exists()
         )
 

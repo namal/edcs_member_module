@@ -500,7 +500,7 @@ class FixDepositTests(TestCase):
             reverse("fix_deposit_detail", args=[self.account.pk]),
             {"as_of": "2023-01-01"},
         )
-        self.assertContains(response, "90000.00")
+        self.assertContains(response, "90,000.00")
         self.assertContains(response, "fully paid and marked settled")
         self.assertNotContains(
             self.client.get(reverse("fix_deposit_list")), self.foreign.full_name

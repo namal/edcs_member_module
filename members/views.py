@@ -1,11 +1,12 @@
 import csv
 from .approval_services import form_checkpoint, checkpoint
 from datetime import date
+from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.db.models.deletion import ProtectedError
 from django.db.models.functions import TruncMonth
 from django.http import HttpResponse, JsonResponse
@@ -15,6 +16,7 @@ from django.urls import reverse
 
 from .forms import (
     DistrictForm,
+    GenderForm,
     LagerForm,
     MemberForm,
     OfficeLocationForm,
@@ -25,8 +27,10 @@ from .forms import (
 )
 from .models import (
     District,
+    Gender,
     Lager,
     Member,
+    MemberAuditEvent,
     OfficeLocation,
     OpeningBalance,
     PaymentPlan,
@@ -88,12 +92,19 @@ def location_data(district_id, instance=None, *, user=None, receiving=False):
         )
         | Q(pk=getattr(instance, "lager_id", None))
     )
-    if user is not None and not receiving:
-        from .permissions import scope_queryset
+    if user is not None:
+        from .permissions import district_only_queryset, scope_queryset
 
-        lagers = scope_queryset(user, lagers)
+        offices = district_only_queryset(user, offices)
+        subdivisions = district_only_queryset(user, subdivisions)
+        schools = district_only_queryset(user, schools)
+        lagers = (
+            district_only_queryset(user, lagers)
+            if receiving
+            else scope_queryset(user, lagers)
+        )
     return {
-        "officers": officer_options_for_district(district_id),
+        "officers": officer_options_for_district(district_id, offices=offices),
         "lagers": list(
             lagers.values(
                 "id", "name", "code", "zonal_office_id", "maintenance_officer_id"
@@ -118,29 +129,20 @@ def location_data(district_id, instance=None, *, user=None, receiving=False):
     }
 
 
-def officer_options_for_district(district_id):
-    from django.contrib.auth import get_user_model
-    from django.db.models import F
+def officer_options_for_district(district_id, *, offices=None):
+    from .models import OfficeLocation
+    from .transfer_services import eligible_officers
 
+    if offices is None:
+        offices = OfficeLocation.objects.filter(district_id=district_id)
     return [
         {
             "id": user.pk,
             "name": f"{user.get_full_name() or user.username} · EPF {user.ledger_profile.epf_number}",
-            "zonal_office_id": user.ledger_profile.zonal_office_id,
+            "zonal_office_id": office.pk,
         }
-        for user in get_user_model()
-        .objects.filter(
-            is_active=True,
-            ledger_profile__zonal_office__district_id=district_id,
-            ledger_profile__epf_number__isnull=False,
-        )
-        .exclude(ledger_profile__epf_number="")
-        .filter(
-            Q(is_superuser=True)
-            | Q(assigned_districts=F("ledger_profile__zonal_office__district_id"))
-        )
-        .select_related("ledger_profile")
-        .distinct()
+        for office in offices
+        for user in eligible_officers(office)
     ]
 
 
@@ -227,7 +229,7 @@ def filtered_members(request):
             queryset = queryset.filter(**{field: value})
     if request.GET.get("status") in Member.Status.values:
         queryset = queryset.filter(status=request.GET["status"])
-    if request.GET.get("gender") in Member.Gender.values:
+    if Gender.objects.filter(code=request.GET.get("gender", "")).exists():
         queryset = queryset.filter(gender=request.GET["gender"])
     for key, lookup in [("from", "admit_date__gte"), ("to", "admit_date__lte")]:
         try:
@@ -352,7 +354,7 @@ def member_list(request):
             )
         ],
         "statuses": Member.Status.choices,
-        "genders": Member.Gender.choices,
+        "genders": Gender.objects.values_list("code", "name"),
     }
     context.update(paginated(request, queryset))
     return render(request, "members/member_list.html", context)
@@ -431,6 +433,21 @@ def member_detail(request, pk):
             "section": "members",
             "title": "Member profile",
             "member": member,
+            "contribution_total": member.payment_receipts.aggregate(
+                total=Sum("amount")
+            )["total"]
+            or Decimal("0.00"),
+            "monthly_contribution_total": (
+                (
+                    member.payment_plan.amounts.aggregate(total=Sum("amount"))["total"]
+                    or Decimal("0.00")
+                )
+                if hasattr(member, "payment_plan")
+                else Decimal("0.00")
+            ),
+            "member_audit_events": MemberAuditEvent.objects.filter(member_pk=member.pk)[
+                :10
+            ],
             "member_payment_plan": (
                 PaymentPlan.objects.filter(member=member).first()
                 if any(
@@ -468,7 +485,7 @@ def member_export(request):
             "Computer No",
             "Full Name",
             "Monthly Salary (LKR)",
-            "District",
+            "Branch",
             "Zonal Office",
             "Office Address",
             "Private Address",
@@ -597,14 +614,26 @@ def district_list(request):
     queryset = (
         district_records(request.user, District)
         .annotate(
-            office_count=Count("offices", distinct=True),
+            office_count=Count(
+                "offices",
+                distinct=True,
+                filter=Q(offices__in=district_records(request.user, OfficeLocation)),
+            ),
             member_count=Count(
                 "members",
                 distinct=True,
                 filter=Q(members__in=district_records(request.user, Member)),
             ),
-            school_count=Count("schools", distinct=True),
-            lager_count=Count("offices__lagers", distinct=True),
+            school_count=Count(
+                "schools",
+                distinct=True,
+                filter=Q(schools__in=district_records(request.user, School)),
+            ),
+            lager_count=Count(
+                "offices__lagers",
+                distinct=True,
+                filter=Q(offices__lagers__in=district_records(request.user, Lager)),
+            ),
         )
         .order_by("name", "pk")
     )
@@ -618,7 +647,7 @@ def district_list(request):
         )
     context = {
         "section": "districts",
-        "title": "Districts",
+        "title": "Branches",
         "record_count": district_records(request.user, District).count(),
     }
     context.update(paginated(request, queryset))
@@ -638,7 +667,11 @@ def office_list(request):
                 filter=Q(members__in=district_records(request.user, Member)),
             ),
             subdivision_count=Count("subdivisions", distinct=True),
-            lager_count=Count("lagers", distinct=True),
+            lager_count=Count(
+                "lagers",
+                distinct=True,
+                filter=Q(lagers__in=district_records(request.user, Lager)),
+            ),
         )
         .order_by("district__name", "name", "pk")
     )
@@ -719,7 +752,7 @@ def master_form(request, model, form_class, pk, section, singular, destination):
 @login_required
 def district_form(request, pk=None):
     return master_form(
-        request, District, DistrictForm, pk, "districts", "District", "district_list"
+        request, District, DistrictForm, pk, "districts", "Branch", "district_list"
     )
 
 
@@ -795,6 +828,79 @@ EXTRA_MASTERS = {
     "subdivisions": (Subdivision, SubdivisionForm, "Subdivision", "subdivision"),
     "schools": (School, SchoolForm, "Department", "school"),
 }
+
+
+@login_required
+def gender_list(request):
+    require_permission(request.user, Gender, "view")
+    rows = Gender.objects.all()
+    query = request.GET.get("q", "").strip()
+    if query:
+        rows = rows.filter(Q(name__icontains=query) | Q(code__icontains=query))
+    return render(
+        request,
+        "members/gender_list.html",
+        {"title": "Genders", "section": "genders", **paginated(request, rows)},
+    )
+
+
+@login_required
+def gender_form(request, pk=None):
+    return master_form(
+        request, Gender, GenderForm, pk, "genders", "Gender", "gender_list"
+    )
+
+
+@login_required
+def gender_delete(request, pk):
+    require_permission(request.user, Gender, "delete")
+    return delete_record(
+        request, get_object_or_404(Gender, pk=pk), "gender_list", "genders"
+    )
+
+
+@login_required
+def member_audit(request):
+    require_permission(request.user, Member, "view")
+    rows = MemberAuditEvent.objects.select_related("actor")
+    member_id = request.GET.get("member", "")
+    if member_id:
+        if not member_id.isdigit():
+            rows = rows.none()
+        else:
+            if Member.objects.filter(pk=member_id).exists():
+                get_object_or_404(district_records(request.user, Member), pk=member_id)
+            rows = rows.filter(member_pk=member_id)
+    if not request.user.is_superuser:
+        from .permissions import assigned_lagers
+
+        # Current access follows transfers. Deleted members retain their last scope.
+        rows = rows.filter(
+            Q(member_pk__in=district_records(request.user, Member).values("pk"))
+            | (
+                Q(
+                    district__in=accessible_districts(request.user),
+                    lager__in=assigned_lagers(request.user),
+                )
+                & ~Q(member_pk__in=Member.objects.values("pk"))
+            )
+        )
+    query = request.GET.get("q", "").strip()
+    if query:
+        rows = rows.filter(
+            Q(member_no__icontains=query)
+            | Q(member_name__icontains=query)
+            | Q(actor_name__icontains=query)
+        )
+    return render(
+        request,
+        "members/audit.html",
+        {
+            "title": "Member audit history",
+            "section": "member_audit",
+            **paginated(request, rows),
+        },
+    )
 
 
 @login_required

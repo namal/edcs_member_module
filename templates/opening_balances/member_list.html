@@ -99,7 +99,7 @@
                 <td>{{ record.opening_balance.balance_date|date:'d M Y'|default:'—' }}</td>
                 <td>
                   {% if record.opening_balance %}
-                    {{ record.opening_balance.total|floatformat:2 }}
+                    {{ record.opening_balance.total|floatformat:'2g' }}
                   {% else %}
                     —
                   {% endif %}
@@ -190,8 +190,8 @@
               <tr>
                 <td>{{ year.year_end|date:'d M Y' }}</td>
                 <td>{{ year.payment_type.name }}</td>
-                <td>{{ year.annual_interest|floatformat:2 }}</td>
-                <td>{{ year.next_opening_balance|floatformat:2 }}</td>
+                <td>{{ year.annual_interest|floatformat:'2g' }}</td>
+                <td>{{ year.next_opening_balance|floatformat:'2g' }}</td>
                 <td>
                   <a class="text-link" href="{% url 'deposit_interest_detail' year.pk %}">View quarterly calculation</a>
                 </td>

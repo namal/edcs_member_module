@@ -10,7 +10,7 @@
       <p class="muted mt-2">{{ filtered_count }} matching {{ title|lower }} · {{ record_count }} total</p>
     </div>
     {% if can_add %}
-      <a href="{% url create_url %}{% if request.GET.district or request.GET.zonal_office %}?district={{ request.GET.district|urlencode }}&amp;zonal_office={{ request.GET.zonal_office|urlencode }}{% endif %}"
+      <a href="{% url create_url %}{% if request.GET.branch or request.GET.zonal_office %}?district={{ request.GET.branch|urlencode }}&amp;zonal_office={{ request.GET.zonal_office|urlencode }}{% endif %}"
          class="btn btn-primary">Add {{ singular|lower }}</a>
     {% endif %}
   </div>
@@ -26,14 +26,14 @@
                placeholder="Search name or code…">
       </div>
       <div class="min-w-48">
-        <label for="district" class="sr-only">Filter by district</label>
+        <label for="district" class="sr-only">Filter by branch</label>
         <select name="district"
                 id="district"
                 class="field-input"
                 data-office-target="filter-zonal-office"
                 data-office-url="{% url 'office_options' %}"
                 data-all-label="All zonal offices">
-          <option value="">All districts</option>
+          <option value="">All branches</option>
           {% for district in districts %}
             <option value="{{ district.pk }}"
                     {% if request.GET.district == district.pk|stringformat:'s' %}selected{% endif %}>
@@ -72,7 +72,7 @@
               </th>
               <th>Province full name</th>
               <th>Province short name</th>
-              <th>District</th>
+              <th>Branch</th>
               <th>Zonal office</th>
               {% if section == 'schools' %}<th>Subdivision</th>{% endif %}
               {% if section == 'lagers' %}

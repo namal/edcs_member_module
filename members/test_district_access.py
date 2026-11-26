@@ -111,6 +111,9 @@ class DistrictAccessTests(TestCase):
             "school": row["school"].pk,
             "lager": row["lager"].pk,
             "member_no": "ACCESS-NEW",
+            "computer_no": f"COMP-ACCESS-{index}",
+            "title": "Ms.",
+            "date_of_birth": "1990-01-01",
             "full_name": "New Assigned Member",
             "salary": "1000",
             "office_address": "Manual office",
@@ -399,7 +402,7 @@ class DistrictAccessTests(TestCase):
         self.assertFalse(accessible_districts(self.user).exists())
         response = self.client.get(reverse("member_list"))
         self.assertEqual(response.context["total_members"], 0)
-        self.assertContains(response, "No districts are assigned")
+        self.assertContains(response, "No branches are assigned")
         self.assertEqual(
             self.client.get(
                 reverse("member_detail", args=[self.rows[0]["member"].pk])

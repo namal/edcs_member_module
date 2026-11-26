@@ -245,7 +245,7 @@ def deposit_interest_edit(request, pk, child_account=False):
         else:
             messages.success(
                 request,
-                f"Annual interest posted once. Opening balance on {record.year_end + timedelta(days=1)}: LKR {record.next_opening_balance:.2f}.",
+                f"Annual interest posted once. Opening balance on {record.year_end + timedelta(days=1)}: LKR {record.next_opening_balance:,.2f}.",
             )
         if request.user.has_perm("members.view_depositinterestyear"):
             return redirect(

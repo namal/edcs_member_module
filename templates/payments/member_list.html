@@ -92,7 +92,7 @@
               {% if not selecting %}
                 <td>
                   {% if record.payment_plan %}
-                    {{ record.payment_plan.monthly_total|floatformat:2 }}
+                    {{ record.payment_plan.monthly_total|floatformat:'2g' }}
                   {% else %}
                     —
                   {% endif %}

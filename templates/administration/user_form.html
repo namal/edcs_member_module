@@ -15,6 +15,7 @@
     <p class="muted mt-2">A clear identity. The right role. Just the permissions they need.</p>
   </div>
   <form method="post"
+        data-user-office-form
         class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_290px]">
     {% csrf_token %}
     <div class="min-w-0 space-y-6">
@@ -38,7 +39,6 @@
           {% include 'components/field.html' with field=form.first_name %}
           {% include 'components/field.html' with field=form.last_name %}
           {% include 'components/field.html' with field=form.epf_number %}
-          {% include 'components/field.html' with field=form.ledger_office %}
           {% include 'components/field.html' with field=form.password1 %}
           {% include 'components/field.html' with field=form.password2 %}
           <fieldset class="sm:col-span-2">
@@ -70,12 +70,14 @@
       </section>
       <section class="card">
         <div class="card-heading">
-          <h2 class="section-title">District access</h2>
+          <h2 class="section-title">Branch and zonal office access</h2>
         </div>
         <fieldset class="p-6">
-          <legend class="sr-only">Assigned districts</legend>
+          <legend class="sr-only">Assigned branches</legend>
           {% if account.is_superuser %}
-            <p class="text-sm font-semibold text-brand-700">Administrator: all districts, including districts added in future.</p>
+            <p class="text-sm font-semibold text-brand-700">
+              Administrator: all branches and zonal offices, including those added in future.
+            </p>
           {% endif %}
           <p class="field-help mb-4">{{ form.districts.help_text }}</p>
           <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -88,6 +90,35 @@
           </div>
           {% for error in form.districts.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
         </fieldset>
+        <div class="border-t border-slate-100 p-6">
+          <h3 class="field-label">Assigned zonal offices</h3>
+          <p class="field-help mb-4">{{ form.zonal_offices.help_text }}</p>
+          <p class="field-help mb-4" data-zone-empty>Select a branch above to see its zonal offices.</p>
+          <div class="space-y-4">
+            {% for group in form.zonal_office_groups %}
+              <fieldset class="rounded-xl border border-slate-200 p-4"
+                        data-zone-group
+                        data-district-id="{{ group.district.pk }}">
+                <legend class="px-2 text-sm font-semibold text-slate-800">{{ group.district.name }}</legend>
+                <div class="grid gap-3 sm:grid-cols-2">
+                  {% for choice in group.choices %}
+                    <label for="{{ choice.id_for_label }}"
+                           class="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 p-3 text-sm font-medium">
+                      {{ choice.tag }}{{ choice.choice_label }}
+                    </label>
+                  {% endfor %}
+                </div>
+              </fieldset>
+            {% empty %}
+              <p class="field-help">No zonal offices are available. Add zonal offices in Master data first.</p>
+            {% endfor %}
+          </div>
+          <p class="field-help mt-4"
+             data-zone-selection
+             role="status"
+             aria-live="polite"></p>
+          {% for error in form.zonal_offices.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+        </div>
       </section>
       {% if account.is_superuser %}
         <div class="alert border-accent-100 bg-accent-50 text-accent-700">
@@ -95,7 +126,7 @@
             <use href="#i-shield" />
           </svg>
           <p>
-            This is a system administrator with full access. District assignments and module checkboxes do not restrict superusers.
+            This is a system administrator with full access. Branch, zonal office and module assignments do not restrict superusers.
           </p>
         </div>
       {% endif %}
@@ -123,7 +154,7 @@
           Meaningful protection.
         </h2>
         <p class="mt-3 text-xs leading-6 text-accent-700">
-          Choose the user's districts, then enable the actions they need. For example, Colombo and Kandy with <strong>Members → View, Add and Edit</strong> allows those actions only in those two districts.
+          Select the user's branches, check their zonal offices, then enable the actions they need. Member and financial access requires the assigned branch, zonal office and ledger to match.
         </p>
         <p class="mt-3 text-xs leading-6 text-accent-700">
           New accounts are workspace users. Administrator and Django staff flags are never changed by this form.

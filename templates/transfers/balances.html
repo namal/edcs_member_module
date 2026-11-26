@@ -17,7 +17,7 @@
             {% for row in balances.member_deposits %}
               <tr>
                 <td>{{ row.payment_type_name }}</td>
-                <td>{{ row.final_balance|floatformat:2 }}</td>
+                <td>{{ row.final_balance|floatformat:'2g' }}</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -40,7 +40,7 @@
               <tr>
                 <td>{{ row.child_name }} · {{ row.account_no }}</td>
                 <td>{{ row.payment_type_name }}</td>
-                <td>{{ row.balance|floatformat:2 }}</td>
+                <td>{{ row.balance|floatformat:'2g' }}</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -62,8 +62,8 @@
             {% for row in balances.loans %}
               <tr>
                 <td>{{ row.reference }}</td>
-                <td>{{ row.principal_due|floatformat:2 }}</td>
-                <td>{{ row.interest_due|floatformat:2 }}</td>
+                <td>{{ row.principal_due|floatformat:'2g' }}</td>
+                <td>{{ row.interest_due|floatformat:'2g' }}</td>
               </tr>
             {% endfor %}
           </tbody>

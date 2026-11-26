@@ -455,7 +455,7 @@ class DepositInterestTests(TestCase):
             reverse("opening_balance_list"), {"member": self.member.pk}
         )
         self.assertContains(response, "Annual opening balances carried forward")
-        self.assertContains(response, "2160.00")
+        self.assertContains(response, "2,160.00")
         self.assertContains(
             response, reverse("deposit_interest_detail", args=[record.pk])
         )

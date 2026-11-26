@@ -12,7 +12,7 @@
       <div>
         <dt class="detail-label">Received</dt>
         <dd class="detail-value">
-          LKR {{ receipt.amount|floatformat:2 }}
+          LKR {{ receipt.amount|floatformat:'2g' }}
         </dd>
       </div>
       <div>
@@ -37,7 +37,7 @@
     href="{% url 'approval_request_detail' receipt.approval_request_id %}">View decisions and remarks</a>
             {% endif %}
           {% else %}
-            Automatically processed — all allocations meet the plan
+            Posted without additional approval
           {% endif %}
         </dd>
       </div>
@@ -45,6 +45,11 @@
     <p class="mt-4">{{ receipt.description|default:'No additional description.'|linebreaksbr }}</p>
   </section>
   <section class="card">
+    {% if receipt.plan_snapshot.remaining_payment_type_name and receipt.plan_snapshot.remaining_amount != '0.00' %}
+      <p class="p-6">
+        Remaining balance credited: LKR {{ receipt.plan_snapshot.remaining_amount|floatformat:'2g' }} to {{ receipt.plan_snapshot.remaining_payment_type_name }}.
+      </p>
+    {% endif %}
     <div class="card-heading">
       <h2 class="section-title">Saved allocation and payment-plan snapshot</h2>
     </div>
@@ -53,9 +58,10 @@
         <thead>
           <tr>
             <th>Category</th>
+            <th>Allocation</th>
             <th>Configured (LKR)</th>
-            <th>Ratio</th>
             <th>Credited (LKR)</th>
+            <th>Remaining balance (LKR)</th>
             <th>Statement</th>
           </tr>
         </thead>
@@ -63,12 +69,40 @@
           {% for row in rows %}
             <tr>
               <td>{{ row.name }}</td>
-              <td>{{ row.configured|floatformat:2 }}</td>
-              <td>{{ row.ratio }}%</td>
-              <td>{{ row.amount|floatformat:2 }}</td>
               <td>
-                <a class="text-link"
-                   href="{% url 'payment_transaction_list' %}?member={{ receipt.member_id }}&payment_type={{ row.payment_type_id }}">View statement</a>
+                {% if row.kind == 'remaining' %}
+                  Remaining balance
+                {% else %}
+                  Standard contribution
+                {% endif %}
+              </td>
+              <td>
+                {% if row.kind == 'remaining' %}
+                  —
+                {% else %}
+                  {{ row.configured|floatformat:'2g' }}
+                {% endif %}
+              </td>
+              <td>{{ row.amount|floatformat:'2g' }}</td>
+              <td>
+                {% if row.kind == 'remaining' %}
+                  {{ row.remaining_balance|floatformat:'2g' }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
+                {% if row.child_deposit_id %}
+                  {% if perms.members.view_childdeposit %}
+                    <a class="text-link"
+                       href="{% url 'child_deposit_detail' row.child_deposit_id %}">Child deposit statement</a>
+                  {% else %}
+                    Child deposit
+                  {% endif %}
+                {% else %}
+                  <a class="text-link"
+                     href="{% url 'payment_transaction_list' %}?member={{ receipt.member_id }}&payment_type={{ row.payment_type_id }}">View statement</a>
+                {% endif %}
               </td>
             </tr>
           {% endfor %}
@@ -78,7 +112,8 @@
             <th>Total received and allocated</th>
             <td></td>
             <td></td>
-            <td>{{ receipt.amount|floatformat:2 }}</td>
+            <td>{{ receipt.amount|floatformat:'2g' }}</td>
+            <td></td>
             <td></td>
           </tr>
         </tfoot>

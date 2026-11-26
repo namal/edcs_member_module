@@ -51,14 +51,14 @@
                  class="field-input pl-10">
         </div>
         <div>
-          <label for="filter-district" class="sr-only">Filter by district</label>
+          <label for="filter-district" class="sr-only">Filter by branch</label>
           <select name="district"
                   id="filter-district"
                   class="field-input"
                   data-office-target="filter-office"
                   data-office-url="{% url 'office_options' %}"
                   data-all-label="All zonal offices">
-            <option value="">All districts</option>
+            <option value="">All branches</option>
             {% for district in districts %}
               <option value="{{ district.pk }}"
                       {% if request.GET.district == district.pk|stringformat:'s' %}selected{% endif %}>
@@ -163,7 +163,7 @@
           <thead>
             <tr>
               <th>Member</th>
-              <th>District</th>
+              <th>Branch</th>
               <th>Zonal office</th>
               <th>Admitted</th>
               <th>Status</th>

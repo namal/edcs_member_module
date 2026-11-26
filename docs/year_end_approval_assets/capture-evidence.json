@@ -1,0 +1,157 @@
+{
+  "prepared_on": "2026-11-26",
+  "timezone": "Asia/Colombo",
+  "captured_at": "2026-11-26T04:44:27.863985+00:00",
+  "data_notice": "Current application views with fictional training records in a disposable PostgreSQL database. Live records and policies were not changed.",
+  "financial_year_start_month": 1,
+  "example_year": 2025,
+  "example_start": "2025-01-01",
+  "example_end": "2025-12-31",
+  "ordinary_designated_approver_can_approve": false,
+  "reason": "The requester is the current single ledger maintenance officer; a different ordinary designated approver lacks ownership of that ledger.",
+  "scheduler_inspected": true,
+  "scheduler_entry_found": true,
+  "scheduled_post_ended": true,
+  "individual_request_module": "depositinterestyear",
+  "child_request_module": "depositinterestyear",
+  "closing_account_count": 3,
+  "closing_newly_posted_count": 1,
+  "accounts": [
+    {
+      "type": "Training Child Savings",
+      "group": "children",
+      "account": "CD-GUIDE-001",
+      "closing": "6036.00",
+      "opening": "5000.00",
+      "member_id": 1,
+      "member_no": "GUIDE-001",
+      "record_id": 1,
+      "member_name": "Training Member Silva",
+      "next_opening": "6036.00",
+      "annual_interest": "436.00",
+      "opening_effective_on": "2025-01-01"
+    },
+    {
+      "type": "Fix Deposit",
+      "group": "members",
+      "account": "Fix Deposit",
+      "closing": "15600.00",
+      "opening": "15000.00",
+      "member_id": 1,
+      "member_no": "GUIDE-001",
+      "record_id": 2,
+      "member_name": "Training Member Silva",
+      "next_opening": "15600.00",
+      "annual_interest": "600.00",
+      "opening_effective_on": "2025-01-01"
+    },
+    {
+      "type": "Special Deposit",
+      "group": "members",
+      "account": "Special Deposit",
+      "closing": "11864.00",
+      "opening": "10000.00",
+      "member_id": 1,
+      "member_no": "GUIDE-001",
+      "record_id": 1,
+      "member_name": "Training Member Silva",
+      "next_opening": "11864.00",
+      "annual_interest": "864.00",
+      "opening_effective_on": "2025-01-01"
+    }
+  ],
+  "total_closing": "33500.00",
+  "total_interest": "1900.00",
+  "pages": [
+    {
+      "name": "01-user-permissions",
+      "route": "/admin/users/2/",
+      "parameters": {}
+    },
+    {
+      "name": "02-hierarchy-configuration",
+      "route": "/approval-hierarchies/1/edit/",
+      "parameters": {}
+    },
+    {
+      "name": "03-hierarchy-list",
+      "route": "/approval-hierarchies/",
+      "parameters": {}
+    },
+    {
+      "name": "04-quarterly-interest",
+      "route": "/deposit-interest/",
+      "parameters": {
+        "year": 2025,
+        "member": 1
+      }
+    },
+    {
+      "name": "05-member-year-end-review",
+      "route": "/deposit-interest/1/post/",
+      "parameters": {}
+    },
+    {
+      "name": "06-account-approval-pending",
+      "route": "/approvals/1/",
+      "parameters": {}
+    },
+    {
+      "name": "07-ordinary-approver-access",
+      "route": "/approvals/",
+      "parameters": {}
+    },
+    {
+      "name": "08-next-approval-level",
+      "route": "/approvals/1/",
+      "parameters": {}
+    },
+    {
+      "name": "09-account-approval-complete",
+      "route": "/approvals/1/",
+      "parameters": {}
+    },
+    {
+      "name": "10-member-posted",
+      "route": "/deposit-interest/1/",
+      "parameters": {}
+    },
+    {
+      "name": "11-child-year-end-review",
+      "route": "/deposit-interest/children/1/post/",
+      "parameters": {}
+    },
+    {
+      "name": "12-child-approval-pending",
+      "route": "/approvals/2/",
+      "parameters": {}
+    },
+    {
+      "name": "13-batch-year-end-review",
+      "route": "/year-end-closing/",
+      "parameters": {
+        "year": 2025
+      }
+    },
+    {
+      "name": "14-approved-batch-history",
+      "route": "/year-end-closing/1/",
+      "parameters": {}
+    },
+    {
+      "name": "15-current-year-preview",
+      "route": "/year-end-closing/",
+      "parameters": {
+        "year": 2026
+      }
+    },
+    {
+      "name": "16-audit-logs",
+      "route": "/audit-logs/",
+      "parameters": {
+        "q": "year"
+      }
+    }
+  ],
+  "temporary_test_database_removed_on_exit": true
+}

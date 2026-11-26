@@ -176,11 +176,11 @@ class ChildInterestTests(TestCase):
         self.assertContains(
             response, "Annual interest and opening balances carried forward"
         )
-        self.assertContains(response, "1080.00")
+        self.assertContains(response, "1,080.00")
         response = self.client.post(
             reverse("child_entry_delete", args=[saved.ledger_transaction_id])
         )
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 403)
         self.assertTrue(
             ChildDepositTransaction.objects.filter(
                 pk=saved.ledger_transaction_id

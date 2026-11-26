@@ -1,0 +1,22 @@
+digraph Contribution {
+  graph [rankdir=TB, bgcolor="white", pad="0.25", nodesep="0.45", ranksep="0.45", fontname="Noto Sans"];
+  node [shape=box, style="rounded,filled", fillcolor="#F7F3F4", color="#6B2138", fontname="Noto Sans", fontsize=12, margin="0.15,0.12"];
+  edge [color="#6B2138", fontname="Noto Sans", fontsize=10];
+  draft [label="Enter member, actual receipt and date\nValidate effective plan and ownership"];
+  preview [label="Preview standard and remaining allocations\nRequire exact reconciliation to received amount"];
+  decision [shape=diamond, label="Ordinary user and\nbelow-plan exception?", fillcolor="#FFF5DB"];
+  queue [label="Dedicated hierarchy required\nSave pending request; post no money"];
+  approval [shape=diamond, label="All required levels\napproved?"];
+  failed [label="Rejected / cancelled / failed\nRetain audit; post no money", fillcolor="#FFECEE"];
+  revalidate [label="Recheck requester access, plan,\naccount rules, dates and preview state"];
+  post [label="One atomic receipt posting\nReceipt + allocations + positive credits\nLedger and audit events", fillcolor="#6B2138", fontcolor="white"];
+  draft -> preview;
+  preview -> decision [label="valid preview"];
+  decision -> queue [label="yes"];
+  decision -> revalidate [label="no / administrator"];
+  queue -> approval;
+  approval -> failed [label="reject / cancel"];
+  approval -> revalidate [label="final approval"];
+  revalidate -> failed [label="stale or invalid"];
+  revalidate -> post [label="valid; retry protection"];
+}

@@ -336,13 +336,18 @@ def attach_ledger_references(objects, model, user):
     from .permissions import district_records
 
     rows = list(objects)
+    allocation_field = (
+        "child_transaction_id"
+        if model._meta.model_name == "childdeposittransaction"
+        else "transaction_id"
+    )
     allocated = (
         set(
             PaymentReceiptAllocation.objects.filter(
-                transaction_id__in=[obj.pk for obj in rows]
-            ).values_list("transaction_id", flat=True)
+                **{f"{allocation_field}__in": [obj.pk for obj in rows]}
+            ).values_list(allocation_field, flat=True)
         )
-        if model._meta.model_name == "paymenttransaction"
+        if model._meta.model_name in ("paymenttransaction", "childdeposittransaction")
         else set()
     )
     records = {
@@ -368,6 +373,14 @@ def attach_ledger_references(objects, model, user):
             or (record and record.original_ledger.status == "transferred")
         )
         obj.can_view_ledger = bool(record and record.original_ledger_id in visible)
+    if model._meta.model_name in ("paymenttransaction", "childdeposittransaction"):
+        corrected = set(
+            model.objects.filter(reverses_id__in=[obj.pk for obj in rows]).values_list(
+                "reverses_id", flat=True
+            )
+        )
+        for obj in rows:
+            obj.can_correct = obj.pk not in corrected
     return rows
 
 
@@ -376,6 +389,11 @@ class LedgerActorMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        from .audit_tracking import audit_request
+
+        audit_token = audit_request.set(
+            {"request_path": request.path[:500], "request_method": request.method[:10]}
+        )
         token = ledger_actor.set(
             request.user if request.user.is_authenticated else None
         )
@@ -383,3 +401,4 @@ class LedgerActorMiddleware:
             return self.get_response(request)
         finally:
             ledger_actor.reset(token)
+            audit_request.reset(audit_token)

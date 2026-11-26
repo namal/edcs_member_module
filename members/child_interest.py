@@ -60,7 +60,7 @@ def quarter_rate(rules, start, end):
 
 
 def child_interest_report(deposits, start, *, as_of=None):
-    """Read-only report. The caller must scope deposits to authorized districts."""
+    """Read-only report. The caller must scope deposits to authorized branches."""
     as_of = as_of or timezone.localdate()
     end = add_months(start, 12) - timedelta(days=1)
     through = min(end, as_of)
@@ -83,12 +83,14 @@ def child_interest_report(deposits, start, *, as_of=None):
             transaction_date__gte=F("deposit__opened_on"),
         )
         .values("deposit_id", "transaction_date")
-        .annotate(net=Sum(F("credit") - F("debit")))
+        .annotate(
+            net=Sum(F("credit") - F("debit")), credit=Sum("credit"), debit=Sum("debit")
+        )
         .order_by("transaction_date")
     )
     for item in entries:
         events.setdefault(item["deposit_id"], []).append(
-            (item["transaction_date"], item["net"])
+            (item["transaction_date"], item["net"], item["credit"], item["debit"])
         )
     ends = [
         add_months(start, i).replace(
@@ -184,6 +186,15 @@ def child_interest_report(deposits, start, *, as_of=None):
                 deposit=deposit, year_start=start
             )
             for name, value in {
+                "year_opening_balance": Decimal(deposit.opening_amount)
+                + sum((item[1] for item in movement if item[0] < start), ZERO),
+                "opening_effective_on": max(start, deposit.opened_on),
+                "period_credit": sum(
+                    (item[2] for item in movement if item[0] >= start), ZERO
+                ),
+                "period_debit": sum(
+                    (item[3] for item in movement if item[0] >= start), ZERO
+                ),
                 "year_end": end,
                 "annual_rate": annual_rate,
                 "rate_rules": rules,
@@ -295,7 +306,11 @@ def post_child_interest_year(pk, *, actor=None, today=None, expected_fingerprint
         raise ValidationError(
             "Post or remove earlier child interest drafts before closing this year."
         )
+    from .year_end_services import validate_previous_close, validate_account_year
+
     record = save_child_interest_year(record.deposit, record.year_start, today=today)
+    validate_account_year(record)
+    validate_previous_close(record, others)
     if (
         expected_fingerprint is not None
         and child_calculation_fingerprint(record) != expected_fingerprint

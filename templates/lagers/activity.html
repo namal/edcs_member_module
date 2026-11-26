@@ -71,18 +71,18 @@
         <section class="card p-6" data-member-deposits>
           <h3 class="section-title">Member deposits</h3>
           <p class="detail-label mt-4">Closing balance</p>
-          <p class="detail-value text-brand-700">LKR {{ summaries.member_deposits.balance|floatformat:2 }}</p>
+          <p class="detail-value text-brand-700">LKR {{ summaries.member_deposits.balance|floatformat:'2g' }}</p>
           <dl class="mt-4 grid grid-cols-2 gap-3">
             <div>
               <dt class="detail-label">Debit</dt>
               <dd>
-                {{ summaries.member_deposits.debit|floatformat:2 }}
+                {{ summaries.member_deposits.debit|floatformat:'2g' }}
               </dd>
             </div>
             <div>
               <dt class="detail-label">Credit</dt>
               <dd>
-                {{ summaries.member_deposits.credit|floatformat:2 }}
+                {{ summaries.member_deposits.credit|floatformat:'2g' }}
               </dd>
             </div>
           </dl>
@@ -92,18 +92,18 @@
         <section class="card p-6" data-child-deposits>
           <h3 class="section-title">Children's deposits</h3>
           <p class="detail-label mt-4">Closing balance</p>
-          <p class="detail-value text-brand-700">LKR {{ summaries.child_deposits.balance|floatformat:2 }}</p>
+          <p class="detail-value text-brand-700">LKR {{ summaries.child_deposits.balance|floatformat:'2g' }}</p>
           <dl class="mt-4 grid grid-cols-2 gap-3">
             <div>
               <dt class="detail-label">Debit</dt>
               <dd>
-                {{ summaries.child_deposits.debit|floatformat:2 }}
+                {{ summaries.child_deposits.debit|floatformat:'2g' }}
               </dd>
             </div>
             <div>
               <dt class="detail-label">Credit</dt>
               <dd>
-                {{ summaries.child_deposits.credit|floatformat:2 }}
+                {{ summaries.child_deposits.credit|floatformat:'2g' }}
               </dd>
             </div>
           </dl>
@@ -113,9 +113,9 @@
         <section class="card p-6" data-loan-balances>
           <h3 class="section-title">Loans</h3>
           <p class="detail-label mt-4">Principal outstanding</p>
-          <p class="detail-value">LKR {{ summaries.loans.principal_due|floatformat:2 }}</p>
+          <p class="detail-value">LKR {{ summaries.loans.principal_due|floatformat:'2g' }}</p>
           <p class="detail-label mt-4">Assessed interest outstanding</p>
-          <p>LKR {{ summaries.loans.interest_due|floatformat:2 }}</p>
+          <p>LKR {{ summaries.loans.interest_due|floatformat:'2g' }}</p>
         </section>
       {% endif %}
     </div>
@@ -160,9 +160,9 @@
                   {{ row.event_account|default:'—' }}
                 </td>
                 <td>{{ row.event_reference|default:'—' }}</td>
-                <td class="whitespace-nowrap">{{ row.event_debit|floatformat:2|default:'—' }}</td>
-                <td class="whitespace-nowrap">{{ row.event_credit|floatformat:2|default:'—' }}</td>
-                <td class="whitespace-nowrap">{{ row.event_amount|floatformat:2|default:'—' }}</td>
+                <td class="whitespace-nowrap">{{ row.event_debit|floatformat:'2g'|default:'—' }}</td>
+                <td class="whitespace-nowrap">{{ row.event_credit|floatformat:'2g'|default:'—' }}</td>
+                <td class="whitespace-nowrap">{{ row.event_amount|floatformat:'2g'|default:'—' }}</td>
               </tr>
             {% endfor %}
           </tbody>

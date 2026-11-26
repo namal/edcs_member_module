@@ -30,7 +30,7 @@
   <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
     <h2 class="section-title">Balances as of {{ as_of|date:'d M Y' }}</h2>
     <p class="text-lg font-bold text-brand-700">
-      Total LKR <output data-child-total>{{ total_balance|floatformat:2 }}</output>
+      Total LKR <output data-child-total>{{ total_balance|floatformat:'2g' }}</output>
     </p>
   </div>
   <section class="card">

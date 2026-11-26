@@ -2,13 +2,17 @@
 
 import os
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY", "development-only-change-before-deployment"
-)
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+if not SECRET_KEY or not SECRET_KEY.strip():
+    raise ImproperlyConfigured(
+        "Set DJANGO_SECRET_KEY in .env or the environment before starting Django."
+    )
 DEBUG = os.environ.get("DJANGO_DEBUG", "false").lower() == "true"
 ALLOWED_HOSTS = os.environ.get(
     "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]"
@@ -29,6 +33,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "members.ledger_tracking.LedgerActorMiddleware",
+    "members.audit_tracking.AuditTransactionMiddleware",
     "config.middleware.PrivateSessionMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "config.middleware.WorkspaceNotFoundMiddleware",

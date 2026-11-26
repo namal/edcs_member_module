@@ -1,0 +1,14 @@
+<tr data-remaining-row {% if allocation.DELETE.value %}hidden{% endif %}>
+  <td>
+    {% include 'components/field.html' with field=allocation.payment_type %}
+    <div data-child-deposit-field>{% include 'components/field.html' with field=allocation.child_deposit %}</div>
+  </td>
+  <td>{% include 'components/field.html' with field=allocation.amount %}</td>
+  <td>
+    <output data-remaining-row-balance>—</output>
+  </td>
+  <td>
+    <span hidden>{{ allocation.DELETE }}</span>
+    <button class="btn btn-secondary" type="button" data-remove-remaining>Remove</button>
+  </td>
+</tr>

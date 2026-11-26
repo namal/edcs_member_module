@@ -127,6 +127,8 @@ def _summary(form, target):
             "calculation_hash",
             "source_ledger",
             "review_hash",
+            "allocation_context",
+            "remaining_allocations",  # Derived formset rows are included in allocation_summary.
         ):
             continue
         if hasattr(value, "all"):

@@ -3,20 +3,62 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_GET
 
 from .approval_scope import PAYMENT_EXCEPTIONS
 from .approval_services import checkpoint, visible_requests
 from .contribution_forms import ContributionForm
 from .contribution_services import (
     allocation_preview,
+    allocation_input,
     allocation_summary,
     existing_receipt,
     post_receipt,
 )
-from .models import Member, PaymentPlan, PaymentReceipt, PaymentTransaction
+from .models import (
+    ChildDeposit,
+    Member,
+    PaymentPlan,
+    PaymentReceipt,
+    PaymentTransaction,
+)
 from .permissions import district_records, require_permission
 from .views import paginated
+
+
+@login_required
+@require_GET
+def contribution_child_accounts(request):
+    require_permission(request.user, PaymentTransaction, "add")
+    require_permission(request.user, ChildDeposit, "add")
+    member_id = request.GET.get("member", "")
+    if not member_id.isdigit():
+        return JsonResponse({"error": "Select a valid member."}, status=400)
+    member = get_object_or_404(district_records(request.user, Member), pk=member_id)
+    accounts = (
+        district_records(request.user, ChildDeposit)
+        .filter(
+            child__member=member,
+            child__is_active=True,
+            is_active=True,
+            deposit_type__is_active=True,
+        )
+        .select_related("child", "deposit_type")
+    )
+    return JsonResponse(
+        {
+            "accounts": [
+                {
+                    "id": account.pk,
+                    "deposit_type_id": account.deposit_type_id,
+                    "label": str(account),
+                }
+                for account in accounts
+            ]
+        }
+    )
 
 
 @login_required
@@ -69,8 +111,9 @@ def contribution_create(request):
         initial={"member": request.GET.get("member", "")},
     )
     preview = None
-    if request.method == "POST" and form.is_valid():
-        preview = form.preview
+    valid = request.method == "POST" and form.is_valid()
+    preview = form.preview
+    if valid:
         if request.POST.get("intent") == "post":
             try:
                 with transaction.atomic():
@@ -93,7 +136,18 @@ def contribution_create(request):
                         form.cleaned_data["received_on"],
                         form.cleaned_data["amount"],
                         form.cleaned_data["payment_type"],
+                        allocation_input(form.cleaned_data),
+                        remaining_payment_type=form.cleaned_data.get(
+                            "remaining_payment_type"
+                        ),
+                        remaining_allocations=form.cleaned_data.get(
+                            "remaining_allocations"
+                        ),
                     )
+                    if not preview["is_balanced"]:
+                        raise ValidationError(
+                            "The allocated total must equal the received contribution exactly."
+                        )
                     if form.cleaned_data["review_hash"] != preview["fingerprint"]:
                         raise ValidationError(
                             "The amount, payment plan or member ledger changed. Preview the allocation again before posting."
@@ -125,7 +179,7 @@ def contribution_create(request):
             else:
                 messages.success(
                     request,
-                    f"{receipt.receipt_number} posted: LKR {receipt.amount:.2f}, allocated exactly across the payment categories.",
+                    f"{receipt.receipt_number} posted: LKR {receipt.amount:,.2f}, allocated exactly across the payment categories.",
                 )
                 return receipt_destination(request, receipt)
         else:

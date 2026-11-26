@@ -10,6 +10,7 @@ from .models import (
     ChildDepositTransaction,
     ChildDepositType,
     District,
+    Gender,
     DepositInterestYear,
     FixDepositAccount,
     FixDepositLoan,
@@ -29,6 +30,7 @@ from .models import (
     Subdivision,
     MemberLedger,
     MemberTransfer,
+    AuditLog,
 )
 
 MODULES = (
@@ -50,11 +52,12 @@ MODULES = (
         "child_deposit_type",
         "wallet",
     ),
-    (District, "Districts", "districts", "district", "pin"),
+    (District, "Branches", "districts", "district", "pin"),
     (OfficeLocation, "Zonal offices", "offices", "office", "building"),
     (Subdivision, "Subdivisions", "subdivisions", "subdivision", "building"),
     (School, "Departments", "schools", "school", "building"),
     (Lager, "Lagers", "lagers", "lager", "building"),
+    (Gender, "Genders", "genders", "gender", "users"),
     (PaymentPlan, "Payment Plan", "payment_plans", "payment_plan", "wallet"),
     (
         PaymentPlanTemplate,
@@ -100,8 +103,11 @@ MODULES = (
         "wallet",
     ),
 )
+MODULES += ((AuditLog, "Audit Logs", "audit_logs", "audit_log", "lock"),)
 ACTIONS = ("view", "add", "change", "delete")
 MODULE_ACTIONS = {
+    AuditLog: ("view",),
+    PaymentTransaction: ("view", "add", "change"),
     MemberTransfer: ("view", "add"),
     MemberLedger: ("view", "add", "change"),
 }
@@ -159,6 +165,7 @@ def assigned_lagers(user):
         return Lager.objects.all()
     return Lager.objects.filter(
         maintenance_officer=user,
+        zonal_office__in=accessible_zonal_offices(user),
         maintenance_officer__is_active=True,
         maintenance_officer__ledger_profile__epf_number__isnull=False,
     ).exclude(maintenance_officer__ledger_profile__epf_number__regex=r"^\s*$")
@@ -171,6 +178,7 @@ def accessible_members(user):
         return Member.objects.all()
     return Member.objects.filter(
         district_id__in=accessible_districts(user).values("pk"),
+        office_location__in=accessible_zonal_offices(user),
         lager_id__in=assigned_lagers(user).values("pk"),
     )
 
@@ -229,11 +237,22 @@ def district_only_queryset(user, queryset):
     if user and user.is_authenticated and user.is_active and user.is_superuser:
         return queryset
     lookup = DISTRICT_LOOKUPS.get(queryset.model)
-    return (
+    queryset = (
         queryset.filter(**{f"{lookup}__in": accessible_districts(user).values("pk")})
         if lookup
         else queryset
     )
+    zone_lookup = {
+        OfficeLocation: "pk",
+        Lager: "zonal_office_id",
+        School: "zonal_office_id",
+        Subdivision: "zonal_office_id",
+    }.get(queryset.model)
+    if zone_lookup:
+        queryset = queryset.filter(
+            **{f"{zone_lookup}__in": accessible_zonal_offices(user).values("pk")}
+        )
+    return queryset
 
 
 def accessible_districts(user):
@@ -242,6 +261,17 @@ def accessible_districts(user):
     if user.is_superuser:
         return District.objects.all()
     return District.objects.filter(authorized_users=user)
+
+
+def accessible_zonal_offices(user):
+    if not user or not user.is_authenticated or not user.is_active:
+        return OfficeLocation.objects.none()
+    if user.is_superuser:
+        return OfficeLocation.objects.all()
+    return OfficeLocation.objects.filter(
+        ledger_officers__user=user,
+        district__authorized_users=user,
+    ).distinct()
 
 
 def scope_queryset(user, queryset):
@@ -285,7 +315,12 @@ def scope_queryset(user, queryset):
 
 def require_district(user, district_id):
     if not accessible_districts(user).filter(pk=district_id).exists():
-        raise PermissionDenied("This district is outside your assigned access.")
+        raise PermissionDenied("This branch is outside your assigned access.")
+
+
+def require_zonal_office(user, office_id):
+    if not accessible_zonal_offices(user).filter(pk=office_id).exists():
+        raise PermissionDenied("This zonal office is outside your assigned access.")
 
 
 def district_records(user, model):

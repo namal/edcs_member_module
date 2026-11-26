@@ -18,7 +18,7 @@ class TransferForm(forms.Form):
     member = forms.ModelChoiceField(queryset=m.Member.objects.none())
     source_ledger = forms.IntegerField(widget=forms.HiddenInput())
     district = forms.ModelChoiceField(
-        queryset=m.District.objects.none(), label="Receiving district"
+        queryset=m.District.objects.none(), label="Receiving branch"
     )
     zonal_office = forms.ModelChoiceField(
         queryset=m.OfficeLocation.objects.none(), label="Receiving zonal office"
@@ -145,7 +145,7 @@ class RetainedMemberChoice(forms.ModelChoiceField):
 class LedgerFilterForm(forms.Form):
     member = RetainedMemberChoice(queryset=m.Member.objects.none(), required=False)
     district = forms.ModelChoiceField(
-        queryset=m.District.objects.none(), required=False
+        queryset=m.District.objects.none(), required=False, label="Branch"
     )
     status = forms.ChoiceField(
         required=False,

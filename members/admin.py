@@ -197,6 +197,9 @@ class ChildDepositAdmin(admin.ModelAdmin):
 
 @admin.register(ChildDepositTransaction)
 class ChildDepositTransactionAdmin(admin.ModelAdmin):
+    def has_delete_permission(self, request, obj=None):
+        return False
+
     list_display = ["deposit", "transaction_date", "debit", "credit", "interest_rate"]
     list_filter = ["transaction_date", "deposit__child__member__district"]
     search_fields = ["deposit__account_no", "deposit__child__name", "reference"]
@@ -210,7 +213,13 @@ class ChildDepositTransactionAdmin(admin.ModelAdmin):
         return actions
 
     def get_readonly_fields(self, request, obj=None):
-        return [*self.readonly_fields, "deposit"] if obj else self.readonly_fields
+        if obj and hasattr(obj, "receipt_allocation"):
+            return [field.name for field in obj._meta.fields]
+        return (
+            [*self.readonly_fields, "deposit", "reverses"]
+            if obj
+            else self.readonly_fields
+        )
 
     def save_model(self, request, obj, form, change):
         if not change or "transaction_date" in form.changed_data:
@@ -223,15 +232,32 @@ class ChildDepositTransactionAdmin(admin.ModelAdmin):
 class DistrictAccessInline(admin.TabularInline):
     model = District.authorized_users.through
     extra = 0
-    verbose_name = "assigned district"
-    verbose_name_plural = "assigned districts"
+    verbose_name = "assigned branch"
+    verbose_name_plural = "assigned branches"
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "district":
+            kwargs["label"] = "Branch"
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 class LedgerOfficerProfileInline(admin.StackedInline):
     model = LedgerOfficerProfile
     extra = 0
     max_num = 1
-    fields = ["epf_number", "zonal_office"]
+    fields = ["epf_number", "assigned_zonal_offices"]
+    readonly_fields = ["assigned_zonal_offices"]
+
+    @admin.display(description="Assigned zonal offices")
+    def assigned_zonal_offices(self, obj):
+        if obj is None or not obj.pk:
+            return "Manage zonal offices in Administration → Users & access."
+        return (
+            ", ".join(
+                str(office) for office in obj.zonal_offices.select_related("district")
+            )
+            or "Manage zonal offices in Administration → Users & access."
+        )
 
 
 @admin.register(get_user_model())
@@ -270,6 +296,19 @@ class OfficeLocationAdmin(admin.ModelAdmin):
 
 @admin.register(Member)
 class MemberAdmin(admin.ModelAdmin):
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == "gender":
+            from .models import Gender
+
+            kwargs.pop("request", None)
+            return forms.ChoiceField(
+                choices=[
+                    ("", "Select a gender"),
+                    *Gender.objects.values_list("code", "name"),
+                ]
+            )
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
     list_display = [
         "member_no",
         "full_name",
@@ -371,6 +410,9 @@ class PaymentTransactionAdminForm(forms.ModelForm):
 
 @admin.register(PaymentTransaction)
 class PaymentTransactionAdmin(admin.ModelAdmin):
+    def get_readonly_fields(self, request, obj=None):
+        return [*self.readonly_fields, "reverses"] if obj else self.readonly_fields
+
     form = PaymentTransactionAdminForm
     list_display = [
         "transaction_date",
@@ -392,9 +434,7 @@ class PaymentTransactionAdmin(admin.ModelAdmin):
         return super().has_change_permission(request, obj)
 
     def has_delete_permission(self, request, obj=None):
-        if obj and hasattr(obj, "receipt_allocation"):
-            return False
-        return super().has_delete_permission(request, obj)
+        return False
 
     def get_actions(self, request):
         actions = super().get_actions(request)
@@ -410,11 +450,22 @@ class PaymentTransactionAdmin(admin.ModelAdmin):
 class PaymentPlanAmountInline(admin.TabularInline):
     model = PaymentPlanAmount
     extra = 0
+    readonly_fields = ["is_fixed"]
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.amounts.filter(is_fixed=True).exists():
+            return False
+        return super().has_delete_permission(request, obj)
 
 
 class PaymentPlanTemplateAmountInline(admin.TabularInline):
     model = PaymentPlanTemplateAmount
     extra = 0
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.amounts.filter(is_fixed=True).exists():
+            return False
+        return super().has_delete_permission(request, obj)
 
 
 @admin.register(PaymentPlanTemplate)
@@ -491,6 +542,25 @@ class PermanentLedgerAdmin(admin.ModelAdmin):
         return False
 
 
+from .models import Gender, MemberAuditEvent
+
+
+@admin.register(Gender)
+class GenderAdmin(admin.ModelAdmin):
+    list_display = ["name", "code", "sort_order", "is_active"]
+    search_fields = ["name", "code"]
+
+    def get_readonly_fields(self, request, obj=None):
+        return ["code"] if obj else []
+
+
+@admin.register(MemberAuditEvent)
+class MemberAuditEventAdmin(PermanentLedgerAdmin):
+    list_display = ["member_no", "member_name", "action", "actor_name", "occurred_at"]
+    search_fields = ["member_no", "member_name", "actor_name"]
+    list_filter = ["action", "district", "occurred_at"]
+
+
 @admin.register(MemberLedger)
 class MemberLedgerAdmin(PermanentLedgerAdmin):
     list_display = [
@@ -559,3 +629,9 @@ from .contribution_models import PaymentReceipt, PaymentReceiptAllocation
 
 admin.site.register(PaymentReceipt, PermanentLedgerAdmin)
 admin.site.register(PaymentReceiptAllocation, PermanentLedgerAdmin)
+from .audit_models import AuditLog
+
+admin.site.register(AuditLog, PermanentLedgerAdmin)
+from .year_end_models import FinancialYearClosing
+
+admin.site.register(FinancialYearClosing, PermanentLedgerAdmin)

@@ -15,6 +15,7 @@ from .models import (
     DepositInterestYear,
     FixDepositAccount,
     FixDepositPolicy,
+    Gender,
     Lager,
     Member,
     OfficeLocation,
@@ -87,6 +88,7 @@ class WorkspacePermissionTests(TestCase):
         child_type = ChildDepositType.objects.get(name="Child Savings")
         fix_policy = FixDepositPolicy.objects.get(name="Fix Deposit Rules")
         cls.records = {
+            "gender": Gender.objects.get(code="female"),
             "deposit_interest": DepositInterestYear.objects.create(
                 member=plan_member,
                 payment_type=PaymentType.objects.get(name="Special Deposit"),
@@ -166,6 +168,7 @@ class WorkspacePermissionTests(TestCase):
             officer_for(cls.office),
             "Initial test responsibility",
         )
+        cls.user.ledger_profile.zonal_offices.add(office)
         cls.records["member_transfer"] = transfer_member(
             cls.user,
             member_pk=transfer_member_row.pk,
@@ -180,6 +183,17 @@ class WorkspacePermissionTests(TestCase):
         )
         cls.records["member_ledger"] = cls.member.ledgers.get(status="active")
         cls.user.user_permissions.clear()
+        cls.records["audit_log"] = m.AuditLog.objects.create(
+            module="member",
+            module_label="Members",
+            source_model="members.member",
+            source_id=cls.member.pk,
+            record_label=cls.member.full_name,
+            action="created",
+            member_pk=cls.member.pk,
+            district_pk=cls.member.district_id,
+            lager_pk=cls.member.lager_id,
+        )
 
     def setUp(self):
         self.client.force_login(self.user)
@@ -201,6 +215,9 @@ class WorkspacePermissionTests(TestCase):
             "school": self.school.pk,
             "lager": self.lager.pk,
             "member_no": "M-NEW",
+            "computer_no": "COMP-M-NEW",
+            "title": "Ms.",
+            "date_of_birth": "1990-01-01",
             "full_name": "New Registration",
             "salary": "1000",
             "office_address": "Office Road",

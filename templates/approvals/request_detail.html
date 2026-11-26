@@ -92,7 +92,11 @@
         <div>
           <dt class="detail-label">{{ item.label }}</dt>
           <dd class="break-words text-sm">
-            {{ item.value }}
+            {% if '(LKR)' in item.label %}
+              {{ item.value|floatformat:'2g'|default:item.value }}
+            {% else %}
+              {{ item.value }}
+            {% endif %}
           </dd>
         </div>
       {% empty %}

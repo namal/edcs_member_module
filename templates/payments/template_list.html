@@ -49,11 +49,12 @@
                   <p>
                     {{ item.payment_type.name }}
                     {% if not item.payment_type.is_active %}(inactive){% endif %}
-                    · {{ item.amount|floatformat:2 }}
+                    · {{ item.amount|floatformat:'2g' }}
+                    {% if item.is_fixed %}<span class="badge bg-brand-50 text-brand-700">Fixed</span>{% endif %}
                   </p>
                 {% endfor %}
               </td>
-              <td>{{ template.monthly_total|floatformat:2 }}</td>
+              <td>{{ template.monthly_total|floatformat:'2g' }}</td>
               <td>
                 {% if template.is_active %}
                   Active

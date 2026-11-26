@@ -14,7 +14,7 @@
   {% if form.module_permissions.errors %}
     <div class="px-6 pt-4 field-error" role="alert">{{ form.module_permissions.errors }}</div>
   {% endif %}
-  <div class="overflow-x-auto">
+  <div class="relative overflow-x-auto">
     <table class="data-table permission-table">
       <caption class="sr-only">Workspace module permissions: view, add, edit and delete</caption>
       <thead>
@@ -54,6 +54,6 @@
   </div>
   <div class="border-t border-slate-100 bg-slate-50/70 px-6 py-4 text-xs leading-6 text-slate-500">
     Unchecked direct permissions may still be granted by a role. To remove an action completely, remove it from every assigned role and from direct permissions. Advanced Django permissions are preserved.
-    District assignments limit access to district records. Creating districts and changing shared Payment Types require an administrator account.
+    Branch and zonal office assignments limit access to location records. Member and financial access also requires an assigned ledger. Creating branches and changing shared Payment Types require an administrator account.
   </div>
 </section>

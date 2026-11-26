@@ -39,9 +39,9 @@
                placeholder="Search office name, code or address…">
       </div>
       <div class="min-w-48">
-        <label for="district" class="sr-only">Filter by district</label>
+        <label for="district" class="sr-only">Filter by branch</label>
         <select name="district" id="district" class="field-input">
-          <option value="">All districts</option>
+          <option value="">All branches</option>
           {% for district in districts %}
             <option value="{{ district.pk }}"
                     {% if request.GET.district == district.pk|stringformat:'s' %}selected{% endif %}>
@@ -67,7 +67,7 @@
           <thead>
             <tr>
               <th>Zonal office</th>
-              <th>District</th>
+              <th>Branch</th>
               <th>Office phone</th>
               <th>Lagers</th>
               <th>Subdivisions</th>
@@ -141,7 +141,7 @@
                     {% endif %}
                   </span>
                   {% if not office.district.is_active %}
-                    <span class="mt-1 block text-[10px] text-brand-700">District inactive</span>
+                    <span class="mt-1 block text-[10px] text-brand-700">Branch inactive</span>
                   {% endif %}
                 </td>
                 <td>
@@ -189,9 +189,9 @@
         </h3>
         <p class="muted mt-2 max-w-sm">
           {% if record_count %}
-            Try another search or district to find the right office.
+            Try another search or branch to find the right office.
           {% else %}
-            Create your first zonal office and connect it to a district. Then you’re ready to register members.
+            Create your first zonal office and connect it to a branch. Then you’re ready to register members.
           {% endif %}
         </p>
         {% if record_count or perms.members.add_officelocation %}

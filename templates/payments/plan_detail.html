@@ -44,14 +44,15 @@
             {% if not contribution.payment_type.is_active %}<span class="text-brand-700">(inactive)</span>{% endif %}
           </dt>
           <dd class="detail-value">
-            {{ contribution.amount|floatformat:2 }}
+            {{ contribution.amount|floatformat:'2g' }}
+            {% if contribution.is_fixed %}<span class="badge bg-brand-50 text-brand-700">Fixed</span>{% endif %}
           </dd>
         </div>
       {% endfor %}
     </dl>
     <div class="flex flex-wrap items-center justify-between gap-3 border-t border-brand-100 bg-brand-50 px-6 py-5">
       <h2 class="text-sm font-semibold text-brand-900">Total monthly deposit</h2>
-      <p class="text-xl font-bold text-brand-700">LKR {{ plan.monthly_total|floatformat:2 }}</p>
+      <p class="text-xl font-bold text-brand-700">LKR {{ plan.monthly_total|floatformat:'2g' }}</p>
     </div>
   </section>
   {% if perms.members.view_openingbalance and member_opening_balance %}

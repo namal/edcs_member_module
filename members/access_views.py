@@ -5,7 +5,7 @@ from django.contrib.admin.models import ADDITION, CHANGE, DELETION, LogEntry
 from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models.deletion import ProtectedError
 from django.db.models import Count, Q
@@ -52,7 +52,9 @@ def administration(request):
             "role_count": Group.objects.count(),
             "permission_count": workspace_permissions().count(),
             "latest_users": users.prefetch_related(
-                "groups", "assigned_districts"
+                "groups",
+                "assigned_districts",
+                "ledger_profile__zonal_offices__district",
             ).order_by("-date_joined")[:5],
             "activity": LogEntry.objects.select_related("user").order_by(
                 "-action_time"
@@ -65,8 +67,10 @@ def administration(request):
 def user_list(request):
     users = (
         get_user_model()
-        .objects.prefetch_related("groups", "assigned_districts")
-        .select_related("ledger_profile__zonal_office")
+        .objects.prefetch_related(
+            "groups", "assigned_districts", "ledger_profile__zonal_offices__district"
+        )
+        .select_related("ledger_profile")
         .order_by("username")
     )
     query = request.GET.get("q", "").strip()
@@ -101,20 +105,26 @@ def user_form(request, pk=None):
         actor=request.user,
     )
     if request.method == "POST" and form.is_valid():
-        with transaction.atomic():
-            saved_user = form.save()
-            audit(
-                request,
-                saved_user,
-                CHANGE if pk is not None else ADDITION,
-                "Saved user profile, roles, district assignments and workspace access.",
+        try:
+            with transaction.atomic():
+                saved_user = form.save()
+                audit(
+                    request,
+                    saved_user,
+                    CHANGE if pk is not None else ADDITION,
+                    "Saved user profile, roles, branch and zonal office assignments, and workspace access.",
+                )
+                if pk is None:
+                    notify_user_created(request, saved_user)
+        except ValidationError as error:
+            form.add_error(None, error)
+        else:
+            if saved_user.pk == request.user.pk:
+                update_session_auth_hash(request, saved_user)
+            messages.success(
+                request, f"Access for {saved_user.username} has been saved."
             )
-            if pk is None:
-                notify_user_created(request, saved_user)
-        if saved_user.pk == request.user.pk:
-            update_session_auth_hash(request, saved_user)
-        messages.success(request, f"Access for {saved_user.username} has been saved.")
-        return redirect("access_users")
+            return redirect("access_users")
     return render(
         request,
         "administration/user_form.html",

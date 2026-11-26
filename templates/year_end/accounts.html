@@ -1,0 +1,57 @@
+<div class="overflow-x-auto">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Member</th>
+        <th>Account</th>
+        <th>Opening balance (LKR)</th>
+        <th>Annual interest (LKR)</th>
+        <th>Final closing (LKR)</th>
+        <th>Next-year opening (LKR)</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row.member_no }} · {{ row.member_name }}</td>
+          <td>
+            {{ row.account }}
+            {% if row.group == 'children' %}
+              <br>
+              {{ row.type }} · Child deposit
+            {% endif %}
+          </td>
+          <td>
+            {{ row.opening|floatformat:'2g' }}
+            <p class="field-help">{{ row.opening_effective_on }}</p>
+          </td>
+          <td>
+            {% if row.record %}
+              {{ row.record.annual_interest|floatformat:'2g' }}
+            {% else %}
+              {{ row.annual_interest|floatformat:'2g' }}
+            {% endif %}
+          </td>
+          <td>{{ row.closing|floatformat:'2g' }}</td>
+          <td>{{ row.closing|floatformat:'2g' }}</td>
+          <td>
+            {% if row.record %}
+              {% if row.record.posted_at %}
+                Posted
+              {% else %}
+                Awaiting approval
+              {% endif %}
+            {% else %}
+              Reconciled
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="7">No established member or child accounts exist in this financial year.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

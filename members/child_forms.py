@@ -111,9 +111,22 @@ class ChildDepositForm(StyledModelForm):
 
 
 class ChildEntryForm(StyledModelForm):
+    reverses = forms.ModelChoiceField(
+        queryset=ChildDepositTransaction.objects.none(),
+        required=False,
+        widget=forms.HiddenInput(),
+    )
+
     class Meta:
         model = ChildDepositTransaction
-        fields = ["transaction_date", "debit", "credit", "reference", "description"]
+        fields = [
+            "reverses",
+            "transaction_date",
+            "debit",
+            "credit",
+            "reference",
+            "description",
+        ]
         widgets = {
             "transaction_date": forms.DateInput(attrs={"type": "date"}),
             "debit": forms.NumberInput(
@@ -125,7 +138,17 @@ class ChildEntryForm(StyledModelForm):
         }
 
     def __init__(self, *args, deposit, **kwargs):
+        correction = kwargs.pop("correction", None)
         super().__init__(*args, **kwargs)
+        self.fields["reverses"].queryset = ChildDepositTransaction.objects.filter(
+            deposit=deposit
+        )
+        self.fields["reverses"].disabled = bool(self.instance.pk)
+        if self.instance.pk and (
+            self.instance.reverses_id or hasattr(self.instance, "correction")
+        ):
+            for name in ("transaction_date", "debit", "credit"):
+                self.fields[name].disabled = True
         self.instance.deposit = deposit
         self.fields["transaction_date"].widget.attrs[
             "min"
@@ -135,6 +158,15 @@ class ChildEntryForm(StyledModelForm):
             self.fields[name].help_text = (
                 "Enter a positive amount on one side only; leave the other blank or zero."
             )
+        if correction and not self.instance.pk:
+            self.instance.reverses = correction
+            self.initial.update(
+                reverses=correction.pk, debit=correction.credit, credit=correction.debit
+            )
+            for name in ("debit", "credit"):
+                self.fields[name].disabled = True
+            self.fields["description"].required = True
+            self.fields["description"].label = "Correction reason"
 
     def clean_debit(self):
         return self.cleaned_data["debit"] or Decimal("0.00")

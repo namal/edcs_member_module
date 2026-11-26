@@ -49,14 +49,29 @@ class PaymentReceipt(PermanentHistory):
 
 
 class PaymentReceiptAllocation(PermanentHistory):
+    class Kind(models.TextChoices):
+        STANDARD = "standard", "Standard contribution"
+        REMAINING = "remaining", "Remaining balance"
+
+    kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.STANDARD)
+    position = models.PositiveSmallIntegerField(default=0)
     receipt = models.ForeignKey(
         PaymentReceipt, on_delete=models.PROTECT, related_name="allocations"
     )
-    payment_type = models.ForeignKey("members.PaymentType", on_delete=models.PROTECT)
+    payment_type = models.ForeignKey(
+        "members.PaymentType", on_delete=models.PROTECT, null=True, blank=True
+    )
     configured_amount = models.DecimalField(max_digits=12, decimal_places=2)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     transaction = models.OneToOneField(
         "members.PaymentTransaction",
+        on_delete=models.PROTECT,
+        related_name="receipt_allocation",
+        null=True,
+        blank=True,
+    )
+    child_transaction = models.OneToOneField(
+        "members.ChildDepositTransaction",
         on_delete=models.PROTECT,
         related_name="receipt_allocation",
         null=True,
@@ -68,18 +83,57 @@ class PaymentReceiptAllocation(PermanentHistory):
         ordering = ["pk"]
         constraints = [
             models.UniqueConstraint(
-                fields=["receipt", "payment_type"], name="receipt_type_unique"
+                fields=["receipt", "payment_type"],
+                condition=models.Q(kind="standard"),
+                name="receipt_standard_type_unique",
+            ),
+            models.UniqueConstraint(
+                fields=["receipt", "position"],
+                condition=models.Q(kind="remaining"),
+                name="receipt_remaining_position_unique",
             ),
             models.CheckConstraint(
-                condition=models.Q(configured_amount__gt=0, amount__gte=0),
+                condition=models.Q(configured_amount__gte=0, amount__gte=0),
                 name="receipt_allocation_valid_amounts",
             ),
             models.CheckConstraint(
-                condition=models.Q(amount=0, transaction__isnull=True)
-                | models.Q(amount__gt=0, transaction__isnull=False),
+                condition=(
+                    models.Q(payment_type__isnull=False, child_transaction__isnull=True)
+                    & (
+                        models.Q(amount=0, transaction__isnull=True)
+                        | models.Q(amount__gt=0, transaction__isnull=False)
+                    )
+                )
+                | models.Q(
+                    payment_type__isnull=True,
+                    transaction__isnull=True,
+                    child_transaction__isnull=False,
+                    amount__gt=0,
+                    configured_amount=0,
+                    kind="remaining",
+                ),
                 name="receipt_allocation_transaction_required",
             ),
+            models.CheckConstraint(
+                condition=models.Q(kind="standard", position=0)
+                | models.Q(kind="remaining", position__gt=0),
+                name="receipt_allocation_kind_position",
+            ),
         ]
+
+    def clean(self):
+        super().clean()
+        if self.child_transaction_id and self.receipt_id:
+            entry = self.child_transaction
+            if (
+                entry.deposit.child.member_id != self.receipt.member_id
+                or entry.credit != self.amount
+                or entry.debit != 0
+                or entry.transaction_date != self.receipt.received_on
+            ):
+                raise ValidationError(
+                    "The child deposit credit must match this member's receipt, date and allocated amount."
+                )
 
     def save(self, *args, **kwargs):
         if not getattr(self, "_receipt_service_write", False):

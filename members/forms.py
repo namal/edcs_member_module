@@ -4,7 +4,7 @@ from django.db.models import Q
 from django.db.models.functions import Lower
 from django.utils import timezone
 
-from .models import District, Lager, Member, OfficeLocation, School, Subdivision
+from .models import District, Gender, Lager, Member, OfficeLocation, School, Subdivision
 from .permissions import scope_queryset
 from .officers import maintenance_officers, officer_label, validate_master_officer
 
@@ -76,7 +76,7 @@ def location_fields(form, office_field):
     )
     for name in ["province", "province_short_name"]:
         form.fields[name].initial = province[name] if province else ""
-        form.fields[name].help_text = "Filled automatically from the selected district."
+        form.fields[name].help_text = "Filled automatically from the selected branch."
 
 
 class StyledModelForm(forms.ModelForm):
@@ -84,6 +84,8 @@ class StyledModelForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.user = user
         for name, field in self.fields.items():
+            if name == "district":
+                field.label = "Branch"
             field.widget.attrs.update(
                 {
                     "class": "field-input",
@@ -105,7 +107,19 @@ class StyledModelForm(forms.ModelForm):
                     field.queryset = scope_queryset(self.user, field.queryset)
 
 
+class GenderForm(StyledModelForm):
+    class Meta:
+        model = Gender
+        fields = ["code", "name", "sort_order", "is_active"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields["code"].disabled = True
+
+
 class MemberForm(StyledModelForm):
+    gender = forms.ChoiceField()
     maintenance_officer = forms.ModelChoiceField(
         queryset=get_user_model().objects.none(),
         required=False,
@@ -162,6 +176,15 @@ class MemberForm(StyledModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["gender"].choices = [
+            ("", "Select a gender"),
+            *Gender.objects.filter(
+                Q(is_active=True) | Q(code=self.instance.gender)
+            ).values_list("code", "name"),
+        ]
+        self.fields["salary"].help_text = (
+            "Optional record only; not used to calculate contributions or transactions."
+        )
         self.initial.update(
             short_name=self.instance.short_name,
             retirement_age=self.instance.retirement_age,
@@ -269,12 +292,12 @@ class MemberForm(StyledModelForm):
         self.fields["school"].queryset = schools
         self.fields["school"].empty_label = "Select a department"
         self.fields["school"].help_text = (
-            "Type a department name or code in the combo. District and zonal office narrow the list. "
+            "Type a department name or code in the combo. Branch and zonal office narrow the list. "
             "Selecting a department fills its location automatically."
         )
         self.fields["school"].error_messages["required"] = "Select a department."
         self.fields["lager"].error_messages["required"] = "Select a lager."
-        self.fields["district"].empty_label = "Select a district"
+        self.fields["district"].empty_label = "Select a branch"
         self.fields["full_name"].widget.attrs["autocomplete"] = "name"
         self.fields["phone_mobile"].widget.attrs["autocomplete"] = "tel"
         self.fields["phone_office"].help_text = (

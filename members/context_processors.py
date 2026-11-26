@@ -20,6 +20,7 @@ def workspace_access(request):
             "child_deposits",
             "fix_deposits",
             "deposit_interest",
+            "audit_logs",
         )
     ]
     return {

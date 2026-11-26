@@ -16,9 +16,25 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET
 
-from .models import Member, PaymentTransaction
+from .models import (
+    ChildDeposit,
+    ChildDepositTransaction,
+    Member,
+    PaymentTransaction,
+    PaymentType,
+)
 from .permissions import district_records, has_module_permission, require_permission
-from .transaction_balances import account_statement, balance_report, member_balances
+from .transaction_balances import (
+    account_statement,
+    balance_report,
+    child_account_summary,
+    member_balances,
+)
+from .account_transaction_forms import (
+    AccountStatementFilterForm,
+    AccountTransactionForm,
+)
+from .child_services import child_statement
 from .transaction_forms import PaymentTransactionForm, TransactionFilterForm
 from .views import paginated
 
@@ -58,13 +74,34 @@ def payment_transaction_balances(request):
             pk=entry_id,
             member=member,
         )
-    return JsonResponse(member_balances(member, as_of, exclude_entry=entry))
+    selected = request.GET.get("child_deposit")
+    if selected:
+        if not any(
+            has_module_permission(request.user, ChildDeposit, action)
+            for action in ("view", "add", "change")
+        ):
+            raise PermissionDenied
+        if not selected.isdigit():
+            return JsonResponse(
+                {"error": "Select a valid child deposit account."}, status=400
+            )
+        get_object_or_404(
+            district_records(request.user, ChildDeposit),
+            pk=selected,
+            child__member=member,
+        )
+    return JsonResponse(
+        {
+            **member_balances(member, as_of, exclude_entry=entry),
+            **child_account_summary(request.user, member, as_of, selected=selected),
+        }
+    )
 
 
 @login_required
 def payment_transaction_list(request):
     require_permission(request.user, PaymentTransaction, "view")
-    form = TransactionFilterForm(request.GET or None, user=request.user)
+    form = AccountStatementFilterForm(request.GET or None, user=request.user)
     entries = PaymentTransaction.objects.none()
     context = {
         "section": "payment_transactions",
@@ -73,26 +110,60 @@ def payment_transaction_list(request):
     }
     if form.is_bound and form.is_valid():
         data = form.cleaned_data
-        statement = account_statement(
-            data["member"],
-            data["payment_type"],
-            data["date"] or data["date_from"],
-            data["date"] or data["date_to"] or timezone.localdate(),
-        )
+        start = data["date"] or data["date_from"]
+        end = data["date"] or data["date_to"] or timezone.localdate()
+        child_deposit = data["child_deposit"]
+        if child_deposit:
+            require_permission(request.user, ChildDeposit, "view")
+            statement = child_statement(child_deposit, start, end)
+            statement.update(
+                opening_amount=(
+                    child_deposit.opening_amount
+                    if child_deposit.opened_on <= end
+                    else Decimal("0.00")
+                ),
+                opening_date=child_deposit.opened_on,
+                effective_date_from=(
+                    max(start, child_deposit.opened_on)
+                    if start
+                    else child_deposit.opened_on
+                ),
+            )
+        else:
+            statement = account_statement(
+                data["member"], data["payment_type"], start, end
+            )
         entries = statement.pop("entries")
         context.update(
             selected_member=data["member"],
-            selected_type=data["payment_type"],
+            selected_type=(
+                child_deposit.deposit_type if child_deposit else data["payment_type"]
+            ),
+            selected_child=child_deposit,
             **statement,
             selection_query=urlencode(
-                {"member": data["member"].pk, "payment_type": data["payment_type"].pk}
+                {
+                    "member": data["member"].pk,
+                    "payment_type": (
+                        data["payment_type"]
+                        if child_deposit
+                        else data["payment_type"].pk
+                    ),
+                    **({"child_deposit": child_deposit.pk} if child_deposit else {}),
+                }
             ),
         )
     context.update(paginated(request, entries.order_by("transaction_date", "pk")))
     from .ledger_tracking import attach_ledger_references
 
     context["page_obj"].object_list = attach_ledger_references(
-        context["page_obj"].object_list, PaymentTransaction, request.user
+        context["page_obj"].object_list,
+        (
+            ChildDepositTransaction
+            if context.get("selected_child")
+            else PaymentTransaction
+        ),
+        request.user,
     )
     return render(request, "transactions/ledger.html", context)
 
@@ -164,25 +235,59 @@ def payment_transaction_form(request, pk=None):
         raise PermissionDenied(
             "Allocated contribution entries are retained with their receipt and cannot be edited."
         )
-    form = PaymentTransactionForm(
+    correction_id = (
+        request.POST.get("reverses", "")
+        if request.method == "POST"
+        else request.GET.get("reverse", "")
+    )
+    correction = (
+        get_object_or_404(
+            district_records(request.user, PaymentTransaction), pk=correction_id
+        )
+        if entry is None and str(correction_id).isdigit()
+        else None
+    )
+    form_class = (
+        PaymentTransactionForm if entry or correction else AccountTransactionForm
+    )
+    form_kwargs = (
+        {"instance": entry, "correction": correction} if entry or correction else {}
+    )
+    form = form_class(
         request.POST if request.method == "POST" else None,
-        instance=entry,
         user=request.user,
+        **form_kwargs,
         initial={
             key: request.GET[key]
-            for key in ("member", "payment_type")
-            if entry is None and request.GET.get(key, "").isdigit()
+            for key in ("member", "payment_type", "child_deposit")
+            if entry is None and request.GET.get(key)
         },
     )
     if request.method == "POST" and form.is_valid():
         saved = form.save(commit=False)
+        is_child = isinstance(saved, ChildDepositTransaction)
+        if is_child:
+            require_permission(request.user, ChildDeposit, "add")
         if entry is None:
             saved.created_by = request.user
         try:
             with transaction.atomic():
-                Member.objects.select_for_update().get(pk=saved.member_id)
-                configured = below_plan_amount(saved)
-                if configured is not None:
+                Member.objects.select_for_update().get(
+                    pk=saved.deposit.child.member_id if is_child else saved.member_id
+                )
+                configured = None if is_child else below_plan_amount(saved)
+                if is_child:
+                    saved.deposit.refresh_from_db()
+                    saved.full_clean()
+                    saved.interest_rate = saved.deposit.rate_on(saved.transaction_date)
+                    queued = form_checkpoint(
+                        request,
+                        form,
+                        model=ChildDeposit,
+                        action="add",
+                        target=saved.deposit,
+                    )
+                elif configured is not None:
                     queued = checkpoint(
                         request,
                         PaymentTransaction,
@@ -208,6 +313,10 @@ def payment_transaction_form(request, pk=None):
             form.add_error(None, " ".join(error.messages))
         else:
             messages.success(request, "Debit / credit entry saved.")
+            if is_child:
+                if has_module_permission(request.user, ChildDeposit, "view"):
+                    return redirect("child_deposit_detail", pk=saved.deposit_id)
+                return redirect("payment_transaction_create")
             if request.user.has_perm("members.view_paymenttransaction"):
                 return redirect(ledger_url(saved))
             if entry is not None:
@@ -223,16 +332,35 @@ def payment_transaction_form(request, pk=None):
             as_of = None
         if member is not None and as_of is not None:
             balance_summary = member_balances(member, as_of, exclude_entry=entry)
+            balance_summary.update(
+                child_account_summary(
+                    request.user,
+                    member,
+                    as_of,
+                    selected=(
+                        form["child_deposit"].value()
+                        if "child_deposit" in form.fields
+                        else None
+                    ),
+                )
+            )
     return render(
         request,
         "transactions/entry_form.html",
         {
             "section": "payment_transactions",
             "title": (
-                "Edit debit / credit entry" if entry else "Add debit / credit entry"
+                "Edit debit / credit entry"
+                if entry
+                else (
+                    "Correct with opposite entry"
+                    if correction
+                    else "Add debit / credit entry"
+                )
             ),
             "form": form,
             "entry": entry,
+            "correction": correction,
             "balance_summary": balance_summary,
             "selected_type_balance": (
                 next(
@@ -252,11 +380,19 @@ def payment_transaction_form(request, pk=None):
             ),
             "payment_type_rates": {
                 str(item.pk): str(item.interest_rate)
-                for item in form.fields["payment_type"].queryset
+                for item in (
+                    form.fields["payment_type"].queryset
+                    if hasattr(form.fields["payment_type"], "queryset")
+                    else PaymentType.objects.filter(is_active=True)
+                )
             },
             "payment_type_frequencies": {
                 str(item.pk): item.interest_period_display
-                for item in form.fields["payment_type"].queryset
+                for item in (
+                    form.fields["payment_type"].queryset
+                    if hasattr(form.fields["payment_type"], "queryset")
+                    else PaymentType.objects.filter(is_active=True)
+                )
             },
         },
     )
@@ -264,42 +400,12 @@ def payment_transaction_form(request, pk=None):
 
 @login_required
 def payment_transaction_delete(request, pk):
-    require_permission(request.user, PaymentTransaction, "delete")
-    entry = get_object_or_404(
-        district_records(request.user, PaymentTransaction).select_related(
-            "member", "payment_type"
-        ),
-        pk=pk,
-    )
-    if request.method == "POST":
-        queued = checkpoint(
-            request,
-            PaymentTransaction,
-            "delete",
-            f"Delete debit / credit entry: {entry}",
-            target=entry,
-        )
-        if queued is not None:
-            return queued
-        destination = ledger_url(entry)
-        try:
-            entry.delete()
-        except ProtectedError as error:
-            messages.error(request, str(error.args[0]))
-        else:
-            messages.success(request, "Debit / credit entry deleted.")
-        return redirect(
-            destination
-            if request.user.has_perm("members.view_paymenttransaction")
-            else "dashboard"
-        )
-    return render(
-        request,
-        "transactions/entry_delete.html",
-        {
-            "section": "payment_transactions",
-            "title": "Delete debit / credit entry",
-            "entry": entry,
-            "back_url": ledger_url(entry),
-        },
+    if not any(
+        has_module_permission(request.user, PaymentTransaction, action)
+        for action in ("view", "add", "change")
+    ):
+        raise PermissionDenied
+    get_object_or_404(district_records(request.user, PaymentTransaction), pk=pk)
+    raise PermissionDenied(
+        "Debit / credit entries cannot be deleted. Record an opposite correction instead."
     )

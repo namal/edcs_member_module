@@ -54,7 +54,7 @@
           <h2 class="section-title mb-5">Monthly payment agreement</h2>
           {% include 'components/field.html' with field=form.apply_template %}
           <p class="field-help my-4">
-            Selecting a template replaces these draft amounts with a copy. Customize any payment type or amount before saving. Leave a type at zero to exclude it. Other members and the original template remain independent.
+            Selecting a template copies its amounts. Customize variable amounts before saving. Fixed amounts remain locked. Leave unused types at zero. Other members and the original template remain independent.
           </p>
           <p class="field-help mb-4"
              data-template-feedback
@@ -66,7 +66,12 @@
           {% include 'components/field.html' with field=form.agreement_date %}
           <div class="form-grid mt-5">
             {% for field in form.amount_fields %}
-              {% include 'components/field.html' with field=field %}
+              <div class="rounded-lg border border-slate-200 p-4" data-contribution-row>
+                {% include 'components/field.html' with field=field %}
+                {% if field.field.widget.attrs.readonly %}
+                  <span class="badge bg-brand-50 text-brand-700">Fixed amount</span>
+                {% endif %}
+              </div>
             {% empty %}
               <p class="muted sm:col-span-2">Add an active payment type to start setting monthly amounts.</p>
             {% endfor %}
@@ -89,7 +94,7 @@
         </span>
         <h2 class="mt-4 text-sm font-semibold text-slate-700">Total monthly deposit</h2>
         <p class="mt-3 break-words text-2xl font-bold text-brand-700">
-          LKR <output id="monthly-plan-total" aria-live="polite">{{ form.instance.monthly_total|floatformat:2 }}</output>
+          LKR <output id="monthly-plan-total" aria-live="polite">{{ form.instance.monthly_total|floatformat:'2g' }}</output>
         </p>
         <p class="field-help mt-4">All amounts are monthly contributions in LKR. Use 0 for a type that does not apply.</p>
         <p class="field-help mt-4">Payment Types controls the contribution fields available in this agreement.</p>

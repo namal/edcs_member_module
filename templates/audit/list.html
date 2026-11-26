@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="mb-7">
+    <p class="eyebrow">Administration</p>
+    <h1 class="page-title">Audit Logs</h1>
+    <p class="muted mt-2">Read-only history of user access, member records, master data and transactions.</p>
+  </div>
+  <form method="get" class="form-section">
+    <div class="form-grid">
+      {% for field in form %}
+        {% include 'components/field.html' %}
+      {% endfor %}
+    </div>
+    <button class="btn btn-secondary mt-4">Filter logs</button>
+  </form>
+  <section class="card overflow-x-auto">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Module</th>
+          <th>Action</th>
+          <th>Record</th>
+          <th>Changed by</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in page_obj %}
+          <tr>
+            <td>{{ event.occurred_at|date:'d M Y H:i:s' }}</td>
+            <td>{{ event.module_label }}</td>
+            <td>{{ event.action_label }}</td>
+            <td>{{ event.record_label }}</td>
+            <td>
+              {{ event.actor_name|default:event.actor_username|default:'System / actor not recorded' }}
+              {% if event.actor_epf %}
+                <br>
+                EPF {{ event.actor_epf }}
+              {% endif %}
+            </td>
+            <td>
+              <a class="text-link" href="{% url 'audit_log_detail' event.pk %}">View changes</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6">No permitted audit records match these filters.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% include 'components/pagination.html' %}
+  </section>
+{% endblock %}

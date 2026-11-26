@@ -354,12 +354,27 @@ def child_entry_form(request, deposit_pk=None, pk=None):
         else None
     )
     deposit = scoped_deposit(request.user, entry.deposit_id if entry else deposit_pk)
+    if entry and hasattr(entry, "receipt_allocation"):
+        raise PermissionDenied(
+            "Allocated contribution entries are retained with their receipt and cannot be edited."
+        )
     original_date = entry.transaction_date if entry else None
+    correction_id = (
+        request.POST.get("reverses", "")
+        if request.method == "POST"
+        else request.GET.get("reverse", "")
+    )
+    correction = (
+        get_object_or_404(ChildDepositTransaction, deposit=deposit, pk=correction_id)
+        if entry is None and str(correction_id).isdigit()
+        else None
+    )
     form = ChildEntryForm(
         request.POST if request.method == "POST" else None,
         instance=entry,
         deposit=deposit,
         user=request.user,
+        correction=correction,
     )
     if request.method == "POST" and form.is_valid():
         queued = form_checkpoint(
@@ -396,9 +411,18 @@ def child_entry_form(request, deposit_pk=None, pk=None):
         "children/entry_form.html",
         {
             "section": "child_deposits",
-            "title": "Edit child entry" if entry else "Add child debit / credit",
+            "title": (
+                "Edit child entry"
+                if entry
+                else (
+                    "Correct with opposite entry"
+                    if correction
+                    else "Add child debit / credit"
+                )
+            ),
             "deposit": deposit,
             "entry": entry,
+            "correction": correction,
             "form": form,
             "saved_balance": (
                 deposit_balance(deposit, as_of, exclude_entry=entry) if as_of else None
@@ -411,43 +435,14 @@ def child_entry_form(request, deposit_pk=None, pk=None):
 
 @login_required
 def child_entry_delete(request, pk):
-    require_permission(request.user, ChildDeposit, "delete")
-    entry = get_object_or_404(
-        district_records(request.user, ChildDepositTransaction).select_related(
-            "deposit__child__member", "deposit__deposit_type"
-        ),
-        pk=pk,
-    )
-    if request.method == "POST":
-        queued = checkpoint(
-            request,
-            ChildDeposit,
-            "delete",
-            f"Delete child debit / credit: {entry}",
-            target=entry,
-        )
-        if queued is not None:
-            return queued
-        deposit_pk = entry.deposit_id
-        try:
-            entry.delete()
-        except ProtectedError as error:
-            messages.error(request, str(error.args[0]))
-        else:
-            messages.success(request, "Child deposit entry deleted.")
-        return (
-            redirect("child_deposit_detail", pk=deposit_pk)
-            if request.user.has_perm("members.view_childdeposit")
-            else redirect("dashboard")
-        )
-    return render(
-        request,
-        "children/entry_delete.html",
-        {
-            "section": "child_deposits",
-            "title": "Delete child deposit entry",
-            "entry": entry,
-        },
+    if not any(
+        has_module_permission(request.user, ChildDeposit, action)
+        for action in ("view", "add", "change", "delete")
+    ):
+        raise PermissionDenied
+    get_object_or_404(district_records(request.user, ChildDepositTransaction), pk=pk)
+    raise PermissionDenied(
+        "Debit / credit entries cannot be deleted. Record an opposite correction instead."
     )
 
 

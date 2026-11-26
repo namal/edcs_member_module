@@ -14,6 +14,9 @@ def assign_lagers(user, lagers):
         profile.epf_number = f"TEST-ACCESS-{user.pk}"
         profile.save()
     for lager in lagers:
+        LedgerOfficerProfile.zonal_offices.through.objects.get_or_create(
+            ledgerofficerprofile_id=profile.pk, officelocation_id=lager.zonal_office_id
+        )
         Lager.objects.filter(pk=lager.pk).update(maintenance_officer=user)
 
 
@@ -43,10 +46,11 @@ def officer_for(office):
         defaults={"first_name": "Registration", "last_name": f"Officer {office.pk}"},
     )
     user.assigned_districts.add(office.district_id)
-    LedgerOfficerProfile.objects.get_or_create(
+    profile, _ = LedgerOfficerProfile.objects.get_or_create(
         user=user,
-        defaults={"epf_number": f"TEST-REG-{office.pk}", "zonal_office": office},
+        defaults={"epf_number": f"TEST-REG-{office.pk}"},
     )
+    profile.zonal_offices.add(office)
     Lager.objects.filter(zonal_office=office, maintenance_officer__isnull=True).update(
         maintenance_officer=user
     )

@@ -32,7 +32,7 @@
       <div>
         <h2 class="section-title">{{ year_start|date:'d M Y' }} – {{ year_end|date:'d M Y' }}</h2>
         <p class="muted mt-2">
-          {{ account_count }} account{{ account_count|pluralize }} · Total accrued interest: LKR {{ total_interest|floatformat:2 }}
+          {{ account_count }} account{{ account_count|pluralize }} · Total accrued interest: LKR {{ total_interest|floatformat:'2g' }}
         </p>
       </div>
       {% if perms.members.add_depositinterestyear %}
@@ -97,7 +97,7 @@
         {% include 'interest/quarters.html' with record=row.record child_account=row.record.deposit_id %}
         {% if row.record.posted_at %}
           <p class="mt-5 font-semibold text-brand-700">
-            Opening balance on {{ row.next_year_start|date:'d M Y' }}: LKR {{ row.record.next_opening_balance|floatformat:2 }}
+            Opening balance on {{ row.next_year_start|date:'d M Y' }}: LKR {{ row.record.next_opening_balance|floatformat:'2g' }}
           </p>
         {% endif %}
       </section>

@@ -45,8 +45,8 @@ class MemberTransferTests(TestCase):
             )
             officer.assigned_districts.add(district)
             m.LedgerOfficerProfile.objects.create(
-                user=officer, epf_number=f"EPF-{index}", zonal_office=office
-            )
+                user=officer, epf_number=f"EPF-{index}"
+            ).zonal_offices.add(office)
             cls.offices.append(office)
             cls.schools.append(school)
             cls.lagers.append(lager)
@@ -349,8 +349,8 @@ class MemberTransferTests(TestCase):
         )
         replacement.assigned_districts.add(self.offices[0].district)
         m.LedgerOfficerProfile.objects.create(
-            user=replacement, epf_number="EPF-NEW", zonal_office=self.offices[0]
-        )
+            user=replacement, epf_number="EPF-NEW"
+        ).zonal_offices.add(self.offices[0])
         assign_ledger_officer(
             self.actor, self.original.pk, replacement, "Officer handover"
         )
@@ -499,7 +499,7 @@ class MemberTransferTests(TestCase):
             "is_active": "on",
             "districts": [self.offices[1].district_id],
             "epf_number": " epf-unique ",
-            "ledger_office": self.offices[1].pk,
+            "zonal_offices": [self.offices[1].pk],
         }
         form = WorkspaceUserForm(data, actor=self.actor, instance=user)
         self.assertTrue(form.is_valid(), form.errors)

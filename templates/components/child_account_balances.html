@@ -1,0 +1,98 @@
+<section class="form-section" data-child-balance-panel>
+  <h2 class="section-title">Child deposit balances and transactions</h2>
+  <p class="field-help"
+     data-child-balance-status
+     role="status"
+     aria-live="polite">
+    {% if balance_summary %}
+      Child deposit balances as of {{ balance_summary.as_of }}.
+    {% else %}
+      Select a member to see their children's deposit accounts.
+    {% endif %}
+  </p>
+  <div data-child-balance-content
+       {% if not balance_summary.child_accounts %}hidden{% endif %}>
+    <div class="mt-5 grid gap-5 sm:grid-cols-2">
+      <div>
+        <h3 class="detail-label">Total child deposit balance</h3>
+        <p class="detail-value">
+          LKR <output data-child-total>{{ balance_summary.child_total|default:'0.00'|floatformat:'2g' }}</output>
+        </p>
+      </div>
+      <div>
+        <h3 class="detail-label">Selected child account balance</h3>
+        <p class="detail-value">
+          LKR <output data-child-selected-balance>{{ balance_summary.selected_child_account.balance|floatformat:'2g'|default:'—' }}</output>
+        </p>
+      </div>
+    </div>
+    <p class="field-help mt-3">
+      Child deposits are separate from the member's own balance. Balances include opening amounts and saved credits minus debits through the transaction date.
+    </p>
+    <div class="mt-5 overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Child</th>
+            <th>Deposit reference</th>
+            <th>Deposit type</th>
+            <th>Balance (LKR)</th>
+            <th>Transactions</th>
+          </tr>
+        </thead>
+        <tbody data-child-balance-rows>
+          {% for account in balance_summary.child_accounts %}
+            <tr>
+              <td>{{ account.child_name }}</td>
+              <td>
+                {{ account.account_no }}
+                {% if not account.is_active %}(inactive){% endif %}
+              </td>
+              <td>{{ account.type_name }}</td>
+              <td>{{ account.balance|floatformat:'2g' }}</td>
+              <td>
+                {% if account.statement_url %}<a class="text-link" href="{{ account.statement_url }}">View statement</a>{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="mt-5"
+         data-child-transactions
+         {% if not balance_summary.selected_child_account %}hidden{% endif %}>
+      <h3 class="section-title">Selected child account · Recent transactions</h3>
+      <p class="field-help mt-2">
+        Latest 10 entries through the selected date. The full statement includes all transactions and running balances.
+      </p>
+      <p class="field-help mt-2" data-child-transactions-status></p>
+      <a class="text-link mt-3"
+         data-child-statement
+         {% if balance_summary.selected_child_account.statement_url %}href="{{ balance_summary.selected_child_account.statement_url }}"{% else %}hidden{% endif %}>View full child account statement</a>
+      <div class="mt-4 overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Reference / description</th>
+              <th>Debit (LKR)</th>
+              <th>Credit (LKR)</th>
+              <th>Running balance (LKR)</th>
+            </tr>
+          </thead>
+          <tbody data-child-transaction-rows>
+            {% for row in balance_summary.selected_child_account.transactions %}
+              <tr>
+                <td>{{ row.date }}</td>
+                <td>{{ row.reference }} · {{ row.description }}</td>
+                <td>{{ row.debit|floatformat:'2g' }}</td>
+                <td>{{ row.credit|floatformat:'2g' }}</td>
+                <td>{{ row.balance|floatformat:'2g' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>

@@ -47,6 +47,15 @@
       : '';
   };
   const readJSON = (id) => JSON.parse(document.getElementById(id)?.textContent || '{}');
+  const currencyFormatter = new Intl.NumberFormat('en-US', {
+    useGrouping: true,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const formatMoney = (value) => {
+    if (value === null || value === undefined || value === '') return '—';
+    return Number.isFinite(Number(value)) ? currencyFormatter.format(value) : '—';
+  };
   document.querySelectorAll('[data-member-identity]').forEach((form) => {
     const fullName = form.querySelector('#id_full_name');
     const title = form.querySelector('#id_title');
@@ -92,6 +101,13 @@
     const feedback = form.querySelector('[data-template-feedback]');
     const amounts = [...form.querySelectorAll('[data-monthly-amount]')];
     const submit = form.querySelector('[data-save-plan]');
+    const setAmount = (input, value, fixed = false) => {
+      const saved = input.dataset.savedFixedAmount;
+      const locked = saved !== undefined || fixed;
+      input.value = saved ?? value;
+      input.readOnly = locked;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    };
     let pending;
     let loading = false;
     select.addEventListener('change', async () => {
@@ -102,7 +118,10 @@
       if (!select.value) {
         loading = false;
         submit.disabled = !amounts.length;
-        amounts.forEach((input) => (input.disabled = false));
+        amounts.forEach((input) => {
+          input.disabled = false;
+          setAmount(input, input.value);
+        });
         feedback.textContent = 'Current draft amounts kept as a custom plan.';
         return;
       }
@@ -123,13 +142,13 @@
         const data = await response.json();
         if (pending !== controller) return;
         const copied = new Map(
-          data.amounts.map((item) => [String(item.payment_type_id), item.amount]),
+          data.amounts.map((item) => [String(item.payment_type_id), item]),
         );
         amounts.forEach((input) => {
-          input.value = copied.get(input.name.replace('amount_', '')) || '0.00';
-          input.dispatchEvent(new Event('input', { bubbles: true }));
+          const item = copied.get(input.name.replace('amount_', ''));
+          setAmount(input, item?.amount || '0.00', item?.is_fixed || false);
         });
-        feedback.textContent = `Copied ${data.name}. You can customize these amounts for this member.`;
+        feedback.textContent = `Copied ${data.name}. Variable amounts can be customized; fixed amounts are locked. Previously saved fixed amounts are kept.`;
       } catch (error) {
         if (pending !== controller || error.name === 'AbortError') return;
         feedback.textContent =
@@ -152,6 +171,224 @@
       }
     });
   });
+  document.querySelectorAll('[data-user-office-form]').forEach((form) => {
+    const districts = [...form.querySelectorAll('input[name="districts"]')];
+    const groups = [...form.querySelectorAll('[data-zone-group]')];
+    const empty = form.querySelector('[data-zone-empty]');
+    const feedback = form.querySelector('[data-zone-selection]');
+    const update = () => {
+      const selected = new Set(
+        districts.filter((input) => input.checked).map((input) => input.value),
+      );
+      let visible = 0;
+      let checked = 0;
+      groups.forEach((group) => {
+        const show = selected.has(group.dataset.districtId);
+        group.hidden = !show;
+        if (show) visible += 1;
+        group.querySelectorAll('input[name="zonal_offices"]').forEach((input) => {
+          input.disabled = !show;
+          if (!show) input.checked = false;
+          if (input.checked) checked += 1;
+        });
+      });
+      empty.hidden = visible > 0;
+      empty.textContent = selected.size
+        ? 'No zonal offices are available for the selected branches.'
+        : 'Select a branch above to see its zonal offices.';
+      feedback.textContent = `${checked} zonal office${checked === 1 ? '' : 's'} selected.`;
+    };
+    districts.forEach((input) => input.addEventListener('change', update));
+    form
+      .querySelectorAll('input[name="zonal_offices"]')
+      .forEach((input) => input.addEventListener('change', update));
+    update();
+  });
+  document.querySelectorAll('[data-contribution-form]').forEach((form) => {
+    const amounts = [...form.querySelectorAll('[data-allocation-amount]')];
+    const total = form.querySelector('[data-allocated-total]');
+    const balance = form.querySelector('[data-allocation-balance]');
+    const review = form.querySelector('[data-allocation-review]');
+    const post = form.querySelector('[data-post-contribution]');
+    const received = form.querySelector('#id_amount');
+    const legacyType = form.querySelector('#id_remaining_payment_type');
+    const plan = form.querySelector('[data-allocation-plan-total]');
+    const mode = form.querySelector('[data-allocation-mode]');
+    const rows = form.querySelector('[data-remaining-rows]');
+    const add = form.querySelector('[data-add-remaining]');
+    const template = form.querySelector('[data-remaining-template]');
+    const count = form.querySelector('[name="remaining-TOTAL_FORMS"]');
+    const status = form.querySelector('[data-remaining-status]');
+    const formatter = new Intl.NumberFormat('en-LK', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    const money = (cents) => (cents === null ? '—' : formatter.format(cents / 100));
+    const update = () => {
+      const automatic =
+        plan &&
+        Math.round(Number(received.value || 0) * 100) ===
+          Math.round(Number(plan.dataset.allocationPlanTotal) * 100);
+      amounts.forEach((input) => {
+        input.readOnly = Boolean(automatic);
+        if (automatic) input.value = input.dataset.planAmount;
+      });
+      if (mode)
+        mode.textContent = automatic
+          ? 'The received amount matches the plan total. Plan amounts are allocated automatically.'
+          : 'The received amount differs from the plan total. Enter the allocated amounts manually.';
+      const allRows = [...rows.querySelectorAll('[data-remaining-row]')];
+      allRows.forEach((row) => {
+        if (!row.querySelector('[name$="-DELETE"]').checked) return;
+        row.hidden = true;
+        row
+          .querySelectorAll('select, input:not([type="checkbox"])')
+          .forEach((input) => {
+            input.disabled = true;
+          });
+      });
+      const active = allRows.filter(
+        (row) => !row.querySelector('[name$="-DELETE"]').checked,
+      );
+      const state = window.ContributionBalances.calculate(
+        received.value,
+        amounts.map((input) => input.value),
+        active.map((row) => row.querySelector('[data-remaining-amount]').value),
+      );
+      if (total) total.textContent = money(state.standard);
+      form.querySelector('[data-remaining-available]').textContent = money(
+        state.available,
+      );
+      form.querySelector('[data-remaining-total]').textContent = money(state.allocated);
+      form.querySelector('[data-remaining-balance]').textContent = money(
+        state.remaining,
+      );
+      active.forEach((row, index) => {
+        const input = row.querySelector('[data-remaining-amount]');
+        const account = row.querySelector('[data-remaining-account]');
+        const childDeposit = row.querySelector('[data-child-deposit]');
+        const childField = row.querySelector('[data-child-deposit-field]');
+        const isChild = account.value.startsWith('child-type:');
+        if (childDeposit) {
+          childField.hidden = !isChild;
+          childDeposit.required = isChild;
+          if (!isChild) childDeposit.value = '';
+          const typeId = account.value.split(':')[1];
+          [...childDeposit.options].forEach((option) => {
+            const available = !option.value || option.dataset.depositType === typeId;
+            option.hidden = !available;
+            option.disabled = !available;
+            if (!available && option.selected) childDeposit.value = '';
+          });
+        }
+        const entered =
+          input.value !== '' || account.value !== '' || Boolean(childDeposit?.value);
+        input.required = account.required = entered;
+        input.setCustomValidity('');
+        const limit = state.limits[index];
+        input.max =
+          limit === null ? '9999999999.99' : (Math.max(0, limit) / 100).toFixed(2);
+        if (state.rowBalances[index] !== null && state.rowBalances[index] < 0)
+          input.setCustomValidity(
+            'This allocation exceeds the available remaining balance.',
+          );
+        row.querySelector('[data-remaining-row-balance]').textContent = money(
+          state.rowBalances[index],
+        );
+      });
+      const message = !state.valid
+        ? 'Enter valid amounts with up to two decimal places.'
+        : state.remaining < 0
+          ? `Allocations exceed the received contribution by LKR ${money(-state.remaining)}.`
+          : state.remaining > 0
+            ? `Remaining balance to allocate: LKR ${money(state.remaining)}.`
+            : 'All contribution amounts are allocated. Preview before saving.';
+      status.textContent = message;
+      if (balance) balance.textContent = message;
+      add.disabled = Number(count.value) >= 100;
+      return state;
+    };
+    const changed = () => {
+      update();
+      if (post) post.disabled = true;
+      if (review)
+        review.textContent =
+          'Amounts or payment details changed. Preview the allocation again before posting.';
+    };
+    add.addEventListener('click', () => {
+      const index = Number(count.value);
+      if (index >= 100) return;
+      const fragment = document.createElement('template');
+      fragment.innerHTML = template.innerHTML.replaceAll('__prefix__', String(index));
+      rows.append(fragment.content.cloneNode(true));
+      count.value = String(index + 1);
+      changed();
+      rows.lastElementChild.querySelector('[data-remaining-account]').focus();
+    });
+    form.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-remove-remaining]');
+      if (!button) return;
+      const row = button.closest('[data-remaining-row]');
+      row.querySelector('[name$="-DELETE"]').checked = true;
+      row.hidden = true;
+      row.querySelectorAll('select, input:not([type="checkbox"])').forEach((input) => {
+        input.disabled = true;
+      });
+      changed();
+    });
+    form.addEventListener('input', changed);
+    form.addEventListener('change', changed);
+    const member = form.querySelector('#id_member');
+    let childAccountRequest = 0;
+    const replaceChildAccounts = (accounts) => {
+      const selects = [
+        ...rows.querySelectorAll('[data-child-deposit]'),
+        ...template.content.querySelectorAll('[data-child-deposit]'),
+      ];
+      selects.forEach((select) => {
+        select.replaceChildren(
+          new Option("Select the child's registered deposit account", ''),
+        );
+        accounts.forEach((account) => {
+          const option = new Option(account.label, String(account.id));
+          option.dataset.depositType = String(account.deposit_type_id);
+          select.add(option);
+        });
+      });
+      update();
+    };
+    if (form.dataset.childAccountsUrl)
+      member.addEventListener('change', async () => {
+        const request = ++childAccountRequest;
+        replaceChildAccounts([]);
+        if (!member.value) return;
+        try {
+          const url = new URL(form.dataset.childAccountsUrl, window.location.origin);
+          url.searchParams.set('member', member.value);
+          const response = await fetch(url, {
+            headers: { Accept: 'application/json' },
+          });
+          if (request !== childAccountRequest) return;
+          if (!response.ok) throw new Error('Child accounts unavailable');
+          const data = await response.json();
+          if (request === childAccountRequest) replaceChildAccounts(data.accounts);
+        } catch {
+          if (request === childAccountRequest)
+            status.textContent =
+              'Child deposit accounts could not be loaded. Preview the allocation to reload them.';
+        }
+      });
+    form.addEventListener('submit', (event) => {
+      if (event.submitter?.value !== 'post') return;
+      const state = update();
+      if (!state.valid || (state.remaining !== 0 && !legacyType?.value)) {
+        event.preventDefault();
+        if (post) post.disabled = true;
+      }
+    });
+    update();
+  });
+
   const searchableSelect = (select, searchTerms, labels = {}) => {
     const wrapper = document.createElement('div');
     wrapper.className = 'school-combo';
@@ -255,7 +492,7 @@
         empty.className = 'school-combo-empty';
         empty.textContent =
           labels.empty ||
-          'No matching departments. Change the text, district or zonal office.';
+          'No matching departments. Change the text, branch or zonal office.';
         list.append(empty);
       }
       status.textContent = `${matches.length} ${labels.plural || 'departments'} available.`;
@@ -371,7 +608,7 @@
         const data = await response.json();
         if (controller.signal.aborted || pending !== controller) return;
         for (const [key, selector] of Object.entries(fields))
-          form.querySelector(selector).textContent = data[key];
+          form.querySelector(selector).textContent = formatMoney(data[key]);
         const reasons =
           form.dataset.fixAction === 'loan'
             ? data.loan_reasons
@@ -453,7 +690,7 @@
         if (!response.ok) throw new Error('Balance unavailable');
         const data = await response.json();
         if (controller.signal.aborted || pending !== controller) return;
-        balance.textContent = data.balance;
+        balance.textContent = formatMoney(data.balance);
         rate.textContent = data.rate === null ? '—' : `${data.rate}%`;
         age.textContent = data.age === null ? '—' : String(data.age);
         status.textContent = `Saved balance as of ${data.as_of}, excluding this entry. Interest is not automatically posted.`;
@@ -521,6 +758,58 @@
     }
     updatePeriod();
   });
+  document.querySelectorAll('[data-account-filter-form]').forEach((form) => {
+    const member = form.querySelector('[name="member"]');
+    const account = form.querySelector('[name="payment_type"]');
+    const child = form.querySelector('[name="child_deposit"]');
+    const field = form.querySelector('[data-child-deposit-field]');
+    let pending;
+    const sync = () => {
+      const isChild = account.value.startsWith('child-type:');
+      field.hidden = !isChild;
+      child.required = isChild;
+      if (!isChild) child.value = '';
+      const typeId = account.value.split(':')[1];
+      [...child.options].forEach((option) => {
+        const available = !option.value || option.dataset.depositType === typeId;
+        option.hidden = option.disabled = !available;
+        if (!available && option.selected) child.value = '';
+      });
+    };
+    member.addEventListener('change', async () => {
+      pending?.abort();
+      child.replaceChildren(new Option("Select the child's deposit account", ''));
+      child.setCustomValidity('');
+      if (!member.value) return;
+      const controller = new AbortController();
+      pending = controller;
+      const url = new URL(form.dataset.balancesUrl, window.location.href);
+      url.searchParams.set('member', member.value);
+      try {
+        const response = await fetch(url, {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error('Accounts unavailable');
+        const data = await response.json();
+        if (controller.signal.aborted) return;
+        for (const item of data.child_accounts || []) {
+          const option = new Option(item.name, String(item.id));
+          option.dataset.depositType = String(item.deposit_type_id);
+          child.add(option);
+        }
+        sync();
+      } catch {
+        if (!controller.signal.aborted)
+          child.setCustomValidity(
+            'Child accounts could not be loaded. Reselect the member to try again.',
+          );
+      }
+    });
+    account.addEventListener('change', sync);
+    sync();
+  });
   document.querySelectorAll('[data-transaction-form]').forEach((form) => {
     const select = form.querySelector('[name="payment_type"]');
     const output = form.querySelector('[data-interest-rate]');
@@ -550,14 +839,143 @@
     const rows = panel.querySelector('[data-balance-rows]');
     let balanceData = readJSON('initial-member-balances');
     let pendingBalance;
+    const childSelect = form.querySelector('[name="child_deposit"]');
+    const childField = form.querySelector('[data-child-deposit-field]');
+    const childPanel = form.querySelector('[data-child-balance-panel]');
+    let balanceMember = member.value;
+    const syncChildSelection = () => {
+      if (!childSelect) return;
+      const isChild = select.value.startsWith('child-type:');
+      childField.hidden = !isChild;
+      childSelect.required = isChild;
+      if (!isChild) childSelect.value = '';
+      const typeId = select.value.split(':')[1];
+      [...childSelect.options].forEach((option) => {
+        const available = !option.value || option.dataset.depositType === typeId;
+        option.hidden = option.disabled = !available;
+        if (!available && option.selected) childSelect.value = '';
+      });
+    };
+    const populateChildSelection = () => {
+      if (!childSelect) return;
+      const value = childSelect.value;
+      childSelect.replaceChildren(
+        new Option("Select the child's registered deposit account", ''),
+      );
+      for (const account of balanceData?.child_accounts || []) {
+        if (!account.is_active) continue;
+        const option = new Option(account.name, String(account.id));
+        option.dataset.depositType = String(account.deposit_type_id);
+        childSelect.add(option);
+      }
+      childSelect.value = value;
+      syncChildSelection();
+    };
+    const renderChildBalances = () => {
+      if (!childPanel) return;
+      const accounts = balanceData?.child_accounts || [];
+      const childContent = childPanel.querySelector('[data-child-balance-content]');
+      childContent.hidden = !accounts.length;
+      childPanel.querySelector('[data-child-balance-status]').textContent =
+        accounts.length
+          ? `Child account balances as of ${balanceData.as_of}.`
+          : 'No child deposit accounts for the selected member and access.';
+      childPanel.querySelector('[data-child-total]').textContent = formatMoney(
+        balanceData?.child_total || '0.00',
+      );
+      const childRows = childPanel.querySelector('[data-child-balance-rows]');
+      childRows.replaceChildren();
+      for (const account of accounts) {
+        const tr = document.createElement('tr');
+        for (const value of [
+          account.child_name,
+          account.account_no + (account.is_active ? '' : ' (inactive)'),
+          account.type_name,
+          formatMoney(account.balance),
+        ]) {
+          const cell = document.createElement('td');
+          cell.textContent = value;
+          tr.append(cell);
+        }
+        const actions = document.createElement('td');
+        if (account.statement_url) {
+          const link = document.createElement('a');
+          link.className = 'text-link';
+          link.href = account.statement_url;
+          link.textContent = 'View statement';
+          actions.append(link);
+        }
+        tr.append(actions);
+        childRows.append(tr);
+      }
+      const selected = accounts.find(
+        (account) => String(account.id) === childSelect?.value,
+      );
+      childPanel.querySelector('[data-child-selected-balance]').textContent =
+        formatMoney(selected?.balance);
+      const transactions = childPanel.querySelector('[data-child-transactions]');
+      transactions.hidden = !selected;
+      const link = childPanel.querySelector('[data-child-statement]');
+      link.hidden = !selected?.statement_url;
+      if (selected?.statement_url) link.href = selected.statement_url;
+      const history = balanceData?.selected_child_account;
+      const matchingHistory = history && String(history.id) === childSelect?.value;
+      const historyRows = childPanel.querySelector('[data-child-transaction-rows]');
+      historyRows.replaceChildren();
+      for (const entry of (matchingHistory ? history.transactions : []) || []) {
+        const tr = document.createElement('tr');
+        for (const value of [
+          entry.date,
+          `${entry.reference} · ${entry.description}`,
+          formatMoney(entry.debit),
+          formatMoney(entry.credit),
+          formatMoney(entry.balance),
+        ]) {
+          const cell = document.createElement('td');
+          cell.textContent = value;
+          tr.append(cell);
+        }
+        historyRows.append(tr);
+      }
+      childPanel.querySelector('[data-child-transactions-status]').textContent =
+        !balanceData?.can_view_child_transactions
+          ? 'Transaction history requires Child Deposits View access.'
+          : !matchingHistory
+            ? 'Select a child account to load transactions.'
+            : history.transactions.length
+              ? ''
+              : 'No transactions through this date.';
+      if (select.value.startsWith('child-type:')) {
+        output.textContent = selected?.rate ? `${selected.rate}%` : '—';
+        if (frequency)
+          frequency.textContent = 'Quarterly, credited at financial year-end';
+        selectedBalance.textContent = '—';
+      }
+    };
     const renderBalances = () => {
       if (!balanceData) return;
       content.hidden = false;
-      total.textContent = balanceData.total;
+      total.textContent = formatMoney(balanceData.total);
+      const remaining = panel.querySelector('[data-contribution-remaining]');
+      const contributionRows = panel.querySelector('[data-contribution-credit-rows]');
+      if (remaining)
+        remaining.textContent = formatMoney(
+          balanceData.remaining_contribution_total || '0.00',
+        );
+      if (contributionRows) {
+        contributionRows.replaceChildren();
+        for (const credit of balanceData.remaining_contribution_credits || []) {
+          const item = document.createElement('li');
+          item.textContent = `${credit.received_on} · ${credit.payment_type} · LKR ${formatMoney(credit.amount)} · ${credit.receipt}`;
+          contributionRows.append(item);
+        }
+      }
       const selected = balanceData.balances.find(
         (row) => String(row.payment_type_id) === select.value,
       );
-      selectedBalance.textContent = select.value ? selected?.balance || '0.00' : '—';
+      selectedBalance.textContent = select.value
+        ? formatMoney(selected?.balance || '0.00')
+        : '—';
       rows.replaceChildren();
       for (const row of balanceData.balances) {
         const tr = document.createElement('tr');
@@ -566,7 +984,7 @@
         const name = document.createElement('td');
         name.textContent = row.name + (row.is_active ? '' : ' (inactive)');
         const amount = document.createElement('td');
-        amount.textContent = row.balance;
+        amount.textContent = formatMoney(row.balance);
         tr.append(name, amount);
         rows.append(tr);
       }
@@ -575,20 +993,39 @@
         (balanceData.has_records
           ? ''
           : ' No saved opening amounts or transactions for this date.');
+      renderChildBalances();
     };
     const loadBalances = async () => {
       pendingBalance?.abort();
+      if (childSelect && balanceMember !== member.value) {
+        childSelect.replaceChildren(
+          new Option("Select the child's registered deposit account", ''),
+        );
+        balanceMember = member.value;
+      }
+      syncChildSelection();
       balanceData = null;
       content.hidden = true;
+      if (childPanel) {
+        childPanel.querySelector('[data-child-balance-content]').hidden = true;
+        childPanel.querySelector('[data-child-balance-status]').textContent =
+          'Loading child account balances…';
+      }
       total.textContent = '—';
       selectedBalance.textContent = '—';
       rows.replaceChildren();
       if (!member.value) {
         status.textContent = 'Select a member to see their balance.';
+        if (childPanel)
+          childPanel.querySelector('[data-child-balance-status]').textContent =
+            'Select a member to see child deposit balances.';
         return;
       }
       if (!date.value || !date.validity.valid) {
         status.textContent = 'Choose a valid transaction date to see the balance.';
+        if (childPanel)
+          childPanel.querySelector('[data-child-balance-status]').textContent =
+            'Choose a valid transaction date to see child deposit balances.';
         return;
       }
       const controller = new AbortController();
@@ -597,6 +1034,8 @@
       const url = new URL(form.dataset.balancesUrl, window.location.href);
       url.searchParams.set('member', member.value);
       url.searchParams.set('date', date.value);
+      if (childSelect?.value && select.value.startsWith('child-type:'))
+        url.searchParams.set('child_deposit', childSelect.value);
       if (form.dataset.entryId) url.searchParams.set('entry', form.dataset.entryId);
       try {
         const response = await fetch(url, {
@@ -609,20 +1048,30 @@
         const data = await response.json();
         if (controller.signal.aborted || pendingBalance !== controller) return;
         balanceData = data;
+        populateChildSelection();
         renderBalances();
       } catch (error) {
         if (controller.signal.aborted || pendingBalance !== controller) return;
         status.textContent =
           'Unable to load the member balance. Reselect the member or reload the page to try again.';
+        if (childPanel)
+          childPanel.querySelector('[data-child-balance-status]').textContent =
+            'Unable to load child deposit balances. Reselect the account or reload the page.';
       }
     };
     member.addEventListener('change', loadBalances);
     date.addEventListener('change', loadBalances);
-    select.addEventListener('change', renderBalances);
+    select.addEventListener('change', () => {
+      syncChildSelection();
+      renderBalances();
+      if (childSelect?.value && select.value.startsWith('child-type:')) loadBalances();
+    });
+    childSelect?.addEventListener('change', loadBalances);
     form.addEventListener('input', (event) => {
       if (event.target.id === `${member.id}_combo`) loadBalances();
       if (event.target.id === `${select.id}_combo`) renderBalances();
     });
+    syncChildSelection();
     if (balanceData) renderBalances();
     else loadBalances();
   });
@@ -723,7 +1172,7 @@
         locations.offices || [],
         district.value
           ? 'Select a zonal office'
-          : 'Select a department or district first',
+          : 'Select a department or branch first',
         selection.office,
       );
       updateLagers(selection.lager);
@@ -739,7 +1188,7 @@
       updateSchool(selection.school);
       say(
         district.value && !locations.offices?.length
-          ? 'No active zonal offices in this district. Add a zonal office under Master data.'
+          ? 'No active zonal offices in this branch. Add a zonal office under Master data.'
           : '',
       );
     };
@@ -827,10 +1276,10 @@
       } catch (error) {
         if (pending !== controller || error.name === 'AbortError') return false;
         say(
-          'Locations could not be loaded. Check your connection and select the department or district again.',
+          'Locations could not be loaded. Check your connection and select the department or branch again.',
         );
         office.setCustomValidity(
-          'Select the department or district again to load its locations.',
+          'Select the department or branch again to load its locations.',
         );
         return false;
       } finally {
@@ -918,11 +1367,7 @@
           );
       } catch (error) {
         if (pending === controller && error.name !== 'AbortError')
-          fillOptions(
-            target,
-            [],
-            'Could not load zonal offices — select district again',
-          );
+          fillOptions(target, [], 'Could not load zonal offices — select branch again');
       } finally {
         if (pending === controller) target.disabled = false;
       }

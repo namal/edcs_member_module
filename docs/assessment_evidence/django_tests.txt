@@ -1,0 +1,15 @@
+Creating test database for alias 'default'...
+....Internal Server Error: /api/offices/
+Internal Server Error: /api/locations/
+Internal Server Error: /api/debit-credit/balances/
+.................................................................................................................................................................................................................................................................................................................................................Not Found: /this-page-does-not-exist/
+Not Found: /error-check/missing-record/
+.....
+----------------------------------------------------------------------
+Ran 346 tests in 87.859s
+
+OK
+Destroying test database for alias 'default'...
+Found 346 test(s).
+System check identified no issues (0 silenced).
+ASSESSMENT_RUN_SUMMARY {"failures_and_errors": 0, "summary_file": "/home/namal-spencer/Documents/Python/django/Member_Module/docs/assessment_evidence/run_summary.json", "test_database": "edcs_va_acd5f9567da4446f"}

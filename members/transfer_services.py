@@ -17,6 +17,7 @@ from .permissions import (
     require_district,
     require_member_access,
     require_permission,
+    require_zonal_office,
     scope_queryset,
 )
 
@@ -49,7 +50,6 @@ def eligible_officers(office):
         get_user_model()
         .objects.filter(
             is_active=True,
-            ledger_profile__zonal_office_id=getattr(office, "pk", office),
             ledger_profile__epf_number__isnull=False,
         )
         .exclude(ledger_profile__epf_number="")
@@ -57,7 +57,8 @@ def eligible_officers(office):
     if office is not None:
         zone = m.OfficeLocation.objects.get(pk=getattr(office, "pk", office))
         users = users.filter(
-            Q(is_superuser=True) | Q(assigned_districts=zone.district_id)
+            Q(is_superuser=True)
+            | Q(assigned_districts=zone.district_id, ledger_profile__zonal_offices=zone)
         )
     return (
         users.select_related("ledger_profile")
@@ -84,7 +85,7 @@ def validate_officer(officer, office, *, lager=None):
     if officer is None or not eligible_officers(office).filter(pk=officer.pk).exists():
         raise ValidationError(
             {
-                "maintenance_officer": "Choose an active officer with an EPF number and access to this receiving zonal office's district."
+                "maintenance_officer": "Choose an active officer with an EPF number and assigned access to this receiving branch and zonal office."
             }
         )
 
@@ -338,6 +339,7 @@ def transfer_member(
         )
     require_district(actor, member.district_id)
     require_district(actor, office.district_id)
+    require_zonal_office(actor, office.pk)
     current = m.MemberLedger.objects.select_for_update().get(
         member=member, status="active"
     )
@@ -383,7 +385,7 @@ def transfer_member(
         raise ValidationError("Choose a different receiving location or department.")
     if not office.is_active or not office.district.is_active:
         raise ValidationError(
-            {"zonal_office": "Choose an active receiving zonal office and district."}
+            {"zonal_office": "Choose an active receiving zonal office and branch."}
         )
     validate_officer(officer, office)
     validate_receiving_location(office, lager, school, subdivision)

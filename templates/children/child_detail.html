@@ -53,7 +53,7 @@
   {% if perms.members.view_childdeposit %}
     <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
       <h2 class="section-title">This child's deposits</h2>
-      <p class="font-semibold text-brand-700">Total LKR {{ total_balance|floatformat:2 }} · {{ as_of|date:'d M Y' }}</p>
+      <p class="font-semibold text-brand-700">Total LKR {{ total_balance|floatformat:'2g' }} · {{ as_of|date:'d M Y' }}</p>
     </div>
     <section class="card">
       <div class="overflow-x-auto">

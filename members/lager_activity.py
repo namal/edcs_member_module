@@ -397,7 +397,7 @@ def decorate_event(row):
     else:
         row["url"] = reverse(routes[key], args=[row["event_related_id"]])
     if key == "loan_entry":
-        components = f"Principal LKR {row['event_principal']:.2f}; interest LKR {row['event_interest']:.2f}."
+        components = f"Principal LKR {row['event_principal']:,.2f}; interest LKR {row['event_interest']:,.2f}."
         row["event_details"] = f"{components} {row['event_details']}".strip()
     return row
 
