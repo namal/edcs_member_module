@@ -17,7 +17,9 @@
         <a class="btn btn-primary"
            href="{% url 'contribution_create' %}{% if selected_member %}?member={{ selected_member.pk }}{% endif %}">Receive contribution</a>
         <a class="btn btn-primary"
-           href="{% url 'payment_transaction_create' %}{% if selected_member %}?{{ selection_query }}{% endif %}">Add entry</a>
+           data-add-entry-link
+           title="Open Add entry page. Press F2 for a quick entry window."
+           href="{% url 'payment_transaction_create' %}{% if selected_member %}?{{ selection_query }}{% endif %}">Add entry <kbd>F2</kbd></a>
       {% endif %}
     </div>
   </div>

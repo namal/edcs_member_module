@@ -1,144 +1,194 @@
 {% extends 'base.html' %}
 
+{% block body_class %}
+  {% if request.GET.entry_popup == '1' and not entry and not correction %}transaction-entry-popup{% endif %}
+{% endblock %}
+
 {% block content %}
-  <div class="mb-7">
-    <p class="eyebrow mb-2">Debit / Credit</p>
-    <h1 class="page-title">
-      {{ title }}<span class="text-brand-600">.</span>
-    </h1>
-    <p class="muted mt-2">Record one debit or credit for a member account or a child's registered deposit account.</p>
-    {% if perms.members.add_paymenttransaction %}
-      <a class="btn btn-secondary mt-4" href="{% url 'contribution_create' %}">Receive and allocate a salary contribution</a>
-    {% endif %}
-    <p class="field-help mt-2">
-      {% if user.is_superuser %}
-        System administrators can post directly without approval.
-      {% else %}
-        A credit below its configured payment-plan amount waits for Payment exceptions approval before posting.
-      {% endif %}
-    </p>
-    <p class="field-help mt-2">
-      Fix Deposit monthly top-ups are credits. Fix Deposit withdrawals must be requested and released through Fix Deposit Loans &amp; Withdrawals.
-    </p>
-  </div>
-  {% if correction %}
-    <div class="alert mb-6">
-      Correcting entry #{{ correction.pk }} ({{ correction.transaction_date|date:'d M Y' }}). The opposite amount is fixed. Enter a correction reason; the original entry is retained.
-    </div>
-  {% endif %}
-  <form method="post"
-        data-transaction-form
-        data-balances-url="{% url 'payment_transaction_balances' %}"
-        {% if entry %}data-entry-id="{{ entry.pk }}"{% endif %}>
-    {% csrf_token %}{{ form.reverses }}
-    {% if form.errors %}
-      <div class="alert message-error" role="alert">Please check the entry below. {{ form.non_field_errors }}</div>
-    {% endif %}
-    <section class="form-section">
-      <h2 class="section-title mb-5">Member and payment type</h2>
-      <div class="form-grid">
-        {% include 'components/field.html' with field=form.member %}
-        {% include 'components/field.html' with field=form.payment_type %}
-        {% if form.child_deposit %}
-          <div data-child-deposit-field>{% include 'components/field.html' with field=form.child_deposit %}</div>
+  <div {% if not entry and not correction %}data-entry-workspace{% endif %}>
+    <div class="mb-7" data-entry-heading>
+      <p class="eyebrow mb-2">Debit / Credit</p>
+      <h1 class="page-title">
+        {{ title }}<span class="text-brand-600">.</span>
+      </h1>
+      <p class="muted mt-2">Record one debit or credit for a member account or a child's registered deposit account.</p>
+      <div class="transaction-entry-heading-actions">
+        {% if perms.members.add_paymenttransaction %}
+          <a class="btn btn-secondary mt-4" href="{% url 'contribution_create' %}">Receive and allocate a salary contribution</a>
+        {% endif %}
+        {% if not entry and not correction %}
+          <a class="btn btn-secondary"
+             data-entry-close
+             href="{% if perms.members.view_paymenttransaction %}{{ back_url }}{% else %}{% url 'dashboard' %}{% endif %}">Close <kbd>Esc</kbd></a>
         {% endif %}
       </div>
-      {% if entry %}<p class="field-help mt-4">The member and payment type stay fixed on saved entries.</p>{% endif %}
-      <p class="field-help mt-4" aria-live="polite">
-        Payment type interest rate: <output data-interest-rate>—</output>
-        · Calculation frequency: <output data-interest-frequency>—</output>.
-        Interest is not automatically calculated or posted.
-      </p>
-    </section>
-    <section class="form-section" data-balance-panel>
-      <h2 class="section-title">Saved member balance</h2>
-      <p class="field-help"
-         data-balance-status
-         role="status"
-         aria-live="polite">
-        {% if balance_summary %}
-          Balances as of {{ balance_summary.as_of }}.
+      <p class="field-help mt-2">
+        {% if user.is_superuser %}
+          System administrators can post directly without approval.
         {% else %}
-          Select a member to see their balance.
+          A credit below its configured payment-plan amount waits for Payment exceptions approval before posting.
         {% endif %}
       </p>
-      <div data-balance-content {% if not balance_summary %}hidden{% endif %}>
-        <div class="mt-5 rounded-lg border border-brand-100 bg-brand-50 p-4">
-          <h3 class="detail-label">Remaining contribution amounts credited</h3>
-          <p class="detail-value">
-            LKR <output data-contribution-remaining>{{ balance_summary.remaining_contribution_total|default:'0.00'|floatformat:'2g' }}</output>
-          </p>
-          <p class="field-help">
-            These amounts were left after the receipt allocations and are already included in the saved balances below.
-          </p>
-          <ul class="mt-3 text-sm" data-contribution-credit-rows>
-            {% for credit in balance_summary.remaining_contribution_credits %}
-              <li>
-                {{ credit.received_on }} · {{ credit.payment_type }} · LKR {{ credit.amount|floatformat:'2g' }} · {{ credit.receipt }}
-              </li>
-            {% endfor %}
-          </ul>
-        </div>
-        <div class="mt-5 grid gap-5 sm:grid-cols-2">
-          <div>
-            <h3 class="detail-label">Total member balance (all payment types)</h3>
-            <p class="detail-value text-brand-700">
-              LKR <output data-member-balance>{{ balance_summary.total|floatformat:'2g'|default:'—' }}</output>
-            </p>
-          </div>
-          <div>
-            <h3 class="detail-label">Selected payment type balance</h3>
-            <p class="detail-value">
-              LKR <output data-payment-type-balance>{{ selected_type_balance|floatformat:'2g'|default:'—' }}</output>
-            </p>
-          </div>
-        </div>
-        <div class="mt-5 overflow-x-auto">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Payment type</th>
-                <th>Balance (LKR)</th>
-              </tr>
-            </thead>
-            <tbody data-balance-rows>
-              {% for row in balance_summary.balances %}
-                <tr>
-                  <td>
-                    {{ row.name }}
-                    {% if not row.is_active %}(inactive){% endif %}
-                  </td>
-                  <td>{{ row.balance|floatformat:'2g' }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        <p class="field-help mt-4">
-          Opening amounts plus saved credits minus debits through the transaction date. The entry you are adding or editing is excluded.
-        </p>
-      </div>
-    </section>
-    {% if perms.members.view_childdeposit or perms.members.add_childdeposit or perms.members.change_childdeposit %}
-      {% include 'components/child_account_balances.html' %}
-    {% endif %}
-    <section class="form-section">
-      <h2 class="section-title mb-5">Entry details</h2>
-      <div class="form-grid">
-        {% include 'components/field.html' with field=form.transaction_date %}
-        {% include 'components/field.html' with field=form.reference %}
-        {% include 'components/field.html' with field=form.debit %}
-        {% include 'components/field.html' with field=form.credit %}
-        {% include 'components/field.html' with field=form.description wide=True %}
-      </div>
-    </section>
-    <div class="flex justify-end gap-3">
-      <a class="btn btn-secondary"
-         href="{% if perms.members.view_paymenttransaction %}{{ back_url }}{% else %}{% url 'dashboard' %}{% endif %}">Cancel</a>
-      <button class="btn btn-primary" data-submit-label="Saving entry…">Save entry</button>
+      <p class="field-help mt-2">
+        Fix Deposit monthly top-ups are credits. Fix Deposit withdrawals must be requested and released through Fix Deposit Loans &amp; Withdrawals.
+      </p>
     </div>
-  </form>
-  {{ payment_type_rates|json_script:'payment-type-rates' }}
-  {{ payment_type_frequencies|json_script:'payment-type-frequencies' }}
-  {{ balance_summary|json_script:'initial-member-balances' }}
+    {% if correction %}
+      <div class="alert mb-6">
+        Correcting entry #{{ correction.pk }} ({{ correction.transaction_date|date:'d M Y' }}). The opposite amount is fixed. Enter a correction reason; the original entry is retained.
+      </div>
+    {% endif %}
+    <form method="post"
+          data-transaction-form
+          {% if not entry and not correction %}data-entry-tabs-form data-entry-bound="{{ form.is_bound|yesno:'true,false' }}"{% endif %}
+          data-balances-url="{% url 'payment_transaction_balances' %}"
+          {% if entry %}data-entry-id="{{ entry.pk }}"{% endif %}>
+      {% csrf_token %}{{ form.reverses }}
+      {% if form.errors %}
+        <div class="alert message-error" role="alert">Please check the entry below. {{ form.non_field_errors }}</div>
+      {% endif %}
+      {% if not entry and not correction %}
+        <div class="transaction-entry-tabs"
+             data-entry-tabs
+             role="tablist"
+             aria-label="Add entry sections"
+             hidden>
+          <button type="button"
+                  id="entry-tab-account"
+                  role="tab"
+                  data-entry-tab="entry-panel-account"
+                  aria-controls="entry-panel-account">Member and payment type</button>
+          <button type="button"
+                  id="entry-tab-member-balance"
+                  role="tab"
+                  data-entry-tab="entry-panel-member-balance"
+                  aria-controls="entry-panel-member-balance">Saved member balance</button>
+          {% if perms.members.view_childdeposit or perms.members.add_childdeposit or perms.members.change_childdeposit %}
+            <button type="button"
+                    id="entry-tab-child-balance"
+                    role="tab"
+                    data-entry-tab="entry-panel-child-balance"
+                    aria-controls="entry-panel-child-balance">Child deposit balances and transactions</button>
+          {% endif %}
+          <button type="button"
+                  id="entry-tab-details"
+                  role="tab"
+                  data-entry-tab="entry-panel-details"
+                  aria-controls="entry-panel-details">Entry details</button>
+        </div>
+        <div class="transaction-entry-panels" data-entry-panels>
+        {% endif %}
+        <section class="form-section" id="entry-panel-account" data-entry-panel>
+          <h2 class="section-title mb-5">Member and payment type</h2>
+          <div class="form-grid">
+            {% include 'components/field.html' with field=form.member %}
+            {% include 'components/field.html' with field=form.payment_type %}
+            {% if form.child_deposit %}
+              <div data-child-deposit-field>{% include 'components/field.html' with field=form.child_deposit %}</div>
+            {% endif %}
+          </div>
+          {% if entry %}<p class="field-help mt-4">The member and payment type stay fixed on saved entries.</p>{% endif %}
+          <p class="field-help mt-4" aria-live="polite">
+            Payment type interest rate: <output data-interest-rate>—</output>
+            · Calculation frequency: <output data-interest-frequency>—</output>.
+            Interest is not automatically calculated or posted.
+          </p>
+        </section>
+        <section class="form-section"
+                 id="entry-panel-member-balance"
+                 data-entry-panel
+                 data-balance-panel>
+          <h2 class="section-title">Saved member balance</h2>
+          <p class="field-help"
+             data-balance-status
+             role="status"
+             aria-live="polite">
+            {% if balance_summary %}
+              Balances as of {{ balance_summary.as_of }}.
+            {% else %}
+              Select a member to see their balance.
+            {% endif %}
+          </p>
+          <div data-balance-content {% if not balance_summary %}hidden{% endif %}>
+            <div class="mt-5 rounded-lg border border-brand-100 bg-brand-50 p-4">
+              <h3 class="detail-label">Remaining contribution amounts credited</h3>
+              <p class="detail-value">
+                LKR <output data-contribution-remaining>{{ balance_summary.remaining_contribution_total|default:'0.00'|floatformat:'2g' }}</output>
+              </p>
+              <p class="field-help">
+                These amounts were left after the receipt allocations and are already included in the saved balances below.
+              </p>
+              <ul class="mt-3 text-sm" data-contribution-credit-rows>
+                {% for credit in balance_summary.remaining_contribution_credits %}
+                  <li>
+                    {{ credit.received_on }} · {{ credit.payment_type }} · LKR {{ credit.amount|floatformat:'2g' }} · {{ credit.receipt }}
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+            <div class="mt-5 grid gap-5 sm:grid-cols-2">
+              <div>
+                <h3 class="detail-label">Total member balance (all payment types)</h3>
+                <p class="detail-value text-brand-700">
+                  LKR <output data-member-balance>{{ balance_summary.total|floatformat:'2g'|default:'—' }}</output>
+                </p>
+              </div>
+              <div>
+                <h3 class="detail-label">Selected payment type balance</h3>
+                <p class="detail-value">
+                  LKR <output data-payment-type-balance>{{ selected_type_balance|floatformat:'2g'|default:'—' }}</output>
+                </p>
+              </div>
+            </div>
+            <div class="mt-5 overflow-x-auto">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Payment type</th>
+                    <th>Balance (LKR)</th>
+                  </tr>
+                </thead>
+                <tbody data-balance-rows>
+                  {% for row in balance_summary.balances %}
+                    <tr>
+                      <td>
+                        {{ row.name }}
+                        {% if not row.is_active %}(inactive){% endif %}
+                      </td>
+                      <td>{{ row.balance|floatformat:'2g' }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <p class="field-help mt-4">
+              Opening amounts plus saved credits minus debits through the transaction date. The entry you are adding or editing is excluded.
+            </p>
+          </div>
+        </section>
+        {% if perms.members.view_childdeposit or perms.members.add_childdeposit or perms.members.change_childdeposit %}
+          <div id="entry-panel-child-balance" data-entry-panel>{% include 'components/child_account_balances.html' %}</div>
+        {% endif %}
+        <section class="form-section" id="entry-panel-details" data-entry-panel>
+          <h2 class="section-title mb-5">Entry details</h2>
+          <div class="form-grid">
+            {% include 'components/field.html' with field=form.transaction_date %}
+            {% include 'components/field.html' with field=form.reference %}
+            {% include 'components/field.html' with field=form.debit %}
+            {% include 'components/field.html' with field=form.credit %}
+            {% include 'components/field.html' with field=form.description wide=True %}
+          </div>
+        </section>
+        {% if not entry and not correction %}</div>{% endif %}
+      <div class="flex justify-end gap-3" data-entry-actions>
+        <a class="btn btn-secondary"
+           data-entry-close
+           href="{% if perms.members.view_paymenttransaction %}{{ back_url }}{% else %}{% url 'dashboard' %}{% endif %}">Cancel</a>
+        <button class="btn btn-primary" data-submit-label="Saving entry…">Save entry</button>
+      </div>
+    </form>
+    {{ payment_type_rates|json_script:'payment-type-rates' }}
+    {{ payment_type_frequencies|json_script:'payment-type-frequencies' }}
+    {{ balance_summary|json_script:'initial-member-balances' }}
+  </div>
 {% endblock %}

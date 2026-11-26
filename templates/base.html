@@ -12,12 +12,15 @@
       {% block title %}{{ title }}{% endblock %}
     · EDCS</title>
     <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
-    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=edcs-17">
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=edcs-18">
     <script src="{% static 'js/contribution-balances.js' %}?v=1" defer></script>
     <script src="{% static 'js/app.js' %}?v=28" defer></script>
+    <script src="{% static 'js/debit-credit-entry.js' %}?v=1"
+            data-entry-url="{% url 'payment_transaction_create' %}"
+            defer></script>
     {% include 'components/session_security.html' %}
   </head>
-  <body>
+  <body class="{% block body_class %}{% endblock %}">
     {% include 'components/icons.html' %}
     <a href="#main-content" class="skip-link">Skip to content</a>
     <button id="mobile-overlay"
@@ -367,6 +370,9 @@
           </p>
         {% endif %}
         {% block content %}{% endblock %}
+        {% if section == 'payment_transactions' and perms.members.add_paymenttransaction %}
+          <span hidden data-entry-shortcut></span>
+        {% endif %}
         <footer class="mt-9 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/70 pt-5 text-[10px] text-slate-500">
           <span>© {% now 'Y' %} EDCS · Education Co-operative Society</span><span class="flex items-center gap-1.5">
             <svg class="icon h-3 w-3">

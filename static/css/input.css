@@ -877,3 +877,180 @@
     break-inside: avoid;
   }
 }
+
+body.has-transaction-entry {
+  overflow: hidden;
+}
+.has-transaction-entry #workspace {
+  display: flex;
+  height: 100dvh;
+  flex-direction: column;
+}
+.has-transaction-entry #workspace > header {
+  flex: none;
+}
+.has-transaction-entry #main-content {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.has-transaction-entry #main-content > footer {
+  display: none;
+}
+.has-transaction-entry [data-entry-workspace],
+.has-transaction-entry [data-entry-tabs-form] {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.has-transaction-entry [data-entry-heading] {
+  flex: none;
+  margin-bottom: 12px;
+}
+.has-transaction-entry [data-entry-heading] .page-title {
+  font-size: clamp(1.25rem, 2.3vw, 1.8rem);
+}
+.has-transaction-entry [data-entry-heading] .btn {
+  margin-top: 8px;
+  margin-right: 6px;
+}
+.has-transaction-entry [data-entry-heading] .muted,
+.has-transaction-entry [data-entry-heading] .field-help {
+  margin-top: 4px;
+}
+.has-transaction-entry [data-entry-tabs-form] > .alert {
+  flex: none;
+}
+.transaction-entry-tabs:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  flex: none;
+  gap: 4px;
+  padding: 5px;
+  margin-bottom: 12px;
+  border: 1px solid #e2dbe0;
+  border-radius: 12px;
+  background: #f5f1f3;
+}
+.transaction-entry-tabs [role='tab'] {
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.transaction-entry-tabs [role='tab']:hover {
+  background: #fff;
+}
+.transaction-entry-tabs [aria-selected='true'] {
+  border-color: #9d1948;
+  background: #9d1948;
+  color: #fff;
+  box-shadow: 0 2px 6px #3d10241a;
+}
+.transaction-entry-tabs [role='tab']:focus-visible {
+  outline: 3px solid #ffcc00;
+  outline-offset: 2px;
+}
+.has-transaction-entry .transaction-entry-panels {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.has-transaction-entry [data-entry-panel][hidden] {
+  display: none;
+}
+.has-transaction-entry [data-entry-panel].form-section,
+.has-transaction-entry [data-entry-panel] > .form-section {
+  margin-bottom: 0;
+  padding: 20px;
+}
+.has-transaction-entry [data-entry-panel] .form-grid {
+  margin-top: 16px;
+  gap: 16px 24px;
+}
+.has-transaction-entry #entry-panel-details .section-title {
+  margin-bottom: 12px;
+}
+.has-transaction-entry #entry-panel-details .form-grid {
+  gap: 12px 24px;
+}
+.has-transaction-entry #entry-panel-details .field-input {
+  height: 44px;
+  min-height: 44px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.has-transaction-entry #entry-panel-details textarea.field-input {
+  height: 84px;
+  min-height: 84px;
+}
+@media (min-width: 1100px) {
+  .has-transaction-entry [data-entry-heading] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 16px;
+  }
+  .has-transaction-entry [data-entry-heading] > .eyebrow,
+  .has-transaction-entry [data-entry-heading] > .page-title,
+  .has-transaction-entry [data-entry-heading] > .muted {
+    grid-column: 1;
+    margin: 0;
+  }
+  .has-transaction-entry [data-entry-heading] > .field-help {
+    grid-column: 1 / -1;
+  }
+  .has-transaction-entry .transaction-entry-heading-actions {
+    display: flex;
+    grid-column: 2;
+    grid-row: 1 / 4;
+    align-items: center;
+    gap: 8px;
+  }
+  .has-transaction-entry .transaction-entry-heading-actions .btn {
+    margin: 0;
+  }
+}
+.has-transaction-entry [data-entry-actions] {
+  flex: none;
+  padding-top: 12px;
+}
+.has-transaction-entry kbd,
+[data-add-entry-link] kbd {
+  padding: 1px 5px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 10px;
+  opacity: 0.8;
+}
+.transaction-entry-popup #sidebar,
+.transaction-entry-popup #workspace > header,
+.transaction-entry-popup #mobile-overlay {
+  display: none;
+}
+.transaction-entry-popup #workspace {
+  margin-left: 0;
+}
+.transaction-entry-popup #main-content {
+  padding-right: 20px;
+  padding-left: 20px;
+}
+@media (max-width: 640px) {
+  .transaction-entry-tabs:not([hidden]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .transaction-entry-tabs [role='tab'] {
+    padding: 8px;
+    font-size: 11px;
+  }
+}
