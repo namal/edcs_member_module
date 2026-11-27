@@ -140,6 +140,10 @@ async function main() {
         ),
       'entry tabs',
     );
+    await waitFor(
+      () => popup.evaluate("document.activeElement.id === 'id_member_combo'"),
+      'member search autofocus',
+    );
     return { popup, target };
   };
 
@@ -164,6 +168,46 @@ async function main() {
     await popup.evaluate("document.querySelector('#id_member').value"),
     String(config.member),
   );
+  // Search and choose a member without a mouse, then continue to Account.
+  await popup.call('Input.insertText', { text: 'Allocation' });
+  assert.equal(await popup.evaluate("document.querySelector('#id_member').value"), '');
+  await key(popup, 'ArrowDown', 'ArrowDown', 40);
+  await key(popup, 'Enter', 'Enter', 13);
+  assert.equal(await popup.evaluate('document.activeElement.id'), 'id_payment_type');
+  assert.equal(
+    await popup.evaluate("document.querySelector('#id_member').value"),
+    String(config.member),
+  );
+  await key(popup, 'Home', 'Home', 36);
+  const accountPosition = await popup.evaluate(
+    `[...document.querySelector('#id_payment_type').options].findIndex(option => option.value === '${config.paymentType}')`,
+  );
+  for (let i = 0; i < accountPosition; i++)
+    await key(popup, 'ArrowDown', 'ArrowDown', 40);
+  await key(popup, 'Enter', 'Enter', 13);
+  assert.equal(
+    await popup.evaluate("document.querySelector('#id_payment_type').value"),
+    String(config.paymentType),
+  );
+  await key(popup, 'F4', 'F4', 115);
+  assert.equal(
+    await popup.evaluate('document.activeElement.id'),
+    'id_transaction_date',
+  );
+  assert.equal(
+    await popup.evaluate("document.querySelector('[role=tab][aria-selected=true]').id"),
+    'entry-tab-details',
+  );
+  // F2 in the existing window returns to Member, and F2 from the parent reuses it.
+  await key(popup, 'F2', 'F2', 113);
+  assert.equal(await popup.evaluate('document.activeElement.id'), 'id_member_combo');
+  await key(popup, 'F4', 'F4', 115);
+  await key(parent, 'F2', 'F2', 113);
+  await waitFor(
+    () => popup.evaluate("document.activeElement.id === 'id_member_combo'"),
+    'existing popup member focus',
+  );
+  assert.equal((await targets()).filter((item) => item.type === 'page').length, 2);
   for (const id of ['member-balance', 'child-balance', 'details', 'account']) {
     await popup.evaluate(`document.querySelector('#entry-tab-${id}').click()`);
     assert.equal(
@@ -316,13 +360,22 @@ async function main() {
     await parent.evaluate('document.documentElement.scrollHeight <= innerHeight + 1'),
     true,
   );
+  await waitFor(
+    () => parent.evaluate("document.activeElement.id === 'id_member_combo'"),
+    'full-page member autofocus',
+  );
+  await key(parent, 'F4', 'F4', 115);
+  assert.equal(
+    await parent.evaluate('document.activeElement.id'),
+    'id_transaction_date',
+  );
   await key(parent, 'Escape', 'Escape', 27);
   await waitFor(
     () => parent.evaluate("location.pathname === '/debit-credit/'"),
     'Escape leaves full entry page',
   );
   console.log(
-    'Browser checks passed: four tabs, keyboard navigation, hidden-field validation, retained values, viewport fit, F2 popup, original Add entry link, Escape and posting.',
+    'Browser checks passed: member autofocus, keyboard member/account selection, F4 details, F2 focus/reuse, four tabs, hidden-field validation, retained values, viewport fit, original Add entry link, Escape and posting.',
   );
 }
 

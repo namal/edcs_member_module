@@ -7,6 +7,8 @@
   const isPopup = window.name === popupName && !!window.opener;
   let entryWindow;
   let returnFocus;
+  let focusMember;
+  let focusDetails;
 
   // Follow the existing form's successful redirect in the original window.
   if (isPopup && !workspace && location.pathname !== entryUrl.pathname) {
@@ -34,6 +36,9 @@
     const tablist = form.querySelector('[data-entry-tabs]');
     const tabs = [...tablist.querySelectorAll('[data-entry-tab]')];
     const panels = [...form.querySelectorAll('[data-entry-panel]')];
+    const memberSearch = form.querySelector('#id_member_combo, [name="member"]');
+    const member = form.querySelector('[name="member"]');
+    const account = form.querySelector('#id_payment_type_combo, [name="payment_type"]');
     const activate = (id, focus = false) => {
       for (const tab of tabs) {
         const selected = tab.dataset.entryTab === id;
@@ -43,6 +48,15 @@
       }
       for (const panel of panels) panel.hidden = panel.id !== id;
       form.querySelector('[data-entry-panels]').scrollTop = 0;
+    };
+    focusMember = () => {
+      activate('entry-panel-account');
+      memberSearch?.focus({ preventScroll: true });
+      if (memberSearch?.tagName === 'INPUT') memberSearch.select();
+    };
+    focusDetails = () => {
+      activate('entry-panel-details');
+      form.querySelector('[name="transaction_date"]')?.focus({ preventScroll: true });
     };
     for (const tab of tabs) {
       const panel = panels.find((item) => item.id === tab.dataset.entryTab);
@@ -70,6 +84,33 @@
           ? 'entry-panel-details'
           : tabs[0].dataset.entryTab),
     );
+    if (!firstError && form.dataset.entryBound !== 'true')
+      requestAnimationFrame(focusMember);
+    form.addEventListener('keydown', (event) => {
+      if (
+        event.key !== 'Enter' ||
+        event.isComposing ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey
+      )
+        return;
+      // The existing combo handles selection first; then advance on a valid
+      // selected member, never on an unselected search string.
+      if (
+        event.target === memberSearch &&
+        member.value &&
+        memberSearch.validity.valid &&
+        memberSearch.getAttribute('aria-expanded') !== 'true'
+      ) {
+        event.preventDefault();
+        account?.focus({ preventScroll: true });
+        if (account?.tagName === 'INPUT') account.select();
+      } else if (event.target === account) {
+        // Enter confirms the account; F4 opens details without submitting.
+        event.preventDefault();
+      }
+    });
     let revealingInvalid = false;
     form.addEventListener(
       'invalid',
@@ -104,16 +145,22 @@
       closeEntry();
       return;
     }
+    if (event.key === 'F4' && !event.shiftKey && form) {
+      event.preventDefault();
+      if (!event.repeat) focusDetails();
+      return;
+    }
     if (event.key !== 'F2' || event.shiftKey || event.repeat) return;
     if (form) {
       event.preventDefault();
-      form.querySelector('[data-entry-tab][aria-selected="true"]')?.focus();
+      focusMember();
       return;
     }
     if (!document.querySelector('[data-entry-shortcut]')) return;
     event.preventDefault();
     if (entryWindow && !entryWindow.closed) {
       entryWindow.focus();
+      entryWindow.postMessage({ type: 'edcs-entry-focus-member' }, location.origin);
       return;
     }
     returnFocus = document.activeElement;
@@ -141,7 +188,16 @@
   });
 
   window.addEventListener('message', (event) => {
-    if (event.origin !== location.origin || event.source !== entryWindow) return;
+    if (event.origin !== location.origin) return;
+    if (
+      isPopup &&
+      event.source === window.opener &&
+      event.data?.type === 'edcs-entry-focus-member'
+    ) {
+      focusMember?.();
+      return;
+    }
+    if (event.source !== entryWindow) return;
     if (event.data?.type === 'edcs-entry-navigation') {
       const target = new URL(event.data.url, location.href);
       if (target.origin === location.origin) location.assign(target.href);
